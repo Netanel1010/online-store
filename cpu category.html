@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpg" href="images/favicon.jpg">
+    <title>N.M.S</title>
+    <script src="https://kit.fontawesome.com/c7a0f15f4b.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <div class="head">
+            <ul>
+                <li><a href="index.html" class="Logo"><img src="images/logo.png"></a></li>
+                <li><a href="index.html" class="link">בית</a></li>
+                <li><a href="About.html" class="link">אודות </a></li>
+                <li><a href="Products.html" class="link">מוצרים</a></li>
+                <li><a href="Contact Us.html" class="link">צור קשר</a></li>
+            </ul>
+
+            <div class="search"></div>
+
+            <div class="cart">
+                <a href="login.html"><i class="fa-solid fa-user"></i></a>
+                <a href="Favorites.html"><i class="fa-solid fa-heart"></i></a>
+                <a href="shopping cart.html"><i class="fa fa-shopping-cart"></i></a>
+                <a href="whatsapp://send?phone=0000000000">
+                    <svg viewBox="0 0 32 32" class="whatsapp-ico">
+                        <path
+                            d=" M19.11 17.205c-.372 0-1.088 1.39-1.518 1.39a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.143-.73-2.09-.832-2.335-.143-.372-.214-.487-.6-.487-.187 0-.36-.043-.53-.043-.302 0-.53.115-.746.315-.688.645-1.032 1.318-1.06 2.264v.114c-.015.99.472 1.977 1.017 2.78 1.23 1.82 2.506 3.41 4.554 4.34.616.287 2.035.888 2.722.888.817 0 2.15-.515 2.478-1.318.13-.33.244-.73.244-1.088 0-.058 0-.144-.03-.215-.1-.172-2.434-1.39-2.678-1.39zm-2.908 7.593c-1.747 0-3.48-.53-4.942-1.49L7.793 24.41l1.132-3.337a8.955 8.955 0 0 1-1.72-5.272c0-4.955 4.04-8.995 8.997-8.995S25.2 10.845 25.2 15.8c0 4.958-4.04 8.998-8.998 8.998zm0-19.798c-5.96 0-10.8 4.842-10.8 10.8 0 1.964.53 3.898 1.546 5.574L5 27.176l5.974-1.92a10.807 10.807 0 0 0 16.03-9.455c0-5.958-4.842-10.8-10.802-10.8z"
+                            fill-rule="evenodd"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="cpu-name">
+            <h1>מעבדים</h1>
+        </div>
+
+        <div class="cpu-container">
+            <div class="sort">
+                <div class="sort-column">
+                    <h3>סנן לפני מותג</h3>
+                    <label>
+                        <input type="checkbox">
+                        <div class="sort-row">
+                            <p>AMD</p>
+                            <span>2</span>
+                        </div>
+                    </label>
+
+                    <label>
+                        <input type="checkbox">
+                        <div class="sort-row">
+                            <p>Intel</p>
+                            <span>8</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <div class="sort-image">
+                <div class="cpu-image-top">
+                    <div class="imges">
+                        <img src="images/cpu-category/AMD CPU-100x100.webp">
+                        <span>מעבדי AMD</span>
+                    </div>
+                    <div class="imges">
+                        <img src="images/cpu-category/INTEL CPU-100x100.webp">
+                        <span>מעבדי Intel</span>
+                    </div>
+                </div>
+
+                <div class="3">
+                    <div class="cpu-model">
+                        <label for="model"></label>
+                        <select name="model" id="model">
+                            <option class="option" value="חדשים">חדשים</option>
+                            <option class="option" value="מומלצים">מומלצים</option>
+                            <option class="option" value="שם (א - ת)">שם (א - ת)</option>
+                            <option class="option" value="שם (ת - א)">שם (ת - א)</option>
+                            <option class="option" value="מחיר (נמוך > גבוה)">מחיר (נמוך > גבוה)</option>
+                            <option class="option" value="מחיר (גבוה > נמוך)">מחיר (גבוה > נמוך)</option>
+                        </select>
+                    </div>
+
+                    <!--<div class="cpu-products">
+                        <div class="item">
+                            <a href="#">
+                                <img src="images/product item/CPU/Ultra 9 258.webp" class="image">
+                            </a>
+                            <a href="#">
+                                <div class="lable"></div>
+                                <h2 class="title">Intel Core Ultra 9 285 / 1851 Tray</h2>
+                                <div class="remark">C285T</div>
+                            </a>
+                            <a href="#">
+                                <div class="price">
+                                    <span class="old"></span>
+                                    <span class="new">₪ 2,837</span>
+                                </div>
+                            </a>
+                            <div class="brands"><img src="images/Product brands/intel.webp"></div>
+                            <a href="#">
+                                <div class="add-to-cart">
+                                    <button class="cart"><i class="fa fa-shopping-cart"></i></button>
+                                    <button class="fest-buy">קנייה מהירה</button>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="item">
+                            <a href="#">
+                                <img src="images/product item/CPU/Ultra 7 265.webp" class="image">
+                            </a>
+                            <a href="#">
+                                <div class="lable"></div>
+                                <h2 class="title">Intel Core Ultra 7 265 / 1851 Tray</h2>
+                                <div class="remark">C265T</div>
+                            </a>
+                            <a href="#">
+                                <div class="price">
+                                    <span class="old"></span>
+                                    <span class="new">₪ 1,785</span>
+                                </div>
+                            </a>
+                            <div class="brands"><img src="images/Product brands/intel.webp"></div>
+                            <a href="#">
+                                <div class="add-to-cart">
+                                    <button class="cart"><i class="fa fa-shopping-cart"></i></button>
+                                    <button class="fest-buy">קנייה מהירה</button>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="item">
+                            <a href="#">
+                                <img src="images/product item/CPU/Ultra 7 265.webp" class="image">
+                            </a>
+                            <a href="#">
+                                <div class="lable"></div>
+                                <h2 class="title">Intel Core Ultra 7 265F / 1851 Tray</h2>
+                                <div class="remark">C265FT</div>
+                            </a>
+                            <a href="#">
+                                <div class="price">
+                                    <span class="old"></span>
+                                    <span class="new">₪ 1,714</span>
+                                </div>
+                            </a>
+                            <div class="brands"><img src="images/Product brands/intel.webp"></div>
+                            <a href="#">
+                                <div class="add-to-cart">
+                                    <button class="cart"><i class="fa fa-shopping-cart"></i></button>
+                                    <button class="fest-buy">קנייה מהירה</button>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="item">
+                            <a href="#">
+                                <img src="images/product item/CPU/Ultra 5 245.webp" class="image">
+                            </a>
+                            <a href="#">
+                                <div class="lable"></div>
+                                <h2 class="title">Intel Core Ultra 5 245 / 1851 Tray</h2>
+                                <div class="remark">C245T</div>
+                            </a>
+                            <a href="#">
+                                <div class="price">
+                                    <span class="old"></span>
+                                    <span class="new">₪ 1,423</span>
+                                </div>
+                            </a>
+                            <div class="brands"><img src="images/Product brands/intel.webp"></div>
+                            <a href="#">
+                                <div class="add-to-cart">
+                                    <button class="cart"><i class="fa fa-shopping-cart"></i></button>
+                                    <button class="fest-buy">קנייה מהירה</button>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="item">
+                            <a href="#">
+                                <img src="images/product item/CPU/Ultra 5 245.webp" class="image">
+                            </a>
+                            <a href="#">
+                                <div class="lable"></div>
+                                <h2 class="title">Intel Core Ultra 5 225F / 1851 Tray</h2>
+                                <div class="remark">C225FT</div>
+                            </a>
+                            <a href="#">
+                                <div class="price">
+                                    <span class="old"></span>
+                                    <span class="new">₪ 1,141</span>
+                                </div>
+                            </a>
+                            <div class="brands"><img src="images/Product brands/intel.webp"></div>
+                            <a href="#">
+                                <div class="add-to-cart">
+                                    <button class="cart"><i class="fa fa-shopping-cart"></i></button>
+                                    <button class="fest-buy">קנייה מהירה</button>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="item">
+                            <a href="#">
+                                <img src="images/product item/CPU/Ultra 5 245.webp" class="image">
+                            </a>
+                            <a href="#">
+                                <div class="lable"></div>
+                                <h2 class="title">Intel Core Ultra 5 225 / 1851 Tray</h2>
+                                <div class="remark">C225T</div>
+                            </a>
+                            <a href="#">
+                                <div class="price">
+                                    <span class="old"></span>
+                                    <span class="new">₪ 1,231</span>
+                                </div>
+                            </a>
+                            <div class="brands"><img src="images/Product brands/intel.webp"></div>
+                            <a href="#">
+                                <div class="add-to-cart">
+                                    <button class="cart"><i class="fa fa-shopping-cart"></i></button>
+                                    <button class="fest-buy">קנייה מהירה</button>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="item">
+                            <a href="#">
+                                <img src="images/product item/CPU/Ultra 5 245.webp" class="image">
+                            </a>
+                            <a href="#">
+                                <div class="lable"></div>
+                                <h2 class="title">Intel Core Ultra 5 235 / 1851 Tray</h2>
+                                <div class="remark">C235T</div>
+                            </a>
+                            <a href="#">
+                                <div class="price">
+                                    <span class="old"></span>
+                                    <span class="new">₪ 1,292</span>
+                                </div>
+                            </a>
+                            <div class="brands"><img src="images/Product brands/intel.webp"></div>
+                            <a href="#">
+                                <div class="add-to-cart">
+                                    <button class="cart"><i class="fa fa-shopping-cart"></i></button>
+                                    <button class="fest-buy">קנייה מהירה</button>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="item">
+                            <a href="#">
+                                <img src="images/product item/CPU/AMD.webp" class="image">
+                            </a>
+                            <a href="#">
+                                <div class="lable"></div>
+                                <h2 class="title">AMD Ryzen 7 7800X3D AM5 Tray</h2>
+                                <div class="remark">100-000000910</div>
+                            </a>
+                            <a href="#">
+                                <div class="price">
+                                    <span class="old"></span>
+                                    <span class="new">₪ 1,858</span>
+                                </div>
+                            </a>
+                            <div class="brands"><img src="images/Product brands/AMD.webp"></div>
+                            <a href="#">
+                                <div class="add-to-cart">
+                                    <button class="cart"><i class="fa fa-shopping-cart"></i></button>
+                                    <button class="fest-buy">קנייה מהירה</button>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="item">
+                            <a href="#">
+                                <img src="images/product item/CPU/12900k.webp" class="image">
+                            </a>
+                            <a href="#">
+                                <div class="lable"></div>
+                                <h2 class="title">Intel Core i9 12900K / 1700 Tray</h2>
+                                <div class="remark">C12900KT</div>
+                            </a>
+                            <a href="#">
+                                <div class="price">
+                                    <span class="old"></span>
+                                    <span class="new">₪ 1,857</span>
+                                </div>
+                            </a>
+                            <div class="brands"><img src="images/Product brands/intel.webp"></div>
+                            <a href="#">
+                                <div class="add-to-cart">
+                                    <button class="cart"><i class="fa fa-shopping-cart"></i></button>
+                                    <button class="fest-buy">קנייה מהירה</button>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="item">
+                            <a href="#">
+                                <img src="images/product item/CPU/AMD.webp" class="image">
+                            </a>
+                            <a href="#">
+                                <div class="lable"></div>
+                                <h2 class="title">AMD Ryzen 5 7600X AM5 Tray</h2>
+                                <div class="remark">100-000000593</div>
+                            </a>
+                            <a href="#">
+                                <div class="price">
+                                    <span class="old"></span>
+                                    <span class="new">₪ 939</span>
+                                </div>
+                            </a>
+                            <div class="brands"><img src="images/Product brands/AMD.webp"></div>
+                            <a href="#">
+                                <div class="add-to-cart">
+                                    <button class="cart"><i class="fa fa-shopping-cart"></i></button>
+                                    <button class="fest-buy">קנייה מהירה</button>
+                                </div>
+                            </a>
+                        </div>
+
+                    </div>-->
+                    <div id="products-container" class="products"></div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+
+        <div class="footer-container">
+
+            <div class="contact">
+                <h2>Contact-Us</h2>
+                <p>Email@gmail.com</p>
+                <p>Phone: +012 345 6789</p>
+                <p>Address: sironit</p>
+                <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3931.8394244235706!2d34.85354840482807!3d32.35089562367929!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151d6ac92b8eebc9%3A0x607b4fc05238d484!2z15fXldejINeR15zXlSDXkdeZ15k!5e0!3m2!1siw!2sil!4v1738159138906!5m2!1siw!2sil"
+                    allowfullscreen="" loading="0" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+
+            <div class="links">
+                <h2>Quick Links</h2>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="About.html">About</a></li>
+                    <li><a href="Products.html">Products</a></li>
+                    <li><a href="Contact Us.html">Contact us</a></li>
+                </ul>
+            </div>
+
+            <div class="follow">
+                <h2>Follow Us</h2>
+                <ul class="icons">
+                    <li><a href="https://youtube.com"><i class="fab fa-youtube"></i></a></li>
+                    <li><a href="https://web.telegram.org/"><i class='fab fa-telegram'></i></a></li>
+                    <li><a href="https://www.facebook.com/?locale=he_IL"><i class="fa-brands fa-facebook"></i></a></li>
+                    <li><a href="https://www.instagram.com/"><i class="fa-brands fa-instagram"></i></a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="bottom-bar">
+            <p> &copy; 2025 N.M.S . All right reserved</p>
+        </div>
+
+
+    </footer>
+    <script src="main.js"></script>
+    <script src="category.js"></script>
+
+</body>
+
+</html>
