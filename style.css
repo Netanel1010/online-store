@@ -2316,3 +2316,9 @@ footer .bottom-bar{
     text-shadow: 0 0 10px #1a1a1a, 0 0 20px #1a1a1a, 0 0 40px #1a1a1a, 0 0 80px #1a1a1a;
     transition: all ease 0.5s;
 }
+
+@media all and (min-width: 1920px) and (max-width: 2559px) {
+    .products-container{
+        width: 1800px;
+    }
+}

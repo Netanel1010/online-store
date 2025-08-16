@@ -218,6 +218,7 @@ fetch("products.json")
     cartBtn.classList.add('cart');
     const cartIcon = document.createElement('i');
     cartIcon.classList.add('fa', 'fa-shopping-cart');
+    cartIcon.title = "הוסף לעגלה";
     cartBtn.appendChild(cartIcon);
 
     const cartData = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -272,6 +273,7 @@ fetch("products.json")
     heartBtn.classList.add('heart');
     const heartIcon = document.createElement('i');
     heartIcon.classList.add('fa-solid', 'fa-heart');
+    heartIcon.title = "הוסף למועדפים";
     heartBtn.appendChild(heartIcon);
 
     const favoritesData = JSON.parse(localStorage.getItem("favorites") || "[]");
