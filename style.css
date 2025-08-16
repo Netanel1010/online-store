@@ -2322,3 +2322,15 @@ footer .bottom-bar{
         width: 1800px;
     }
 }
+@media all and (min-width: 1366px) and (max-width: 1919px) {
+    .products-container{
+        width: 1450px;
+    }
+    .products-container .sort-image{
+        min-width: 1150px;
+        width: 1150px;
+    }
+    .items{
+        grid-template-columns: repeat(4,1fr);
+    }
+}
