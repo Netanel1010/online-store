@@ -2333,4 +2333,20 @@ footer .bottom-bar{
     .items{
         grid-template-columns: repeat(4,1fr);
     }
+    .category{
+        max-width: 1536px;
+        width: 1450;
+    }
+    .Brands{
+        max-width: 1536px;
+        width: 1450px;
+    }
+    .sale{
+        max-width: 1536px;
+        width: 1450px;
+    }
+    .recommend{
+        max-width: 1536px;
+        width: 1450px;
+    }
 }
