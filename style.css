@@ -1347,11 +1347,11 @@ footer .bottom-bar{
     cursor: pointer;
     color: #ff6d00;
 }
-.cpu-container .cpu-model{
+.cpu-container .sort-model{
     margin-top: 30px;
     margin-bottom: 30px;
 }
-.cpu-container .cpu-model #model{
+.cpu-container .sort-model #model{
     font-size: 14px;
     padding: 10px;
     direction: rtl;
@@ -2293,11 +2293,11 @@ footer .bottom-bar{
     cursor: pointer;
     color: #ff6d00;
 }
-.products-container .cpu-model{
+.products-container .sort-model{
     margin-top: 30px;
     margin-bottom: 30px;
 }
-.products-container .cpu-model #model{
+.products-container .sort-model #model{
     font-size: 14px;
     padding: 10px;
     direction: rtl;
@@ -2350,3 +2350,5 @@ footer .bottom-bar{
         width: 1450px;
     }
 }
+
+

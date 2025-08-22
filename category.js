@@ -9,6 +9,29 @@ categoryNameH1.textContent = `Category. ${categoryParam}`
 categoryName.appendChild(categoryNameH1);
 
 
+
+//מיין לפי
+function onSort (type , product){
+
+    if(type == 'Recommend'){
+        return product.sort(function(a,b){
+            return b.Recommend - a.Recommend
+        })
+    }
+    if(type == 'price_low_high'){
+        return  product.sort(function(a,b){
+            return a.priceNew - b.priceNew
+        })
+    }
+    if(type == 'price_high_low'){
+        return product.sort(function(a,b){
+            return b.priceNew-a.priceNew
+        })
+    }
+    return product;//אם לא בחרתי כלום
+}
+
+
 fetch('products.json')          //שולח בקשה לקובץ הזה
     .then(res => res.json())          //מתי שנקבל תשובה נמיר את ג'ייסון לאובייקטים של ג'אווהקריפט
     .then(data => {                   //המערך של כול המוצרים
@@ -18,6 +41,21 @@ fetch('products.json')          //שולח בקשה לקובץ הזה
         const container = document.querySelector(".items");
 
         const cartData = JSON.parse(localStorage.getItem("cart") || "[]"); // לוקח את העגלה מה- localStorage
+
+
+        
+        renderProducts(filtered, container, cartData);//שומר על כול הדף הדינמי
+
+        document.querySelector('.sort-model')?.addEventListener('change',function(event){
+            console.log(event.target.value);  
+          
+            let sortedArray = onSort(event.target.value , [...filtered]);
+            renderProducts(sortedArray, container, cartData);
+            console.log(sortedArray);
+          
+        })
+
+
 
         if (filtered.length === 0) {
             container.innerHTML = "<p>אין מוצרים בקטגוריה זו.</p>";
@@ -157,3 +195,7 @@ fetch('products.json')          //שולח בקשה לקובץ הזה
     .catch(function (error) {
         return console.error("שגיאה בטעינת המוצרים:", error);
     });
+
+
+
+
