@@ -1,13 +1,53 @@
+function onSort (type , product){
+
+    /*if(type == 'Recommend'){
+        return product.sort(function(a,b){
+            return b.Recommend - a.Recommend
+        })
+    }*/
+     if(type == 'price_low_high'){
+        return  product.sort(function(a,b){
+            return a.priceNew - b.priceNew
+        })
+    }
+    else if(type == 'price_high_low'){
+        return product.sort(function(a,b){
+            return b.priceNew-a.priceNew
+        })
+    }
+    return product;//אם לא בחרתי כלום
+}
+
 fetch('products.json')          /*שולח בקשה לקובץ הזה*/
     .then(res => res.json())          /*מתי שנקבל תשובה נמיר את ג'ייסון לאובייקטים של ג'אווהקריפט*/
     .then(data => {                   /*המערך של כול המוצרים*/
+        
         const container = document.querySelector(".items");
 
         const cartData = JSON.parse(localStorage.getItem("cart") || "[]"); // לוקח את העגלה מה- localStorage
 
-        data.forEach(product => {
+         document.querySelector('.sort-model')?.addEventListener('change',function(event){
+            let type = event.target.value;
+            const sortedProducts = onSort(type, [...data]);
+            container.innerHTML = ""; //נקה את התוכן הקודם
+            sortedProducts.forEach(product => {
+                 createNewProducts(product, container, cartData);
+            });
+        })
 
-            const itemDiv = document.createElement("div");
+        data.forEach(product => {
+            createNewProducts(product, container, cartData);
+        });
+        console.log(data);
+    })
+    .catch(function (error) {
+        return console.error("שגיאה בטעינת המוצרים:", error);
+    })
+
+
+
+function createNewProducts (product, container, cartData) {
+    const itemDiv = document.createElement("div");
             itemDiv.classList.add("item");
 
 
@@ -131,12 +171,4 @@ fetch('products.json')          /*שולח בקשה לקובץ הזה*/
 
             container.appendChild(itemDiv);
             container.style.width = '100%';
-        });
-        console.log(data);
-    })
-    .catch(function (error) {
-        return console.error("שגיאה בטעינת המוצרים:", error);
-    })
-
-
-
+}
