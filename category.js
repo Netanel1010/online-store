@@ -1,6 +1,7 @@
 // שלב 1: קבל את שם הקטגוריה מה-URL
 const urlParams = new URLSearchParams(window.location.search);
 const categoryParam = urlParams.get('category');
+console.log("categoryParam:", categoryParam);//באיזה קטגורייה אני נמצא
 
 // עדכן את כותרת הדף
 const categoryName = document.querySelector(".categoryName");
@@ -13,17 +14,17 @@ categoryName.appendChild(categoryNameH1);
 //מיין לפי
 function onSort (type , product){
 
-    if(type == 'Recommend'){
+    /*if(type == 'Recommend'){
         return product.sort(function(a,b){
             return b.Recommend - a.Recommend
         })
-    }
-    if(type == 'price_low_high'){
+    }*/
+     if(type == 'price_low_high'){
         return  product.sort(function(a,b){
             return a.priceNew - b.priceNew
         })
     }
-    if(type == 'price_high_low'){
+    else if(type == 'price_high_low'){
         return product.sort(function(a,b){
             return b.priceNew-a.priceNew
         })
@@ -37,25 +38,25 @@ fetch('products.json')          //שולח בקשה לקובץ הזה
     .then(data => {                   //המערך של כול המוצרים
 
         const filtered = data.filter(product => product.category === categoryParam);
+        console.log("Filtered products:", filtered);
 
         const container = document.querySelector(".items");
 
         const cartData = JSON.parse(localStorage.getItem("cart") || "[]"); // לוקח את העגלה מה- localStorage
 
 
-        
-        renderProducts(filtered, container, cartData);//שומר על כול הדף הדינמי
 
         document.querySelector('.sort-model')?.addEventListener('change',function(event){
-            console.log(event.target.value);  
-          
-            let sortedArray = onSort(event.target.value , [...filtered]);
-            renderProducts(sortedArray, container, cartData);
-            console.log(sortedArray);
-          
+            let type = event.target.value;
+            console.log(filtered);
+            const sortedProducts = onSort(type, [...filtered]);
+            container.innerHTML = ""; //נקה את התוכן הקודם
+            sortedProducts.forEach(product => {
+                 createNewProducts(product, container, cartData);
+            });
         })
 
-
+        
 
         if (filtered.length === 0) {
             container.innerHTML = "<p>אין מוצרים בקטגוריה זו.</p>";
@@ -63,8 +64,20 @@ fetch('products.json')          //שולח בקשה לקובץ הזה
         else {
 
             filtered.forEach(product => {
+                createNewProducts(product, container, cartData);
+             });
+        }    
+        console.log(data);
+    })
+    .catch(function (error) {
+        return console.error("שגיאה בטעינת המוצרים:", error);
+    });
 
-                const itemDiv = document.createElement("div");
+
+
+
+function createNewProducts(product, container, cartData) {
+    const itemDiv = document.createElement("div");
                 itemDiv.classList.add("item");
 
 
@@ -188,14 +201,4 @@ fetch('products.json')          //שולח בקשה לקובץ הזה
 
                 container.appendChild(itemDiv);
                 container.style.width = '100%';
-            });
-        }    
-        console.log(data);
-    })
-    .catch(function (error) {
-        return console.error("שגיאה בטעינת המוצרים:", error);
-    });
-
-
-
-
+}
