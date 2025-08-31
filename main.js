@@ -1,12 +1,35 @@
 const header = document.querySelector("header");
 const head = document.querySelector("header .head");
 
+
+
+
 /*חיפוש*/
 const search = document.querySelector(".search");
 const input = document.createElement("input");
 input.type = "text";
 input.placeholder = "חפש מוצרים...";
+const lowerCase = input.value.toLowerCase();
 search.appendChild(input);
+
+
+fetch('products.json')
+  .then(Response => Response.json())
+  .then(data =>{
+
+    input.addEventListener("change", (event) => {
+
+      if (input.type.length>=2){
+        const filterSearch = data.filter(product=> product.name.include);
+          input.type=filterSearch
+        }
+    })
+    console.log(data);
+  })
+  .catch(err => console.error( "שגיאה בחיפוש!",err));
+
+
+
 
 
 const cart = document.querySelector(".cart");
@@ -38,6 +61,8 @@ if (cart1.length > 0) {
   faShopping.classList.add("active");
   shopBadge.textContent = cart1.length;
 }
+
+
 
 //מבצעים
 fetch('products.json')
