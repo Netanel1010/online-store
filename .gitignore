@@ -1,0 +1,11 @@
+# Dependency directories
+/node_modules
+/vendor
+
+# Temporary files
+.DS_Store
+.vscode/
+
+# Build outputs
+/dist
+/build
