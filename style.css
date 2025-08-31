@@ -2352,6 +2352,13 @@ footer .bottom-bar{
 }
 
 @media all and (max-width: 480px) {
+    .content h1 {
+    width: 203px;
+    font-size: 13px;
+    line-height: 17px;
+    top: 87px;
+    left: 14px;
+    }
     .category{
     display:grid;
     grid-template-columns: repeat(2,1fr);
