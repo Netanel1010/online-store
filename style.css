@@ -2355,7 +2355,8 @@ footer .bottom-bar{
     .category{
     display:grid;
     grid-template-columns: repeat(2,1fr);
-    row-gap: 8px;
+    gap: 8px;
+    padding: 0;
     justify-self: center;
     }
     .category .item{
