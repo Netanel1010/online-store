@@ -2352,31 +2352,44 @@ footer .bottom-bar{
 }
 
 @media all and (max-width: 480px) {
-  .footer-container {
+    .category{
+    display:grid;
+    grid-template-columns: repeat(2,1fr);
+    row-gap: 8px;
+    justify-self: center;
+    }
+    .category .item{
+    background-color: white;
+    border: 2px solid hsl(0, 0%, 70%);
+    border-radius: 10px;
+    overflow: hidden;
+    padding: 4px;
+    }
+    .footer-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     /*gap: 8px; /* פחות רווח בין בלוקים */
     text-align: center;
     padding: 12px 0; /* פחות גובה */
-  }
-  .footer-container > div {
+    }
+    .footer-container > div {
     width: 100%;
     margin-bottom: 6px; /* פחות רווח */
-  }
-  .footer-container iframe {
+    }
+    .footer-container iframe {
     width: 100%;
     min-width: 180px;
     height: 80px; /* פחות גובה */
-  }
-  .links ul,
-  .follow ul.icons {
+    }
+    .links ul,
+    .follow ul.icons {
     padding: 0;
     justify-content: center;
-  }
-  .bottom-bar {
+    }
+    .bottom-bar {
     font-size: 0.85em;
     padding: 4px 0;
-  }
+    }
 }
 
