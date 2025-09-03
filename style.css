@@ -212,7 +212,8 @@ header .fa-search{
     }
     .hamburger {
         display: block; 
-        margin-left: 10px;
+        margin-left: 5px;
+        margin-right: 5px;
     }
     .search input {
         width: 200px;
@@ -2421,6 +2422,12 @@ footer .bottom-bar{
 }
 
 @media all and (max-width: 480px) {
+    .head{
+        gap: 0;
+    }
+    .head .cart a {
+        margin: 8px;
+    }
     .content h1 {
     width: 203px;
     font-size: 13px;
