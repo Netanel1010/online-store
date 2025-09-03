@@ -1,12 +1,61 @@
 const header = document.querySelector("header");
 const head = document.querySelector("header .head");
 
+
+document.addEventListener("DOMContentLoaded", function() {
+  const hamburger = document.querySelector(".hamburger");
+  if (hamburger) {
+    hamburger.addEventListener("click", toggleMenu);
+  }
+
+   const closeMenuBtn = document.getElementById("closeMenuBtn");
+  if (closeMenuBtn) {
+    closeMenuBtn.addEventListener("click", function() {
+      const sideMenu = document.getElementById("sideMenu");
+      if (sideMenu) {
+        sideMenu.classList.remove("active");
+        document.removeEventListener("mousedown", closeMenuOnClickOutside);
+      }
+    });
+  }
+});
+
+function toggleMenu() {
+  const sideMenu = document.getElementById("sideMenu");
+  if (sideMenu) {
+    sideMenu.classList.toggle("active");
+
+    // הוספת מאזין ללחיצה מחוץ לתפריט
+    if (sideMenu.classList.contains("active")) {
+      document.addEventListener("mousedown", closeMenuOnClickOutside);
+    } else {
+      document.removeEventListener("mousedown", closeMenuOnClickOutside);
+    }
+  }
+}
+
+function closeMenuOnClickOutside(event) {
+  const sideMenu = document.getElementById("sideMenu");
+  const hamburger = document.querySelector(".hamburger");
+  if (
+    sideMenu &&
+    !sideMenu.contains(event.target) &&
+    !hamburger.contains(event.target)
+  ) {
+    sideMenu.classList.remove("active");
+    document.removeEventListener("mousedown", closeMenuOnClickOutside);
+  }
+}
+
+
 /*חיפוש*/
 const search = document.querySelector(".search");
 const input = document.createElement("input");
 input.type = "text";
 input.placeholder = "חפש מוצרים...";
 search.appendChild(input);
+
+
 
 
 const cart = document.querySelector(".cart");

@@ -86,6 +86,7 @@ header .search{
     justify-content: space-between;  
     margin-left: auto;
     margin-right: auto; 
+    position: relative;
 }
 header  input{
     margin-left: 15px;
@@ -95,7 +96,15 @@ header  input{
     width: 500px;
     border: 1px solid hsl(0, 0%, 7%);
     border-radius: 10px;
-    font-size: 16px;   
+    font-size: 16px; 
+    outline: none;  
+}
+header .fa-search{
+    position: absolute;
+    top: 12.5px; 
+    left: 30px; 
+    cursor: pointer;
+    color: hsl(0, 0%, 46%);
 }
 .head .cart{
     margin-right: auto;
@@ -150,6 +159,66 @@ header  input{
     border-radius: 50%;
     box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.4);
 }
+
+
+
+.hamburger {
+    display: none;
+    font-size: 28px;
+    color: white;
+    cursor: pointer;
+}
+.side-menu {
+    position: fixed;
+    top: 0;
+    right: -250px; 
+    width: 250px;
+    height: 100%;
+    background-color: hsl(0, 0%, 10%);
+    display: flex;
+    flex-direction: column;
+    padding-top: 80px;
+    gap: 20px;
+    transition: right 0.3s ease;
+    z-index: 200;
+}
+.close-menu-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 2rem;
+  background-color: transparent;
+  color: #ff6d00;
+  border: none;
+  cursor: pointer;
+  z-index: 1001;
+}
+.side-menu a {
+    color: white;
+    text-decoration: none;
+    font-size: 20px;
+    padding: 10px 20px;
+}
+.side-menu a:hover {
+    background-color: #ff6d00;
+}
+.side-menu.active {
+    right: 0;
+}
+
+@media (max-width: 480px) {
+    header ul {
+        display: none;
+    }
+    .hamburger {
+        display: block; 
+        margin-left: 10px;
+    }
+    .search input {
+        width: 200px;
+    }
+}
+
 .content{
     display: flex;
     justify-content: center;
@@ -2358,6 +2427,45 @@ footer .bottom-bar{
     line-height: 17px;
     top: 87px;
     left: 14px;
+    }
+    .about{
+    margin-right: 5px;
+    margin-left: 5px;
+    }
+    .our-company{
+    margin-left: 5%;
+    margin-right: 5%;
+    }
+    .company-requirements{
+    margin-left: 5%;
+    margin-right: 5%;
+    }
+    .contact-us{
+    margin-right: 5px;
+    margin-left: 5px;
+    }
+    .contact-us-right-left{
+    display: grid;
+    }
+    .contact-us-right{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: auto;
+    }
+    .ways-to-contact{
+        margin-bottom:30px;
+    }
+    .contact-us-form{
+    width: auto;
+    }
+    .contact-us-form .name{
+    width: 100%;
+    margin-bottom: 15px;
+    }
+    .contact-us-form .tel{
+    width: 100%;
+    margin-bottom: 15px;
     }
     .category{
     display:grid;
