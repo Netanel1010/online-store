@@ -2424,9 +2424,18 @@ footer .bottom-bar{
 @media all and (max-width: 480px) {
     .head{
         gap: 0;
+        width: 390px;
     }
     .head .cart a {
         margin: 8px;
+    }
+    .head .cart .whatsapp-ico {
+        display: none;
+    }
+    .content .image {
+        margin-top: 52px;
+        margin-right: auto;
+        margin-left: 1px;
     }
     .content h1 {
     width: 203px;
