@@ -101,7 +101,7 @@ header  input{
 }
 header .fa-search{
     position: absolute;
-    top: 12.5px; 
+    top: 9.5px; 
     left: 30px; 
     cursor: pointer;
     color: hsl(0, 0%, 46%);
@@ -2438,11 +2438,11 @@ footer .bottom-bar{
         margin-left: 1px;
     }
     .content h1 {
-    width: 203px;
-    font-size: 13px;
-    line-height: 17px;
-    top: 87px;
-    left: 14px;
+        width: 203px;
+        font-size: 13px;
+        line-height: 17px;
+        top: 74px;
+        left: 7px;
     }
     .about{
     margin-right: 5px;
@@ -2496,6 +2496,20 @@ footer .bottom-bar{
     border-radius: 10px;
     overflow: hidden;
     padding: 4px;
+    }
+    .sale{
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+        align-content: center;
+        width: auto;
+    }
+    .recommend{
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+        align-content: center;
+        width: auto;
     }
     .footer-container {
     display: flex;
