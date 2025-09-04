@@ -174,7 +174,7 @@ header .fa-search{
     right: -250px; 
     width: 250px;
     height: 100%;
-    background-color: hsl(0, 0%, 10%);
+    background-color: hsl(0, 0%, 15%);
     display: flex;
     flex-direction: column;
     padding-top: 80px;
@@ -783,6 +783,9 @@ header .fa-search{
 .footer-container .follow i.fa-brands.fa-instagram{
     background: radial-gradient(circle at 33% 100%, #fed373 4%, #f15245 30%, #d92e7f 62%, #9b36b7 85%, #515ecf);
     color: #fff;
+}
+.footer-container .follow .whatsapp-ico{
+    display: none;
 }
 footer .bottom-bar{
     color: white;
@@ -2453,12 +2456,12 @@ footer .bottom-bar{
     margin-right: 5%;
     }
     .company-requirements{
-    margin-left: 5%;
-    margin-right: 5%;
+        margin-left: 5%;
+        margin-right: 5%;
     }
     .contact-us{
-    margin-right: 5px;
-    margin-left: 5px;
+        margin-right: 5px;
+        margin-left: 5px;
     }
     .contact-us-right-left{
     display: grid;
@@ -2482,6 +2485,18 @@ footer .bottom-bar{
     .contact-us-form .tel{
     width: 100%;
     margin-bottom: 15px;
+    }
+    .login{
+        margin-top: 70px;
+        margin-left: 5%;
+        margin-right: 5%;
+        padding: 18px;
+    }
+    .signup{
+        margin-top: 70px;
+        margin-left: 5%;
+        margin-right: 5%;
+        padding: 18px;
     }
     .category{
     display:grid;
@@ -2511,6 +2526,64 @@ footer .bottom-bar{
         align-content: center;
         width: auto;
     }
+    #shopping-cart-page{
+        width: auto;
+        margin-left: 5%;
+        margin-right: 5%;
+        margin-bottom: 50px;
+    }
+    .cart-container{
+        display: flex;
+        flex-direction: column;
+    }
+    .cart-container .box-2{
+        margin-left: 5%;
+        margin-right: 5%;
+        width: auto;
+    }
+    .shopping-cart-table{
+        overflow-x: unset;
+    }
+    .shopping-cart-table th, .shopping-cart-table td{
+        padding: 8px;
+        font-size: 16px;
+    }
+    .shopping-cart-table .title{
+        font-size: 14px;
+        -webkit-box-orient: unset;
+    }
+    .shopping-cart-table .count input{
+        width: 30px;
+        height: 20px;
+        font-size: 14px;
+    }
+    .favorite-container{
+        display: flex;
+        flex-direction: column;
+    }
+    .favorite-table{
+        width: auto;
+        margin-left: 5%;
+        margin-right: 5%;
+        margin-bottom: 50px;
+        overflow-x: unset;
+    }
+    .favorite-table th, .favorite-table td{
+        padding: 8px;
+        font-size: 16px;
+    }
+    .favorite-table .title {
+        font-size: 14px;
+        -webkit-box-orient: unset;
+    }
+    .favorite-table .count input{
+        width: 30px;
+        height: 20px;
+        font-size: 14px;
+    }
+    .favorite-container .favorite-table .common-buttons button{
+        width: 170px;
+    }
     .footer-container {
     display: flex;
     flex-direction: column;
@@ -2522,6 +2595,16 @@ footer .bottom-bar{
     .footer-container > div {
     width: 100%;
     margin-bottom: 6px; /* פחות רווח */
+    }
+    .footer-container .follow .whatsapp-ico{
+        display: block;
+        fill: white;
+        width: 45px;
+        height: 45px;
+        padding: 1px;
+        background-color: #4dc247;
+        border-radius: 50%;
+        box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.4);
     }
     .footer-container iframe {
     width: 100%;
