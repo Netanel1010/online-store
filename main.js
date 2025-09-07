@@ -55,7 +55,48 @@ input.type = "text";
 input.placeholder = "חפש מוצרים...";
 search.appendChild(input);
 
+fetch('products.json')
+  .then(response => response.json())
+  .then(data=>{
+    document.querySelector(".search input")?.addEventListener('input' , function(event){
+      const value = event.target.value;
+      const result = document.querySelector('#search-result');
+      result.innerHTML='';
+      result.style.display = 'none';
 
+      if(value.length < 2){
+        result.style.display = 'none';
+        return;
+      }
+
+      let filteredItem = data.filter(product => product.name.toLowerCase().includes(value.toLowerCase()));
+
+      filteredItem = filteredItem.slice(0, 5); 
+
+      result.style.display = 'block';
+      const ul = document.createElement('ul');
+              ul.classList.add('list-group');
+      filteredItem.forEach(product =>{
+        const li = document.createElement('li');
+              li.classList.add('list-group-item');
+        const link = document.createElement('a');
+              link.href = `product page.html?id=${product.id}`;
+        const span = document.createElement('span');
+        span.classList.add('name');
+        span.innerText = product.name;
+        const image = document.createElement('img');
+              image.src = product.image;
+              image.classList.add('image');
+        link.append(span);     
+        link.append(image);
+        li.append(link);
+        ul.append(li);
+        result.append(ul);
+      })
+      console.log(filteredItem);
+    })
+  })
+  .catch(error => console.error(error));
 
 
 const cart = document.querySelector(".cart");
@@ -236,11 +277,11 @@ fetch('products.json')
 
       saleContainer.appendChild(itemDiv);
     });
-    console.log(saleProducts);
+    //console.log(saleProducts);
 
     //לבדוק האם הם עובדים
-    console.log("saleContainer:", saleContainer);
-    console.log("saleProducts:", saleProducts);
+    //console.log("saleContainer:", saleContainer);
+    //console.log("saleProducts:", saleProducts);
 
   })
   .catch(err => console.error("שגיאה בטעינת המוצרים:", err));
@@ -394,11 +435,11 @@ fetch('products.json')
 
       recommendContainer.appendChild(itemDiv);
     });
-    console.log(recommendProducts);
+    //console.log(recommendProducts);
 
     //לבדוק האם הם עובדים
-    console.log("recommendContainer:", recommendContainer);
-    console.log("recommendProducts:", recommendProducts);
+    //console.log("recommendContainer:", recommendContainer);
+    //console.log("recommendProducts:", recommendProducts);
 
   })
   .catch(err => console.error("שגיאה בטעינת המוצרים:", err));

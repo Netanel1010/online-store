@@ -89,11 +89,10 @@ header .search{
     position: relative;
 }
 header  input{
-    margin-left: 15px;
     padding: 8px;
     text-align: right;
     overflow: hidden;
-    width: 500px;
+    width: 800px;
     border: 1px solid hsl(0, 0%, 7%);
     border-radius: 10px;
     font-size: 16px; 
@@ -102,10 +101,58 @@ header  input{
 header .fa-search{
     position: absolute;
     top: 9.5px; 
-    left: 30px; 
+    left: 16px; 
     cursor: pointer;
     color: hsl(0, 0%, 46%);
 }
+header #search-result{
+    display: none;
+    position: absolute;
+    top: 45px;
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+    z-index: 1000;
+    overflow: hidden;
+}
+header #search-result .list-group{
+    display: flex;
+    flex-direction: column;
+    margin-top: 16px;
+    margin-bottom: 16px;
+}
+header #search-result .list-group .list-group-item{
+    direction: ltr;
+    margin-left: auto;
+}
+header #search-result .list-group .list-group-item a{
+    padding: 10px 15px;
+    cursor: pointer;
+    color: #181818;
+    font-size: 16px;
+    margin-bottom: 10px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    margin: 0;
+}
+header #search-result .list-group .list-group-item a .name{
+
+}
+header #search-result .list-group .list-group-item a .image{
+    max-width: 45px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    margin-left: 15px;
+    margin-right: 0;
+}
+header #search-result .list-group .list-group-item a:hover {
+    color: #ff6d00;
+}
+
 .head .cart{
     margin-right: auto;
     display: flex;
@@ -1605,8 +1652,8 @@ footer .bottom-bar{
     color: black;
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
     overflow: hidden;
+    -webkit-line-clamp: 2;
     text-overflow: ellipsis;
     max-width: 300px;
     font-size: 16px;
@@ -1740,8 +1787,8 @@ footer .bottom-bar{
     color: black;
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
     overflow: hidden;
+    -webkit-line-clamp: 2;
     text-overflow: ellipsis;
     max-width: 300px;
     font-size: 16px;
@@ -2434,6 +2481,16 @@ footer .bottom-bar{
     }
     .head .cart .whatsapp-ico {
         display: none;
+    }
+    header #search-result .list-group {
+        margin-top: 8px;
+        margin-right: 8px;
+    }
+    header #search-result .list-group .list-group-item a .name{
+        font-size: 10px;
+    }
+    header #search-result .list-group .list-group-item a .image{
+        max-width: 30px;
     }
     .content .image {
         margin-top: 52px;
