@@ -2345,6 +2345,19 @@ footer .bottom-bar{
     max-width: 1920px;
     margin: 0 auto;
 }
+.products-container .fa-sliders{
+    border-radius: 4px;
+    background: #fff;
+    font-size: 22px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #ff6d00;
+    color: #fff;
+    border: 1px solid #ff6d00;
+}
 .products-container .sort{
     min-width: 275px;
     width: 275px;
@@ -2505,12 +2518,12 @@ footer .bottom-bar{
         left: 7px;
     }
     .about{
-    margin-right: 5px;
-    margin-left: 5px;
+        margin-right: 5px;
+        margin-left: 5px;
     }
     .our-company{
-    margin-left: 5%;
-    margin-right: 5%;
+        margin-left: 5%;
+        margin-right: 5%;
     }
     .company-requirements{
         margin-left: 5%;
@@ -2521,27 +2534,27 @@ footer .bottom-bar{
         margin-left: 5px;
     }
     .contact-us-right-left{
-    display: grid;
+        display: grid;
     }
     .contact-us-right{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: auto;
     }
     .ways-to-contact{
         margin-bottom:30px;
     }
     .contact-us-form{
-    width: auto;
+        width: auto;
     }
     .contact-us-form .name{
-    width: 100%;
-    margin-bottom: 15px;
+        width: 100%;
+        margin-bottom: 15px;
     }
     .contact-us-form .tel{
-    width: 100%;
-    margin-bottom: 15px;
+        width: 100%;
+        margin-bottom: 15px;
     }
     .login{
         margin-top: 70px;
@@ -2556,18 +2569,18 @@ footer .bottom-bar{
         padding: 18px;
     }
     .category{
-    display:grid;
-    grid-template-columns: repeat(2,1fr);
-    gap: 8px;
-    padding: 0;
-    justify-self: center;
+        display:grid;
+        grid-template-columns: repeat(2,1fr);
+        gap: 8px;
+        padding: 0;
+        justify-self: center;
     }
     .category .item{
-    background-color: white;
-    border: 2px solid hsl(0, 0%, 70%);
-    border-radius: 10px;
-    overflow: hidden;
-    padding: 4px;
+        background-color: white;
+        border: 2px solid hsl(0, 0%, 70%);
+        border-radius: 10px;
+        overflow: hidden;
+        padding: 4px;
     }
     .sale{
         display: flex;
@@ -2641,17 +2654,50 @@ footer .bottom-bar{
     .favorite-container .favorite-table .common-buttons button{
         width: 170px;
     }
+    .products-image{
+        height: 160px;
+        margin-top: 55px;
+    }
+    .products-name{
+        font-size: 14px;
+    }
+    .products-container .sort{
+        display: none;
+    }
+    .products-container .sort-image{
+        min-width: 320px;
+        width: 100%;
+    }
+    .products-container .sort-image .cpu-image-top{
+        display: none;
+    }
+    .products-container .sort-model{
+        margin-left: 64px;
+    }
+    .items{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .items .item .add-to-cart{
+        display: flex;
+    }
+    .sale .item .add-to-cart{
+        display: flex;
+    }
+    .recommend .item .add-to-cart{
+        display: flex;
+    }
     .footer-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    /*gap: 8px; /* פחות רווח בין בלוקים */
-    text-align: center;
-    padding: 12px 0; /* פחות גובה */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 12px 0; 
     }
     .footer-container > div {
-    width: 100%;
-    margin-bottom: 6px; /* פחות רווח */
+        width: 100%;
+        margin-bottom: 6px;
     }
     .footer-container .follow .whatsapp-ico{
         display: block;
@@ -2664,18 +2710,18 @@ footer .bottom-bar{
         box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.4);
     }
     .footer-container iframe {
-    width: 100%;
-    min-width: 180px;
-    height: 80px; /* פחות גובה */
+        width: 100%;
+        min-width: 180px;
+        height: 80px;
     }
     .links ul,
     .follow ul.icons {
-    padding: 0;
-    justify-content: center;
+        padding: 0;
+        justify-content: center;
     }
     .bottom-bar {
-    font-size: 0.85em;
-    padding: 4px 0;
+        font-size: 0.85em;
+        padding: 4px 0;
     }
 }
 
