@@ -181,23 +181,23 @@
         "priceNew": 640,
         "priceEilat": 550,
         "image": "images/product item/MOTHERBOARDS/asus prime b760m-a wifi d4.webp",
-        "mainImage": "images/product-page/450x450/B760M-A WiFi D4-1-450x450.jpg",
+        "mainImage": "images/product-page/450x450/B760M-A WIFI D4-1-450x450.jpg",
         "gallery": [
             {
-                "small": "images/product-page/74x74/B760M-A WiFi D4-1-74x74.jpg",
-                "large": "images/product-page/450x450/B760M-A WiFi D4-1-450x450.jpg"
+                "small": "images/product-page/74x74/B760M-A WIFI D4-1-74x74.jpg",
+                "large": "images/product-page/450x450/B760M-A WIFI D4-1-450x450.jpg"
             },
             {
-                "small": "images/product-page/74x74/B760M-A WiFi D4-2-74x74.jpg",
-                "large": "images/product-page/450x450/B760M-A WiFi D4-2-450x450.jpg"
+                "small": "images/product-page/74x74/B760M-A WIFI D4-2-74x74.jpg",
+                "large": "images/product-page/450x450/B760M-A WIFI D4-2-450x450.jpg"
             },
             {
-                "small": "images/product-page/74x74/B760M-A WiFi D4-3-74x74.jpg",
-                "large": "images/product-page/450x450/B760M-A WiFi D4-3-450x450.jpg"
+                "small": "images/product-page/74x74/B760M-A WIFI D4-3-74x74.jpg",
+                "large": "images/product-page/450x450/B760M-A WIFI D4-3-450x450.jpg"
             },
             {
-                "small": "images/product-page/74x74/B760M-A WiFi D4-4-74x74.jpg",
-                "large": "images/product-page/450x450/B760M-A WiFi D4-4-450x450.jpg"
+                "small": "images/product-page/74x74/B760M-A WIFI D4-4-74x74.jpg",
+                "large": "images/product-page/450x450/B760M-A WIFI D4-4-450x450.jpg"
             },
             {
                 "small": "images/product-page/74x74/B760M-A WiFi D4-5-74x74.jpg",
@@ -339,23 +339,24 @@
         "priceNew": 280,
         "priceEilat": 240,
         "image": "images/product item/POWER SUPPLAY/Gigabyte p650g.jpg",
-        "mainImage": "images/product-page/450x450/Gigabyte P650G-1-450x450.jpg",
+        
+        "mainImage": "images/product-page/450x450/Gigabyte p650g-1-450x450.jpg",
         "gallery": [
             {
                 "small": "images/product-page/74x74/Gigabyte P650G-1-74x74.jpg",
-                "large": "images/product-page/450x450/Gigabyte P650G-1-450x450.jpg"
+                "large": "images/product-page/450x450/Gigabyte p650g-1-450x450.jpg"
             },
             {
                 "small": "images/product-page/74x74/Gigabyte P650G-2-74x74.jpg",
-                "large": "images/product-page/450x450/Gigabyte P650G-2-450x450.jpg"
+                "large": "images/product-page/450x450/Gigabyte p650g-2-450x450.jpg"
             },
             {
                 "small": "images/product-page/74x74/Gigabyte P650G-3-74x74.jpg",
-                "large": "images/product-page/450x450/Gigabyte P650G-3-450x450.jpg"
+                "large": "images/product-page/450x450/Gigabyte p650g-3-450x450.jpg"
             },
             {
                 "small": "images/product-page/74x74/Gigabyte P650G-4-74x74.jpg",
-                "large": "images/product-page/450x450/Gigabyte P650G-4-450x450.jpg"
+                "large": "images/product-page/450x450/Gigabyte p650g-4-450x450.jpg"
             }
         ],
         "brand": "images/Product brands/gigabyte.webp",
@@ -654,27 +655,27 @@
         "priceNew": 370,
         "priceEilat": 320,
         "image": "images/Recommended/corsair hs65.webp",
-        "mainImage": "images/product-page/450x450/Corsair HS65 Surround-1-450x450.jpg",
+        "mainImage": "images/product-page/450x450/Corsair HS65 SURROUND-1-450x450.jpg",
         "gallery": [
             {
-                "small": "images/product-page/74x74/Corsair HS65 Surround-1-74x74.jpg",
-                "large": "images/product-page/450x450/Corsair HS65 Surround-1-450x450.jpg"
+                "small": "images/product-page/74x74/Corsair HS65 SURROUND-1-74x74.jpg",
+                "large": "images/product-page/450x450/Corsair HS65 SURROUND-1-450x450.jpg"
             },
             {
-                "small": "images/product-page/74x74/Corsair HS65 Surround-2-74x74.png",
-                "large": "images/product-page/450x450/Corsair HS65 Surround-2-450x450.png"
+                "small": "images/product-page/74x74/Corsair HS65 SURROUND-2-74x74.png",
+                "large": "images/product-page/450x450/Corsair HS65 SURROUND-2-450x450.png"
             },
             {
-                "small": "images/product-page/74x74/Corsair HS65 Surround-3-74x74.png",
-                "large": "images/product-page/450x450/Corsair HS65 Surround-3-450x450.png"
+                "small": "images/product-page/74x74/Corsair HS65 SURROUND-3-74x74.png",
+                "large": "images/product-page/450x450/Corsair HS65 SURROUND-3-450x450.png"
             },
             {
-                "small": "images/product-page/74x74/Corsair HS65 Surround-4-74x74.png",
-                "large": "images/product-page/450x450/Corsair HS65 Surround-4-450x450.png"
+                "small": "images/product-page/74x74/Corsair HS65 SURROUND-4-74x74.png",
+                "large": "images/product-page/450x450/Corsair HS65 SURROUND-4-450x450.png"
             },
             {
-                "small": "images/product-page/74x74/Corsair HS65 Surround-5-74x74.png",
-                "large": "images/product-page/450x450/Corsair HS65 Surround-5-450x450.png"
+                "small": "images/product-page/74x74/Corsair HS65 SURROUND-5-74x74.png",
+                "large": "images/product-page/450x450/Corsair HS65 SURROUND-5-450x450.png"
             }
         ],
         "brand": "images/Product brands/corsair.png",
