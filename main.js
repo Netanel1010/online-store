@@ -73,6 +73,10 @@ fetch('products.json')
 
       filteredItem = filteredItem.slice(0, 5); 
 
+      if(filteredItem < 1){
+      result.style.display = 'none'; 
+      return; 
+      }
       result.style.display = 'block';
       const ul = document.createElement('ul');
               ul.classList.add('list-group');
