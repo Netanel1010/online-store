@@ -2688,6 +2688,111 @@ footer .bottom-bar{
     .recommend .item .add-to-cart{
         display: flex;
     }
+    .categoryName{
+        font-size: 10px;
+    }
+    .product-name-top h3{
+        font-size: 10px;
+    }
+    #product-page{
+        margin-left: 5%;
+        margin-right: 5%;
+    }
+    .product-center{
+        max-width: 480px;
+        width: 100%;
+    }
+    .product-center .product-img{
+        float: none;
+        width: auto;
+    }
+    .product-center .product-img .product-main-img{
+        padding: 16px;
+    }
+    .product-center .product-img .product-main-img a{
+        display: flex;
+        justify-content: center;
+    }
+    .product-center .product-img .product-main-img a img{
+        width: 250px;
+        height: auto;
+    }
+    .product-center .product-img .product-main-img .sale-month{
+        width: 86px;
+    }
+    .product-center .product-img .product-small-img {
+        padding: 8px;
+    }
+    .product-center .product-img .product-small-img button{
+        width: 60px;
+        height: 60px;
+    }
+    .product-data{
+        width: 100%;
+        margin-top: 5%;
+    }
+    .product-data .top{
+        font-size: 14px;
+    }
+    .product-data .product-name {
+        font-size: 17px;
+    }
+    .product-price .price .name {
+        font-size: 17px;
+    }
+    .product-price .price .old-new {
+        font-size: 22px;
+    }
+    .product-price .eilat .name {
+        font-size: 17px;
+    }
+    .product-price .eilat .old-new{
+        font-size: 22px;
+    }
+    .product-data .product-order {
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .product-data .product-order .two-order .cart{
+        width: 40px;
+        height: 40px;
+    }
+    .product-data .product-order .two-order .fest-buy {
+        width: 145px;
+        height: 40px;
+        font-size: 16px;
+    }
+    .product-data .product-order .three-order .count{
+        font-size: 14px;
+    }
+    .product-data .product-order .all-order .heart{
+        width: 40px;
+        height: 40px;
+    }
+    .product-data .supply p {
+        font-size: 14px;
+    }
+    .product-center .product-description-name {
+        margin-top: 100px;
+    }
+    .product-center .product-description h3{
+        font-size: 17px;
+    }
+    .product-center .product-description ul{
+        font-size: 14px;
+    }
+    .product-center .product-description ul li {
+        margin-bottom: 5px;
+    }
+    .product-center .product-attributes .item .question{
+        direction: rtl;
+        padding-right: 0;
+        font-size: 14px;
+    }
+    .product-center .product-attributes .item .answer{
+        padding-left: 0;
+        font-size: 14px;
+    }
     .footer-container {
         display: flex;
         flex-direction: column;
