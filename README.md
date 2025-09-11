@@ -48,3 +48,4 @@ This project reflects my passion for creating user-friendly, responsive interfac
 
 ---
 
+Feel free to check out my repositories and follow my progress!
