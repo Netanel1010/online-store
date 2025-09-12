@@ -266,7 +266,31 @@ header #search-result .list-group .list-group-item a:hover {
         width: 200px;
     }
 }
-
+.back-to-top{
+    font-size: 28px;
+    height: 50px;
+    width: 50px;
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid black;
+    border-radius: 50%;
+    position: fixed;
+    right: 10px;
+    bottom: 20px;
+    cursor: pointer;
+    transform: translateX(150%);
+    transition: all ease 0.5s;
+}
+.back-to-top.active{
+    transform: translateX(0);
+}
+.back-to-top:hover{
+    background-color: #ff6d00;
+    color: #ffffff;
+    border: 1px solid #ff6d00;
+}
 .content{
     display: flex;
     justify-content: center;

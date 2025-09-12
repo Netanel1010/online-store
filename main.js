@@ -447,3 +447,30 @@ fetch('products.json')
 
   })
   .catch(err => console.error("שגיאה בטעינת המוצרים:", err));
+
+
+document.querySelector('.back-to-top')?.addEventListener('click' , function(event){
+  event.preventDefault();
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  })
+
+})
+
+document.addEventListener('scroll' , function(){
+
+  const {scrollTop , clientHeight}=document.documentElement;
+
+  /*const scrollTop = document.documentElement.scrollTop;
+  const screnSize = document.documentElement.clientHeight;*/
+
+  if( scrollTop > ( clientHeight / 2 ) ){
+      document.querySelector('.back-to-top').classList.add('active');
+  } else {
+      document.querySelector('.back-to-top').classList.remove('active');
+  }
+
+})
+  
