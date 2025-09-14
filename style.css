@@ -294,30 +294,74 @@ header #search-result .list-group .list-group-item a:hover {
 .content{
     display: flex;
     justify-content: center;
-    width: 100%;
 }
-.content a{
-    width: 100%;
-}
-.content .image{
-    width: 99.5%;
+.content .images{
+    display: flex;
+    justify-content: space-between;
     margin-top: 68px;
-    margin-right: 3px;
-    margin-left: 3px;
-    margin-bottom: 5px;
+    width: 1546px;
     position: relative;
 }
-.content h1{
+.content .images .imageMain{
+    width: 75%;
+}
+.content .images .imageMain .sliders a{
+    width: 100%;
+}
+.content .images .imageMain .sliders a .image{
+    width: 100%;
+    margin: 5px;
+    position: relative;
+}
+.content .images .imageMain .sliders a h1{
+    font-size: 28px;
     width: 500px;
     line-height: 51px;
     font-weight: 700;
     text-wrap: balance;
     position: absolute;
-    top: 260px;
-    left: 100px;
+    top: 110px;
+    left: 44px;
     color: white;
     background: transparent;
     filter: drop-shadow(1px 10px 15px rgba(19, 64, 187, 0.925));
+    border: 9px solid transparent;
+}
+.content .images .imageMain .prev-next{
+    position: absolute;
+    top: 330px;
+    left: 50px;
+}
+.content .images .imageSmall{
+    width: 23%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+}
+.content .images .imageSmall .small{
+    display: flex;
+    flex-direction: column;
+}
+.content .images .imageSmall .small a .image-s{
+    width: 100%;
+    margin: 5px;
+    position: relative;
+}
+.content .images .imageSmall .small a .text-a{
+    position: absolute;
+    top: 22px;
+    right: 133px;
+    color: white;
+    background: transparent;
+    border: 9px solid transparent;
+}
+.content .images .imageSmall .small a .text-b{
+    position: absolute;
+    top: 280px;
+    right: 133px;
+    color: white;
+    background: transparent;
     border: 9px solid transparent;
 }
 .category-name{
@@ -2529,16 +2573,35 @@ footer .bottom-bar{
     header #search-result .list-group .list-group-item a .image{
         max-width: 30px;
     }
-    .content .image {
-        margin-top: 52px;
-        margin-right: auto;
-        margin-left: 1px;
+    .head .cart a .badge{
+        top: 28%;
     }
-    .content h1 {
+    .content .images{
+        width: 100%;
+        margin-top: 48px;
+    }
+    .content .images .imageMain{
+        width: auto;
+    }
+    .content .images .imageMain .sliders{
+        width: 385px;
+    }
+    .content .images .imageMain .sliders a .image {
+        margin-right: 3px;
+        margin-left: 3px;
+    }
+    .content .images .imageMain .prev-next {
+        top: 96px;
+        left: 155px;
+    }
+    .content .images .imageSmall{
+        display: none;
+    }
+    .content .images .imageMain .sliders a h1 {
         width: 203px;
         font-size: 13px;
         line-height: 17px;
-        top: 74px;
+        top: 34px;
         left: 7px;
     }
     .about{
