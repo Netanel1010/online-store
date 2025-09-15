@@ -38,7 +38,6 @@ fetch('products.json')          /*שולח בקשה לקובץ הזה*/
         data.forEach(product => {
             createNewProducts(product, container, cartData);
         });
-        console.log(data);
     })
     .catch(function (error) {
         return console.error("שגיאה בטעינת המוצרים:", error);

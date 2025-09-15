@@ -141,7 +141,6 @@ fetch('products.json')
     const saleNone = document.querySelector("#saleNone");/*מה שעוטף הכול*/
 
     if (!saleContainer || !saleNone) {
-      console.warn("לא נמצא .sale או #saleNone בדף זה. ייתכן וזה product page.html");
       return;
     }
 
@@ -163,9 +162,11 @@ fetch('products.json')
 
       const imgLink = document.createElement("a");
       imgLink.href = `product page.html?id=${product.id}`;
+      imgLink.ariaLabel = "";
 
       const img = document.createElement("img");
       img.src = product.image;
+      img.alt = "תמונה של המוצר";
       img.classList.add("image");
       imgLink.appendChild(img);
       itemDiv.appendChild(imgLink);
@@ -300,6 +301,8 @@ fetch('products.json')
 
     const recommendContainer = document.querySelector('.recommend');
     const recommendNone = document.querySelector('#recommendNone');
+
+    if(!recommendContainer||!recommendNone){return;}
 
 
     const recommendProducts = data.filter(product => product.Recommend === true);
@@ -448,29 +451,31 @@ fetch('products.json')
   })
   .catch(err => console.error("שגיאה בטעינת המוצרים:", err));
 
+//גלילה למעלה
+document.addEventListener("DOMContentLoaded", function(){
+  //גלילה חלקה למעלה
+  document.querySelector('.back-to-top')?.addEventListener('click' , function(event){
+    event.preventDefault();
 
-document.querySelector('.back-to-top')?.addEventListener('click' , function(event){
-  event.preventDefault();
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    })
 
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
   })
+  //גלילה בהתאם למסך
+  document.addEventListener('scroll' , function(){
 
-})
+    const {scrollTop , clientHeight}=document.documentElement;
 
-document.addEventListener('scroll' , function(){
+    /*const scrollTop = document.documentElement.scrollTop;
+    const screnSize = document.documentElement.clientHeight;*/
 
-  const {scrollTop , clientHeight}=document.documentElement;
+    if( scrollTop > ( clientHeight / 2 ) ){
+        document.querySelector('.back-to-top').classList.add('active');
+    } else {
+        document.querySelector('.back-to-top').classList.remove('active');
+    }
 
-  /*const scrollTop = document.documentElement.scrollTop;
-  const screnSize = document.documentElement.clientHeight;*/
-
-  if( scrollTop > ( clientHeight / 2 ) ){
-      document.querySelector('.back-to-top').classList.add('active');
-  } else {
-      document.querySelector('.back-to-top').classList.remove('active');
-  }
-
-})
-  
+  })
+});

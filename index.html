@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/jpg" href="images/favicon.jpg">
     <title>N.M.S</title>
+    <meta name="description" content="האתר הכי טוב לקניות אונליין עם מוצרים חמים במבצע">
     <script src="https://kit.fontawesome.com/c7a0f15f4b.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -15,11 +16,11 @@
     <header>
         <div class="head">
             <ul>
-                <li><a href="index.html" class="Logo"><img src="images/logo.png"></a></li>
-                <li><a href="index.html" class="link">בית</a></li>
-                <li><a href="About.html" class="link">אודות </a></li>
-                <li><a href="Products.html" class="link">מוצרים</a></li>
-                <li><a href="Contact Us.html" class="link">צור קשר</a></li>
+                <li><a href="index.html" aria-label="לוגו" class="Logo"><img src="images/logo.png" alt="logo"></a></li>
+                <li><a href="index.html" aria-label="דף בית" class="link">בית</a></li>
+                <li><a href="About.html" aria-label="אודות" class="link">אודות </a></li>
+                <li><a href="Products.html" aria-label="מוצרים" class="link">מוצרים</a></li>
+                <li><a href="Contact Us.html" aria-label="צור קשר" class="link">צור קשר</a></li>
             </ul>
 
             <!-- כפתור המבורגר (רק לטלפונים) -->
@@ -30,10 +31,10 @@
             <!-- תפריט צדדי -->
             <nav class="side-menu" id="sideMenu">
                 <button id="closeMenuBtn" class="close-menu-btn">×</button>
-                <a href="index.html">בית</a>
-                <a href="About.html">אודות</a>
-                <a href="Products.html">מוצרים</a>
-                <a href="Contact Us.html">צור קשר</a>
+                <a href="index.html" aria-label="דף בית">בית</a>
+                <a href="About.html" aria-label="אודות">אודות</a>
+                <a href="Products.html" aria-label="מוצרים">מוצרים</a>
+                <a href="Contact Us.html" aria-label="צור קשר">צור קשר</a>
             </nav>
 
 
@@ -43,10 +44,10 @@
             </div>
 
             <div class="cart">
-                <a href="login.html"><i class="fa-solid fa-user"></i></a>
-                <a href="Favorites.html"><i class="fa-solid fa-heart"></i></a>
-                <a href="shopping cart.html"><i class="fa fa-shopping-cart"></i></a>
-                <a href="whatsapp://send?phone=0000000000">
+                <a href="login.html" aria-label="משתמש"><i class="fa-solid fa-user"></i></a>
+                <a href="Favorites.html" aria-label="מועדפים"><i class="fa-solid fa-heart"></i></a>
+                <a href="shopping cart.html" aria-label="עגלת קניות"><i class="fa fa-shopping-cart"></i></a>
+                <a href="whatsapp://send?phone=0000000000" aria-label="וואטצאפ">
                     <svg viewBox="0 0 32 32" class="whatsapp-ico">
                         <path
                             d=" M19.11 17.205c-.372 0-1.088 1.39-1.518 1.39a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.143-.73-2.09-.832-2.335-.143-.372-.214-.487-.6-.487-.187 0-.36-.043-.53-.043-.302 0-.53.115-.746.315-.688.645-1.032 1.318-1.06 2.264v.114c-.015.99.472 1.977 1.017 2.78 1.23 1.82 2.506 3.41 4.554 4.34.616.287 2.035.888 2.722.888.817 0 2.15-.515 2.478-1.318.13-.33.244-.73.244-1.088 0-.058 0-.144-.03-.215-.1-.172-2.434-1.39-2.678-1.39zm-2.908 7.593c-1.747 0-3.48-.53-4.942-1.49L7.793 24.41l1.132-3.337a8.955 8.955 0 0 1-1.72-5.272c0-4.955 4.04-8.995 8.997-8.995S25.2 10.845 25.2 15.8c0 4.958-4.04 8.998-8.998 8.998zm0-19.798c-5.96 0-10.8 4.842-10.8 10.8 0 1.964.53 3.898 1.546 5.574L5 27.176l5.974-1.92a10.807 10.807 0 0 0 16.03-9.455c0-5.958-4.842-10.8-10.802-10.8z"
@@ -66,8 +67,8 @@
 
                 <div class="imageMain">
                     <div class="sliders">
-                        <a href="#">
-                            <img src="images/Head-image.jpg" class="image">
+                        <a href="#" aria-label="תמונה ראשית">
+                            <img src="images/Head-image.jpg" alt="MainImage" class="image">
                             <h1>Z890 - Unleash Your System’s Potential to Dominate</h1>
                         </a>
                     </div>
@@ -80,15 +81,15 @@
 
                 <div class="imageSmall">
                     <div class="small">
-                        <a href="#">
-                            <img src="images/Head-image.jpg" class="image-s">
+                        <a href="#" aria-label="בנה מחשב">
+                            <img src="images/Head-image.jpg" alt="בנה מחשב" class="image-s">
                             <p class="text-a">התחל לבנות</p>
                         </a>
                     </div>
                     <div class="small">
-                        <a href="#">
-                            <img src="images/Head-image.jpg" class="image-s">
-                            <p class="text-b">התחל לבנות</p>
+                        <a href="#" aria-label="מבצעים">
+                            <img src="images/Head-image.jpg" alt="מבצעים" class="image-s">
+                            <p class="text-b">מבצעים</p>
                         </a>
                     </div>
 
@@ -105,42 +106,42 @@
         <div class="category">
 
             <div class="item">
-                <a href="category.html?category=cpu"><img src="images/Category/CPU.webp" class="image"></a>
+                <a href="category.html?category=cpu" aria-label="מעבדים"><img src="images/Category/CPU.webp" alt="מעבדים" class="image"></a>
                 <div class="discription">מעבדים</div>
             </div>
 
             <div class="item">
-                <a href="category.html?category=gpu"><img src="images/Category/GPU.webp" class="image"></a>
+                <a href="category.html?category=gpu" aria-label="כרטיס מסך"><img src="images/Category/GPU.webp" alt="כארטיס מסך" class="image"></a>
                 <div class="discription">כרטיסי מסך</div>
             </div>
 
             <div class="item">
-                <a href="category.html?category=psu"><img src="images/Category/POWER SUPPLY.webp" class="image"></a>
+                <a href="category.html?category=psu" aria-label="ספק כוח"><img src="images/Category/POWER SUPPLY.webp" alt="ספק כוח" class="image"></a>
                 <div class="discription">ספקי כוח</div>
             </div>
 
             <div class="item">
-                <a href="category.html?category=motherboard"><img src="images/Category/MOTHERBOARD.webp" class="image"></a>
+                <a href="category.html?category=motherboard" aria-label="לוח אם"><img src="images/Category/MOTHERBOARD.webp" alt="לוח אם" class="image"></a>
                 <div class="discription">לוחות אם</div>
             </div>
 
             <div class="item">
-                <a href="category.html?category=cooler"><img src="images/Category/CPU COOLING.webp" class="image"></a>
+                <a href="category.html?category=cooler" aria-label="קירור למעבד"><img src="images/Category/CPU COOLING.webp" alt="קירור למעבד" class="image"></a>
                 <div class="discription">קירור למעבדים</div>
             </div>
 
             <div class="item">
-                <a href="category.html?category=monitor"><img src="images/Category/MONITOR.webp" class="image"></a>
+                <a href="category.html?category=monitor" aria-label="מדכח מחשב"><img src="images/Category/MONITOR.webp" alt="מסכי מחשב" class="image"></a>
                 <div class="discription">מסכי מחשב</div>
             </div>
 
             <div class="item">
-                <a href="category.html?category=gamingpc"><img src="images/Category/GAMING PC.webp" class="image"></a>
+                <a href="category.html?category=gamingpc" aria-label="מחשבי גיימינג"><img src="images/Category/GAMING PC.webp" alt="מחשבי גיימינג" class="image"></a>
                 <div class="discription">מחשבי גיימינג</div>
             </div>
 
             <div class="item">
-                <a href="category.html?category=laptop"><img src="images/Category/LAPTOP.webp" class="image"></a>
+                <a href="category.html?category=laptop" aria-label="נחשבים ניידים"><img src="images/Category/LAPTOP.webp" alt="מחשבים ניידים" class="image"></a>
                 <div class="discription">מחשבים ניידים</div>
             </div>
         </div>
@@ -154,28 +155,28 @@
         <div class="Brands">
 
             <div class="item">
-                <a href="#"><img src="images/Brands/asus.jpeg"></a>
+                <a href="#" aria-label="אסוס"><img src="images/Brands/asus.jpeg" alt="ASUS"></a>
             </div>
             <div class="item">
-                <a href="#"><img src="images/Brands/corsair.webp"></a>
+                <a href="#" aria-label="קורסאיר"><img src="images/Brands/corsair.webp" alt="CORSAIR"></a>
             </div>
             <div class="item">
-                <a href="#"><img src="images/Brands/gigabyte.webp"></a>
+                <a href="#" aria-label=""גיגהביט><img src="images/Brands/gigabyte.webp" alt="GIGABYTE"></a>
             </div>
             <div class="item">
-                <a href="#"><img src="images/Brands/cooler master.jpeg"></a>
+                <a href="#" aria-label="קולר מאסטר"><img src="images/Brands/cooler master.jpeg" alt="COOLER MASTER"></a>
             </div>
             <div class="item">
-                <a href="#"><img src="images/Brands/antec.webp"></a>
+                <a href="#" aria-label="אנטק"><img src="images/Brands/antec.webp" alt="ANTEC"></a>
             </div>
             <div class="item">
-                <a href="#"><img src="images/Brands/be quiet.jpeg"></a>
+                <a href="#" aria-label="בי קוויט"><img src="images/Brands/be quiet.jpeg" alt="BE QUIET"></a>
             </div>
             <div class="item">
-                <a href="#"><img src="images/Brands/samsung.webp"></a>
+                <a href="#" aria-label="סמסונג"><img src="images/Brands/samsung.webp" alt="SAMSUNG"></a>
             </div>
             <div class="item">
-                <a href="#"><img src="images/Brands/intel.webp" width="140" height="100"></a>
+                <a href="#" aria-label="אינטל"><img src="images/Brands/intel.webp" alt="INTEL" width="140" height="100"></a>
             </div>
         </div>
 
@@ -213,28 +214,28 @@
                 <p>Address: sironit</p>
                 <iframe
                     src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3931.8394244235706!2d34.85354840482807!3d32.35089562367929!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151d6ac92b8eebc9%3A0x607b4fc05238d484!2z15fXldejINeR15zXlSDXkdeZ15k!5e0!3m2!1siw!2sil!4v1738159138906!5m2!1siw!2sil"
-                    allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                    allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Google Maps Location">
                 </iframe>
             </div>
 
             <div class="links">
                 <h2>Quick Links</h2>
                 <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="About.html">About</a></li>
-                    <li><a href="Products.html">Products</a></li>
-                    <li><a href="Contact Us.html">Contact us</a></li>
+                    <li><a href="index.html" aria-label="דף בית">Home</a></li>
+                    <li><a href="About.html" aria-label="אודות">About</a></li>
+                    <li><a href="Products.html" aria-label="מוצרים">Products</a></li>
+                    <li><a href="Contact Us.html" aria-label="צור קשר">Contact us</a></li>
                 </ul>
             </div>
 
             <div class="follow">
                 <h2>Follow Us</h2>
                 <ul class="icons">
-                    <li><a href="https://youtube.com"><i class="fab fa-youtube"></i></a></li>
-                    <li><a href="https://web.telegram.org/"><i class='fab fa-telegram'></i></a></li>
-                    <li><a href="https://www.facebook.com/?locale=he_IL"><i class="fa-brands fa-facebook"></i></a></li>
-                    <li><a href="https://www.instagram.com/"><i class="fa-brands fa-instagram"></i></a></li>
-                    <li><a href="whatsapp://send?phone=0000000000">
+                    <li><a href="https://youtube.com" aria-label="יוטיוב"><i class="fab fa-youtube"></i></a></li>
+                    <li><a href="https://web.telegram.org/" aria-label="טלגרם"><i class='fab fa-telegram'></i></a></li>
+                    <li><a href="https://www.facebook.com/?locale=he_IL" aria-label="פייסבוק"><i class="fa-brands fa-facebook"></i></a></li>
+                    <li><a href="https://www.instagram.com/" aria-label="אינסטגרם"><i class="fa-brands fa-instagram"></i></a></li>
+                    <li><a href="whatsapp://send?phone=0000000000" aria-label="וואטצאפ">
                             <svg viewBox="0 0 32 32" class="whatsapp-ico">
                                 <path
                                     d=" M19.11 17.205c-.372 0-1.088 1.39-1.518 1.39a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.143-.73-2.09-.832-2.335-.143-.372-.214-.487-.6-.487-.187 0-.36-.043-.53-.043-.302 0-.53.115-.746.315-.688.645-1.032 1.318-1.06 2.264v.114c-.015.99.472 1.977 1.017 2.78 1.23 1.82 2.506 3.41 4.554 4.34.616.287 2.035.888 2.722.888.817 0 2.15-.515 2.478-1.318.13-.33.244-.73.244-1.088 0-.058 0-.144-.03-.215-.1-.172-2.434-1.39-2.678-1.39zm-2.908 7.593c-1.747 0-3.48-.53-4.942-1.49L7.793 24.41l1.132-3.337a8.955 8.955 0 0 1-1.72-5.272c0-4.955 4.04-8.995 8.997-8.995S25.2 10.845 25.2 15.8c0 4.958-4.04 8.998-8.998 8.998zm0-19.798c-5.96 0-10.8 4.842-10.8 10.8 0 1.964.53 3.898 1.546 5.574L5 27.176l5.974-1.92a10.807 10.807 0 0 0 16.03-9.455c0-5.958-4.842-10.8-10.802-10.8z"
