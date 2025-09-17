@@ -318,6 +318,7 @@ header #search-result .list-group .list-group-item a:hover {
 }
 .content .images .imageMain .sliders a .image{
     width: 100%;
+    height: 478px;
     margin: 5px;
     border-radius: 20px;
     position: relative;
@@ -338,8 +339,8 @@ header #search-result .list-group .list-group-item a:hover {
 }
 .content .images .imageMain .prev-next{
     position: absolute;
-    top: 315px;
-    left: 25px;
+    top: 419px;
+    left: 30px;
     display: flex;
     justify-content: space-between;
     width: 102px;
@@ -375,6 +376,7 @@ header #search-result .list-group .list-group-item a:hover {
 }
 .content .images .imageSmall .small a .image-s{
     width: 100%;
+    height: 172px;
     margin: 5px;
     border-radius: 10px;
     position: relative;
@@ -2610,9 +2612,10 @@ footer .bottom-bar{
     .content .images .imageMain .sliders a .image {
         margin-right: 3px;
         margin-left: 3px;
+        height: 170px;
     }
     .content .images .imageMain .prev-next {
-        top: 86px;
+        top: 125px;
         left: 24px;
         width: 78px;
     }
