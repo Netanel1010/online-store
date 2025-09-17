@@ -2,17 +2,19 @@ const header = document.querySelector("header");
 const head = document.querySelector("header .head");
 
 
-
+//בודק אם נמצא אלמנט ההמבורגר
 document.addEventListener("DOMContentLoaded", function() {
   const hamburger = document.querySelector(".hamburger");
+  //אם נמצא אלמנט ההמבורגר, מוסיף לו מאזין קליק שמפעיל את הפונקציה
   if (hamburger) {
     hamburger.addEventListener("click", toggleMenu);
   }
 
-   const closeMenuBtn = document.getElementById("closeMenuBtn");
+   const closeMenuBtn = document.querySelector("#closeMenuBtn");
+  //אם נמצא כפתור הסגירה, מוסיף לו מאזין קליק שמסיר את הקלאס active מהתפריט הצדדי (סוגר אותו) וגם מסיר את המאזין ללחיצה מחוץ לתפריט.
   if (closeMenuBtn) {
     closeMenuBtn.addEventListener("click", function() {
-      const sideMenu = document.getElementById("sideMenu");
+      const sideMenu = document.querySelector("#sideMenu");
       if (sideMenu) {
         sideMenu.classList.remove("active");
         document.removeEventListener("mousedown", closeMenuOnClickOutside);
@@ -21,6 +23,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 });
 
+//מסיר את הקלאס 'active' מהתפריט הצדדי (סוגר אותו)
 function toggleMenu() {
   const sideMenu = document.getElementById("sideMenu");
   if (sideMenu) {
@@ -35,8 +38,9 @@ function toggleMenu() {
   }
 }
 
+//פותח או סוגר את התפריט הצדדי על ידי החלפת הקלאס 'active'
 function closeMenuOnClickOutside(event) {
-  const sideMenu = document.getElementById("sideMenu");
+  const sideMenu = document.querySelector("#sideMenu");
   const hamburger = document.querySelector(".hamburger");
   if (
     sideMenu &&
@@ -49,13 +53,14 @@ function closeMenuOnClickOutside(event) {
 }
 
 
-/*חיפוש*/
+//חיפוש
 const search = document.querySelector(".search");
 const input = document.createElement("input");
 input.type = "text";
 input.placeholder = "חפש מוצרים...";
 search.appendChild(input);
 
+//מבצע בקשת נתונים מהמוצרים ומטפל בתוצאות החיפוש
 fetch('products.json')
   .then(response => response.json())
   .then(data=>{
@@ -104,6 +109,9 @@ fetch('products.json')
   .catch(error => console.error(error));
 
 
+
+  
+//הוספת מס פריטים בעגלה
 const cart = document.querySelector(".cart");
 /*עכשיו במקום להשתמש בכול הממך לשתי הפריטים הבאים שזה דוקיומנט נשתמש ב - cart*/
 /* מועדפים */
@@ -452,6 +460,7 @@ fetch('products.json')
   })
   .catch(err => console.error("שגיאה בטעינת המוצרים:", err));
 
+
 //גלילה למעלה
 document.addEventListener("DOMContentLoaded", function(){
   //גלילה חלקה למעלה
@@ -480,3 +489,4 @@ document.addEventListener("DOMContentLoaded", function(){
 
   })
 });
+
