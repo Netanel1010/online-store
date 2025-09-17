@@ -308,6 +308,10 @@ header #search-result .list-group .list-group-item a:hover {
 }
 .content .images .imageMain{
     width: 75%;
+    position: relative;
+}
+.content .images .imageMain .sliders{
+    position: relative;
 }
 .content .images .imageMain .sliders a{
     width: 100%;
@@ -315,6 +319,7 @@ header #search-result .list-group .list-group-item a:hover {
 .content .images .imageMain .sliders a .image{
     width: 100%;
     margin: 5px;
+    border-radius: 20px;
     position: relative;
 }
 .content .images .imageMain .sliders a h1{
@@ -333,8 +338,29 @@ header #search-result .list-group .list-group-item a:hover {
 }
 .content .images .imageMain .prev-next{
     position: absolute;
-    top: 330px;
-    left: 50px;
+    top: 315px;
+    left: 25px;
+    display: flex;
+    justify-content: space-between;
+    width: 78px;
+}
+.content .images .imageMain .prev-next .prev,.next{
+    width: 48px;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: black;
+    background: hsla(0, 0%, 100%, .25);
+    border: 1px solid #b1b1b1;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.content .images .imageMain .prev-next .prev:hover,.next:hover{
+    color: #ff6d00;
+}
+.content .images .imageMain .prev-next .prev,.next i{
+    font-size: 18px;
 }
 .content .images .imageSmall{
     width: 23%;
@@ -350,6 +376,7 @@ header #search-result .list-group .list-group-item a:hover {
 .content .images .imageSmall .small a .image-s{
     width: 100%;
     margin: 5px;
+    border-radius: 10px;
     position: relative;
 }
 .content .images .imageSmall .small a .text-a{
@@ -2585,8 +2612,15 @@ footer .bottom-bar{
         margin-left: 3px;
     }
     .content .images .imageMain .prev-next {
-        top: 96px;
-        left: 155px;
+        top: 86px;
+        left: 24px;
+    }
+    .content .images .imageMain .prev-next .prev,.next{
+        width: 36px;
+        height: 36px;
+    }
+    .content .images .imageMain .prev-next .prev,.next i{
+        font-size: 14px;
     }
     .content .images .imageSmall{
         display: none;

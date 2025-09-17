@@ -2,6 +2,7 @@ const header = document.querySelector("header");
 const head = document.querySelector("header .head");
 
 
+
 document.addEventListener("DOMContentLoaded", function() {
   const hamburger = document.querySelector(".hamburger");
   if (hamburger) {
