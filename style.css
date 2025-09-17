@@ -342,7 +342,7 @@ header #search-result .list-group .list-group-item a:hover {
     left: 25px;
     display: flex;
     justify-content: space-between;
-    width: 78px;
+    width: 102px;
 }
 .content .images .imageMain .prev-next .prev,.next{
     width: 48px;
@@ -2614,6 +2614,7 @@ footer .bottom-bar{
     .content .images .imageMain .prev-next {
         top: 86px;
         left: 24px;
+        width: 78px;
     }
     .content .images .imageMain .prev-next .prev,.next{
         width: 36px;
