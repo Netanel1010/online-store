@@ -2804,6 +2804,9 @@ footer .bottom-bar{
     .products-container .sort-model{
         margin-left: 64px;
     }
+    .products-container .sort-model #model{
+        min-width: 80px;
+    }
     .items{
         display: flex;
         flex-direction: column;
