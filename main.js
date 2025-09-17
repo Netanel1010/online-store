@@ -490,3 +490,4 @@ document.addEventListener("DOMContentLoaded", function(){
   })
 });
 
+//תמונות מתחלפות
