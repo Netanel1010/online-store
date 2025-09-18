@@ -491,124 +491,132 @@ document.addEventListener("DOMContentLoaded", function(){
 });
 
 
-
 //תמונות מתחלפות
 const sliderImg = document.querySelectorAll('.slider');
 let currentSlide = 0;
-let autoSlide; 
+let autoSlide =null; 
 
-//אחורה
-document.querySelector('.prev')?.addEventListener('click' ,  function(){
-  
-  if(currentSlide > 0){
-    sliderImg[currentSlide].classList.remove('is-active');
-    sliderImg[currentSlide-1].classList.add('is-active');
-    currentSlide--;
-  } else{
-    sliderImg[currentSlide].classList.remove('is-active');
-    sliderImg[sliderImg.length-1].classList.add('is-active');
-    currentSlide = sliderImg.length-1;
-  }
-   resetAutoSlide();
-});
- 
-//קדימה
-document.querySelector('.next')?.addEventListener('click' , function(){
-  
-  if(currentSlide === sliderImg.length-1){
-    sliderImg[currentSlide].classList.remove('is-active');
-    sliderImg[0].classList.add('is-active');
-    currentSlide = 0;
-  }else{
-    sliderImg[currentSlide].classList.remove('is-active');
-    sliderImg[currentSlide+1].classList.add('is-active');
-    currentSlide++;
-  }
-   resetAutoSlide();
-});
-
-//לחיצה על המספרים משנה את התמונה
-function createDots(){
-
-  const dotsDiv = document.querySelector('.dots');
-  if(!dotsDiv) return ;
-
-  sliderImg.forEach(function(item , index){
+  if(sliderImg.length > 0){
+    const imageMain = document.querySelector('.imageMain');
+      //אחורה
+    document.querySelector('.prev')?.addEventListener('click' ,  function(){
     
-    //create button
-    const buttonDot = document.createElement('button');
-    buttonDot.classList.add('dot');
-    buttonDot.innerHTML = `<i class="fa-regular fa-circle"></i>`;
+    if(currentSlide > 0){
+      sliderImg[currentSlide].classList.remove('is-active');
+      sliderImg[currentSlide-1].classList.add('is-active');
+      currentSlide--;
+    } else{
+      sliderImg[currentSlide].classList.remove('is-active');
+      sliderImg[sliderImg.length-1].classList.add('is-active');
+      currentSlide = sliderImg.length-1;
+    }
+    //לא בדקתי
+    resetAutoSlide();
+    });
+  
+    //קדימה
+    document.querySelector('.next')?.addEventListener('click' , function(){
+    
+    if(currentSlide === sliderImg.length-1){
+      sliderImg[currentSlide].classList.remove('is-active');
+      sliderImg[0].classList.add('is-active');
+      currentSlide = 0;
+    }else{
+      sliderImg[currentSlide].classList.remove('is-active');
+      sliderImg[currentSlide+1].classList.add('is-active');
+      currentSlide++;
+    }
+    //לא בדקתי
+    resetAutoSlide();
+    });
 
-    buttonDot.addEventListener('click' , function(){
+    //לחיצה על המספרים משנה את התמונה
+    function createDots(){
 
-      //נעלים את כול תמונות
-      sliderImg.forEach(function(item){
-        item.classList.remove('is-active'); 
+    const dotsDiv = document.querySelector('.dots');
+    
+    if(!dotsDiv) return ;
+
+    sliderImg.forEach(function(item , index){
+      
+      //create button
+      const buttonDot = document.createElement('button');
+      buttonDot.classList.add('dot');
+
+      const buttonDotI = document.createElement('i');
+      buttonDotI.classList.add('fa-regular', 'fa-circle');
+
+      buttonDot.addEventListener('click' , function(){
+
+        //נעלים את כול תמונות
+        sliderImg.forEach(function(item){
+          item.classList.remove('is-active'); 
+        })
+
+        //לא בדקתי
+        document.querySelectorAll('.dot i').forEach(dot => {
+          dot.classList.remove('active-dot');
+        });
+
+        //נציג את התמונה במקום שבחרתי
+        currentSlide = index;
+        sliderImg[index].classList.add('is-active');
+
+        //לא בדקתי
+        buttonDotI.classList.add('active-dot');
+        //לא בדקתי
+        resetAutoSlide();
       })
-
-      document.querySelectorAll('.dot i').forEach(dot => {
-        dot.classList.remove('active-dot');
-      });
-
-      //נציג את התמונה במקום שבחרתי
-      currentSlide = index;
-      sliderImg[index].classList.add('is-active');
-
-      buttonDotI.classList.add('active-dot');
-
-       resetAutoSlide();
+      buttonDot.append(buttonDotI);
+      dotsDiv.append(buttonDot);
     })
-    dotsDiv.append(buttonDot);
-  })
 
-  const imageMain = document.querySelector('.imageMain');
-  if(imageMain && !imageMain.contains(dotsDiv)){
-    imageMain.append(dotsDiv);
+    if(imageMain && !imageMain.contains(dotsDiv)){
+      imageMain.append(dotsDiv);
+    }
+
+    }
+    createDots();
+
+    //לא בדקתי
+    //מעבר אוטומטי 
+    function startAutoSlide(){
+    // יוצרים אינטרוול שירוץ כל 4000 מילישניות (4 שניות)
+    autoSlide = setInterval(function(){
+
+      // קודם מסירים את המחלקה 'is-active' מכל התמונות
+      sliderImg.forEach(item => item.classList.remove('is-active'));
+
+      // מסירים גם את ההדגשה 'active-dot' מכל הנקודות
+      document.querySelectorAll('.dot i').forEach(dot => dot.classList.remove('active-dot'));
+
+      // מעדכנים את currentSlide ל-slide הבא
+      // % sliderImg.length = אם הגענו לסוף, חוזרים להתחלה
+      currentSlide = (currentSlide + 1) % sliderImg.length;
+
+      // מוסיפים את המחלקה 'is-active' לתמונה הנוכחית
+      sliderImg[currentSlide].classList.add('is-active');
+
+      // מוסיפים הדגשה ל-dot שמתאים לתמונה הנוכחית
+      document.querySelectorAll('.dot i')[currentSlide].classList.add('active-dot');
+
+    }, 4000); // סוף setInterval – כל 4 שניות
+    }
+    startAutoSlide();
+
+    function resetAutoSlide(){
+    clearInterval(autoSlide);
+    startAutoSlide();
+    }
+
+    // עצירה כשמעבירים עכבר על התמונה
+    if(imageMain){
+    imageMain.addEventListener('mouseenter', () => {
+      clearInterval(autoSlide); // עוצרים
+    });
+
+    imageMain.addEventListener('mouseleave', () => {
+      startAutoSlide(); // ממשיכים שוב
+    });
+    }
   }
-
-}
-createDots();
-
-
-//מעבר אוטומטי 
-function startAutoSlide(){
-  // יוצרים אינטרוול שירוץ כל 4000 מילישניות (4 שניות)
-  autoSlide = setInterval(function(){
-
-    // קודם מסירים את המחלקה 'is-active' מכל התמונות
-    sliderImg.forEach(item => item.classList.remove('is-active'));
-
-    // מסירים גם את ההדגשה 'active-dot' מכל הנקודות
-    document.querySelectorAll('.dot i').forEach(dot => dot.classList.remove('active-dot'));
-
-    // מעדכנים את currentSlide ל-slide הבא
-    // % sliderImg.length = אם הגענו לסוף, חוזרים להתחלה
-    currentSlide = (currentSlide + 1) % sliderImg.length;
-
-    // מוסיפים את המחלקה 'is-active' לתמונה הנוכחית
-    sliderImg[currentSlide].classList.add('is-active');
-
-    // מוסיפים הדגשה ל-dot שמתאים לתמונה הנוכחית
-    document.querySelectorAll('.dot i')[currentSlide].classList.add('active-dot');
-
-  }, 4000); // סוף setInterval – כל 4 שניות
-}
-startAutoSlide();
-
-function resetAutoSlide(){
-  clearInterval(autoSlide);
-  startAutoSlide();
-}
-
-// עצירה כשמעבירים עכבר על התמונה
-const imageMain = document.querySelector('.imageMain');
-if(imageMain){
-  imageMain.addEventListener('mouseenter', () => {
-    clearInterval(autoSlide); // עוצרים
-  });
-
-  imageMain.addEventListener('mouseleave', () => {
-    startAutoSlide(); // ממשיכים שוב
-  });
-}

@@ -43,8 +43,6 @@ fetch('products.json')          /*שולח בקשה לקובץ הזה*/
         return console.error("שגיאה בטעינת המוצרים:", error);
     })
 
-
-
 function createNewProducts (product, container, cartData) {
     const itemDiv = document.createElement("div");
             itemDiv.classList.add("item");
@@ -171,3 +169,46 @@ function createNewProducts (product, container, cartData) {
             container.appendChild(itemDiv);
             container.style.width = '100%';
 }
+
+
+//סינון קטגוריות
+const checkbox = document.querySelectorAll('#myCheck');
+const sortRow = document.querySelector('.sort-row');
+
+checkbox.forEach(function(check){
+
+    check.addEventListener('change' , function(event){
+        fetch('products.json')
+        .then(response =>response.json())
+        .then(data =>{
+
+            const container = document.querySelector(".items");
+            const cartData = JSON.parse(localStorage.getItem("cart") || "[]"); // לוקח את העגלה מה- localStorage
+
+            if(check.checked){
+
+                container.innerHTML = ''; 
+
+                const filter = data.filter(product => product.company === check.value);
+                console.log(filter);
+
+                //מחזיר מערך של כול המוצרים שבחרתי
+                filter.forEach(product =>{
+                    createNewProducts(product, container, cartData);
+                });
+                    
+                
+            } else{
+                //אם לא בחרנו כלום
+                container.innerHTML = ''; 
+                data.forEach(product => {
+                    createNewProducts(product, container, cartData);
+                });
+            }
+
+        })
+        .catch(err =>console.error(err))
+        
+    })
+});
+
