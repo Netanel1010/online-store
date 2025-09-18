@@ -490,5 +490,80 @@ document.addEventListener("DOMContentLoaded", function(){
   })
 });
 
+
+
 //תמונות מתחלפות
-//
+const sliderImg = document.querySelectorAll('.slider');
+let currentSlide = 0;
+
+sliderImg?.forEach((item)=>{ 
+  console.log(item);
+  
+});
+
+document.querySelector('.prev')?.addEventListener('click' ,  function(){
+  
+  if(currentSlide > 0){
+    sliderImg[currentSlide].classList.remove('is-active');
+    sliderImg[currentSlide-1].classList.add('is-active');
+    currentSlide--;
+  } else{
+    sliderImg[currentSlide].classList.remove('is-active');
+    sliderImg[sliderImg.length-1].classList.add('is-active');
+    currentSlide = sliderImg.length-1;
+  }
+  
+});
+ 
+document.querySelector('.next')?.addEventListener('click' , function(){
+  
+  if(currentSlide === sliderImg.length-1){
+    sliderImg[currentSlide].classList.remove('is-active');
+    sliderImg[0].classList.add('is-active');
+    currentSlide = 0;
+  }else{
+    sliderImg[currentSlide].classList.remove('is-active');
+    sliderImg[currentSlide+1].classList.add('is-active');
+    currentSlide++;
+  }
+  
+});
+
+
+function createDots(){
+
+  
+  const dotsDiv = document.querySelector('.dots');
+  if(!dotsDiv) return ;
+
+  sliderImg.forEach(function(item , index){
+    
+    //create button
+    const buttonDot = document.createElement('button');
+    buttonDot.classList.add('dot');
+    buttonDot.textContent = index +1;
+
+    buttonDot.addEventListener('click' , function(){
+
+      //נעלים את כול תמונות
+      sliderImg.forEach(function(item){
+        item.classList.remove('is-active'); 
+      })
+
+      //נציג את התמונה במקום שבחרתי
+      currentSlide = index;
+      sliderImg[index].classList.add('is-active');
+      console.log(index+1);
+    })
+
+    dotsDiv.append(buttonDot);
+  })
+
+  const imageMain = document.querySelector('.imageMain');
+  if(imageMain && !imageMain.contains(dotsDiv)){
+    imageMain.append(dotsDiv);
+  }
+
+}
+
+createDots();

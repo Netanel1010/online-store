@@ -312,6 +312,12 @@ header #search-result .list-group .list-group-item a:hover {
 .content .images .imageMain .sliders{
     position: relative;
 }
+.content .images .imageMain .sliders .slider{
+    display: none;
+}
+.content .images .imageMain .sliders .is-active{
+    display: block;
+}
 .content .images .imageMain .sliders a{
     width: 100%;
 }
@@ -395,6 +401,12 @@ header #search-result .list-group .list-group-item a:hover {
     color: white;
     background: transparent;
     border: 9px solid transparent;
+}
+.dots{
+    position: absolute;
+    top: 101%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 .category-name{
     display: flex;
