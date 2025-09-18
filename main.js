@@ -495,12 +495,9 @@ document.addEventListener("DOMContentLoaded", function(){
 //תמונות מתחלפות
 const sliderImg = document.querySelectorAll('.slider');
 let currentSlide = 0;
+let autoSlide; 
 
-sliderImg?.forEach((item)=>{ 
-  console.log(item);
-  
-});
-
+//אחורה
 document.querySelector('.prev')?.addEventListener('click' ,  function(){
   
   if(currentSlide > 0){
@@ -512,9 +509,10 @@ document.querySelector('.prev')?.addEventListener('click' ,  function(){
     sliderImg[sliderImg.length-1].classList.add('is-active');
     currentSlide = sliderImg.length-1;
   }
-  
+   resetAutoSlide();
 });
  
+//קדימה
 document.querySelector('.next')?.addEventListener('click' , function(){
   
   if(currentSlide === sliderImg.length-1){
@@ -526,13 +524,12 @@ document.querySelector('.next')?.addEventListener('click' , function(){
     sliderImg[currentSlide+1].classList.add('is-active');
     currentSlide++;
   }
-  
+   resetAutoSlide();
 });
 
-
+//לחיצה על המספרים משנה את התמונה
 function createDots(){
 
-  
   const dotsDiv = document.querySelector('.dots');
   if(!dotsDiv) return ;
 
@@ -541,7 +538,7 @@ function createDots(){
     //create button
     const buttonDot = document.createElement('button');
     buttonDot.classList.add('dot');
-    buttonDot.textContent = index +1;
+    buttonDot.innerHTML = `<i class="fa-regular fa-circle"></i>`;
 
     buttonDot.addEventListener('click' , function(){
 
@@ -550,12 +547,18 @@ function createDots(){
         item.classList.remove('is-active'); 
       })
 
+      document.querySelectorAll('.dot i').forEach(dot => {
+        dot.classList.remove('active-dot');
+      });
+
       //נציג את התמונה במקום שבחרתי
       currentSlide = index;
       sliderImg[index].classList.add('is-active');
-      console.log(index+1);
-    })
 
+      buttonDotI.classList.add('active-dot');
+
+       resetAutoSlide();
+    })
     dotsDiv.append(buttonDot);
   })
 
@@ -565,5 +568,47 @@ function createDots(){
   }
 
 }
-
 createDots();
+
+
+//מעבר אוטומטי 
+function startAutoSlide(){
+  // יוצרים אינטרוול שירוץ כל 4000 מילישניות (4 שניות)
+  autoSlide = setInterval(function(){
+
+    // קודם מסירים את המחלקה 'is-active' מכל התמונות
+    sliderImg.forEach(item => item.classList.remove('is-active'));
+
+    // מסירים גם את ההדגשה 'active-dot' מכל הנקודות
+    document.querySelectorAll('.dot i').forEach(dot => dot.classList.remove('active-dot'));
+
+    // מעדכנים את currentSlide ל-slide הבא
+    // % sliderImg.length = אם הגענו לסוף, חוזרים להתחלה
+    currentSlide = (currentSlide + 1) % sliderImg.length;
+
+    // מוסיפים את המחלקה 'is-active' לתמונה הנוכחית
+    sliderImg[currentSlide].classList.add('is-active');
+
+    // מוסיפים הדגשה ל-dot שמתאים לתמונה הנוכחית
+    document.querySelectorAll('.dot i')[currentSlide].classList.add('active-dot');
+
+  }, 4000); // סוף setInterval – כל 4 שניות
+}
+startAutoSlide();
+
+function resetAutoSlide(){
+  clearInterval(autoSlide);
+  startAutoSlide();
+}
+
+// עצירה כשמעבירים עכבר על התמונה
+const imageMain = document.querySelector('.imageMain');
+if(imageMain){
+  imageMain.addEventListener('mouseenter', () => {
+    clearInterval(autoSlide); // עוצרים
+  });
+
+  imageMain.addEventListener('mouseleave', () => {
+    startAutoSlide(); // ממשיכים שוב
+  });
+}

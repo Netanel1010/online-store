@@ -143,9 +143,6 @@ header #search-result .list-group .list-group-item a{
     align-items: center;
     margin: 0;
 }
-header #search-result .list-group .list-group-item a .name{
-
-}
 header #search-result .list-group .list-group-item a .image{
     max-width: 45px;
     border: 1px solid #dee2e6;
@@ -408,6 +405,19 @@ header #search-result .list-group .list-group-item a:hover {
     left: 50%;
     transform: translate(-50%, -50%);
 }
+.dots .dot{
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+}
+.dots .dot:hover{
+    color: #ff6d00;
+}
+.active-dot {
+  color: #ff6d00;
+  font-size: 15px; 
+}
+
 .category-name{
     display: flex;
     justify-content: center;
@@ -2646,6 +2656,9 @@ footer .bottom-bar{
         line-height: 17px;
         top: 34px;
         left: 7px;
+    }
+    .dots{
+        display: none;
     }
     .about{
         margin-right: 5px;
