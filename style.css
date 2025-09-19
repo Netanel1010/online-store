@@ -311,6 +311,12 @@ header #search-result .list-group .list-group-item a:hover {
 }
 .content .images .imageMain .sliders .slider{
     display: none;
+    animation-name: fade;
+    animation-duration: 2.7s;
+}
+@keyframes fade {
+    from {opacity: .4}
+    to {opacity: 1}
 }
 .content .images .imageMain .sliders .is-active{
     display: block;
@@ -416,7 +422,7 @@ header #search-result .list-group .list-group-item a:hover {
 .active-dot {
   color: #ff6d00;
   font-size: 15px; 
-}
+} 
 
 .category-name{
     display: flex;
