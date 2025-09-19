@@ -2660,6 +2660,12 @@ footer .bottom-bar{
     .dots{
         display: none;
     }
+    .Brands-name{
+        display: none;
+    }
+    .Brands{
+        display: none;
+    }
     .about{
         margin-right: 5px;
         margin-left: 5px;
