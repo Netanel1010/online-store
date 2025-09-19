@@ -490,13 +490,13 @@ document.addEventListener("DOMContentLoaded", function(){
   })
 });
 
-
+//א
 //תמונות מתחלפות
-const sliderImg = document.querySelectorAll('.slider');
+/*const sliderImg = document.querySelectorAll('.slider');
 let currentSlide = 0;
 let autoSlide =null; 
 
-  if(sliderImg.length > 0){
+if(sliderImg.length > 0){
     const imageMain = document.querySelector('.imageMain');
       //אחורה
     document.querySelector('.prev')?.addEventListener('click' ,  function(){
@@ -581,6 +581,13 @@ let autoSlide =null;
     //לא בדקתי
     //מעבר אוטומטי 
     function startAutoSlide(){
+
+      if(autoSlide){
+        clearInterval(autoSlide);
+        autoSlide = null;
+      }
+
+
     // יוצרים אינטרוול שירוץ כל 4000 מילישניות (4 שניות)
     autoSlide = setInterval(function(){
 
@@ -619,4 +626,176 @@ let autoSlide =null;
       startAutoSlide(); // ממשיכים שוב
     });
     }
+}*/
+
+
+//ב
+// Slider Component
+/*document.addEventListener('DOMContentLoaded', () => {
+  const slides = document.querySelectorAll('.slider');
+  const prevBtn = document.querySelector('.prev');
+  const nextBtn = document.querySelector('.next');
+  const imageMain = document.querySelector('.imageMain');
+  const dotsContainer = document.querySelector('.dots');
+
+  let currentSlide = 0;
+  let autoSlideInterval = null;
+  let dots = [];
+
+  // --- פונקציות עזר ---
+  function showSlide(index) {
+    // לוודא שהאינדקס תמיד תקין (מעגלי)
+    currentSlide = (index + slides.length) % slides.length;
+
+    // מנקים הכל
+    slides.forEach(slide => slide.classList.remove('is-active'));
+    dots.forEach(dot => dot.classList.remove('active-dot'));
+
+    // מציגים את התמונה והנקודה הנכונה
+    slides[currentSlide].classList.add('is-active');
+    dots[currentSlide].classList.add('active-dot');
   }
+
+  function nextSlide() {
+    showSlide(currentSlide + 1);
+  }
+
+  function prevSlide() {
+    showSlide(currentSlide - 1);
+  }
+
+  function startAutoSlide() {
+    autoSlideInterval = setInterval(nextSlide, 4000);
+  }
+
+  function stopAutoSlide() {
+    clearInterval(autoSlideInterval);
+  }
+
+  function resetAutoSlide() {
+    stopAutoSlide();
+    startAutoSlide();
+  }
+
+  function createDots() {
+    slides.forEach((_, index) => {
+      const button = document.createElement('button');
+      button.classList.add('dot');
+
+      const icon = document.createElement('i');
+      icon.classList.add('fa-regular', 'fa-circle');
+
+      button.append(icon);
+      dotsContainer.append(button);
+
+      // שמירה ברשימה
+      dots.push(icon);
+
+      button.addEventListener('click', () => {
+        showSlide(index);
+        resetAutoSlide();
+      });
+    });
+  }
+
+  // --- חיבורים והפעלה ---
+  if (slides.length > 0) {
+    createDots();
+    showSlide(0);
+    startAutoSlide();
+
+    prevBtn?.addEventListener('click', () => {
+      prevSlide();
+      resetAutoSlide();
+    });
+
+    nextBtn?.addEventListener('click', () => {
+      nextSlide();
+      resetAutoSlide();
+    });
+
+    // עצירה/הפעלה עם עכבר
+    imageMain?.addEventListener('mouseenter', stopAutoSlide);
+    imageMain?.addEventListener('mouseleave', startAutoSlide);
+  }
+});*/
+
+//ד
+document.addEventListener("DOMContentLoaded" , function(){
+  const slides = document.querySelectorAll('.slider');
+  const prevBtn =  document.querySelector('.prev');
+  const nextBtn = document.querySelector('.next');
+  const imageMain = document.querySelector('.imageMain');
+  const dotsContainer = document.querySelector('.dots');
+
+  let currentSlide = 0;
+  let autoSlideInterval = null;
+  let dots = [];
+
+  function showSlide(index){
+    currentSlide = (index + slides.length) %  slides.length
+
+    slides.forEach(slide => slide.classList.remove('is-active'));
+    dots.forEach(dot => dot.classList.remove('active-dot'));
+
+    slides[currentSlide].classList.add('is-active');
+    dots[currentSlide].classList.add('active-dot');
+  }
+
+  function nextSlide(){ showSlide(currentSlide+1); };
+  function prevSlide(){ showSlide(currentSlide-1); };
+
+  function startAutoSlide(){
+    stopAutoSlide();
+    autoSlideInterval = setInterval(nextSlide , 4000);
+  }
+
+  function stopAutoSlide(){
+    if(autoSlideInterval){
+      clearInterval(autoSlideInterval);
+      autoSlideInterval = null;
+    }
+  }
+
+  function resetAutoSlide(){ startAutoSlide();}
+
+  function createDots(){
+    slides.forEach((_ , index) =>{
+
+      const buttonDot = document.createElement('button');
+      buttonDot.classList.add('dot');
+
+      const buttonIcon = document.createElement('i');
+      buttonIcon.classList.add('fa-regular', 'fa-circle');
+
+      buttonDot.append(buttonIcon);
+      dotsContainer.append(buttonDot);
+
+      dots.push(buttonDot);
+
+      buttonDot.addEventListener('click' , function(){
+        showSlide(index);
+        resetAutoSlide();
+      })
+    })
+  }
+
+  if(slides.length > 0){
+    createDots();
+    showSlide(0);
+    startAutoSlide();
+
+    prevBtn?.addEventListener('click' , function(){
+      prevSlide();
+      resetAutoSlide();
+    })
+
+    nextBtn?.addEventListener('click' , function(){
+      nextSlide();
+      resetAutoSlide();
+    })
+
+    imageMain?.addEventListener('mouseenter' ,stopAutoSlide);
+    imageMain?.addEventListener('mouseleave' ,startAutoSlide);
+  }
+});
