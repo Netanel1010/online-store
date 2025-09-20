@@ -18,9 +18,9 @@ function onSort (type , product){
     return product;//אם לא בחרתי כלום
 }
 
-fetch('products.json')          /*שולח בקשה לקובץ הזה*/
-    .then(res => res.json())          /*מתי שנקבל תשובה נמיר את ג'ייסון לאובייקטים של ג'אווהקריפט*/
-    .then(data => {                   /*המערך של כול המוצרים*/
+fetch('products.json')          
+    .then(res => res.json())         
+    .then(data => {                  
         
         const container = document.querySelector(".items");
 
@@ -172,12 +172,13 @@ function createNewProducts (product, container, cartData) {
 
 
 //סינון קטגוריות
-const checkbox = document.querySelectorAll('#myCheck');
+//ניסיון ראשון
+/*const checkbox = document.querySelectorAll('#myCheck');
 const sortRow = document.querySelector('.sort-row');
-
 checkbox.forEach(function(check){
 
     check.addEventListener('change' , function(event){
+
         fetch('products.json')
         .then(response =>response.json())
         .then(data =>{
@@ -210,5 +211,51 @@ checkbox.forEach(function(check){
         .catch(err =>console.error(err))
         
     })
-});
+});*/
 
+
+
+document.addEventListener( "DOMContentLoaded" , () =>{
+    const checkbox = document.querySelectorAll('#myCheck'); 
+    const sortRow = document.querySelector('.sort-row');
+    const container = document.querySelector('.items');
+    let filterArr = [];
+
+    fetch('products.json')
+        .then(response => response.json())
+        .then(data => {
+            filterArr = data; 
+
+            renderProducts(filterArr , container);
+        })
+        .catch(error => {  return console.error("שגיאה בטעינת המוצרים:", error); })
+
+    function renderProducts(products , container){
+        container.innerHTML = '';
+
+
+        const cartData = JSON.parse(localStorage.getItem("cart") || "[]");
+
+        products.forEach(product => {
+            createNewProducts(product, container, cartData);
+        });
+
+    }
+    //הסינון
+    checkbox.forEach(check =>{
+        check.addEventListener('change' , () =>{
+
+            const selectSort = Array.from(checkbox)
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.value);
+
+            if(selectSort.length > 0){
+                const filtered = filterArr.filter(product => selectSort.includes(product.company));
+                renderProducts(filtered , container);
+            } 
+            else{
+                renderProducts(filterArr , container);
+            }
+        });
+    });
+});
