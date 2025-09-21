@@ -721,7 +721,8 @@ if(sliderImg.length > 0){
 });*/
 
 //ד
-document.addEventListener("DOMContentLoaded" , function(){
+document.addEventListener("DOMContentLoaded" , function(e){
+
   const slides = document.querySelectorAll('.slider');
   const prevBtn =  document.querySelector('.prev');
   const nextBtn = document.querySelector('.next');
@@ -731,6 +732,13 @@ document.addEventListener("DOMContentLoaded" , function(){
   let currentSlide = 0;
   let autoSlideInterval = null;
   let dots = [];
+
+  document.querySelectorAll('.slider a').forEach(link => {
+    link.addEventListener('click', function(e) {
+    e.preventDefault(); // מונע מהקישור לעבוד
+    });
+  });
+
 
   function showSlide(index){
     currentSlide = (index + slides.length) %  slides.length
@@ -757,7 +765,9 @@ document.addEventListener("DOMContentLoaded" , function(){
     }
   }
 
-  function resetAutoSlide(){ startAutoSlide();}
+  function resetAutoSlide(){
+    startAutoSlide();
+  }
 
   function createDots(){
     slides.forEach((_ , index) =>{
