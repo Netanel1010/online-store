@@ -1573,23 +1573,23 @@
         "priceNew": 4487,
         "priceEilat": 3802,
         "image": "images/product item/GRAPHICS CARD/5070-gigabyte-ice-228x228.avif",
-        "mainImage": "images/product-page/450X450/5070-gigabyte-ice-1-450x450.avif",
+        "mainImage": "images/product-page/450x450/5070-gigabyte-ice-1-450x450.avif",
         "gallery": [
             {
                 "small": "images/product-page/74x74/5070-gigabyte-ice-1-74x74.jpg",
-                "large": "images/product-page/450X450/5070-gigabyte-ice-1-450x450.avif"
+                "large": "images/product-page/450x450/5070-gigabyte-ice-1-450x450.avif"
             },
             {
                 "small": "images/product-page/74x74/5070-gigabyte-ice-2-74x74.jpg",
-                "large": "images/product-page/450X450/5070-gigabyte-ice-2-450x450.avif"
+                "large": "images/product-page/450x450/5070-gigabyte-ice-2-450x450.avif"
             },
             {
                 "small": "images/product-page/74x74/5070-gigabyte-ice-3-74x74.jpg",
-                "large": "images/product-page/450X450/5070-gigabyte-ice-3-450x450.avif"
+                "large": "images/product-page/450x450/5070-gigabyte-ice-3-450x450.avif"
             }, 
             {
                 "small": "images/product-page/74x74/5070-gigabyte-ice-4-74x74.jpg",
-                "large": "images/product-page/450X450/5070-gigabyte-ice-4-450x450.avif"
+                "large": "images/product-page/450x450/5070-gigabyte-ice-4-450x450.avif"
             }
         ],
         "brand": "images/Product brands/gigabyte.webp",
