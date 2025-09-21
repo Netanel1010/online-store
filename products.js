@@ -1,42 +1,26 @@
 function onSort (type , product){
-     if(type == 'price_low_high'){
+    if(type == 'price_low_high'){
         return  product.sort(function(a,b){
             return a.priceNew - b.priceNew
         })
     }
     else if(type == 'price_high_low'){
         return product.sort(function(a,b){
-            return b.priceNew-a.priceNew
+            return b.priceNew - a.priceNew
         })
+    }
+    else if(type == 'name_(a-z)'){
+        return product.sort(function(a,b){
+            return a.name.localeCompare(b.name, 'he'); 
+        })  
+    }
+    else if(type == 'name_(z-a)'){
+        return product.sort(function(a,b){
+            return b.name.localeCompare(a.name, 'he')
+        })  
     }
     return product;//אם לא בחרתי כלום
 }
-
-fetch('products.json')          
-    .then(res => res.json())         
-    .then(data => {                  
-        
-        const container = document.querySelector(".items");
-
-        const cartData = JSON.parse(localStorage.getItem("cart") || "[]"); // לוקח את העגלה מה- localStorage
-
-         document.querySelector('.sort-model')?.addEventListener('change',function(event){
-            let type = event.target.value;
-            const sortedProducts = onSort(type, [...data]);
-            container.innerHTML = ""; //נקה את התוכן הקודם
-            sortedProducts.forEach(product => {
-                 createNewProducts(product, container, cartData);
-            });
-        })
-
-        data.forEach(product => {
-            createNewProducts(product, container, cartData);
-        });
-    })
-    .catch(function (error) {
-        return console.error("שגיאה בטעינת המוצרים:", error);
-    })
-
 function createNewProducts (product, container, cartData) {
     const itemDiv = document.createElement("div");
             itemDiv.classList.add("item");
@@ -165,61 +149,29 @@ function createNewProducts (product, container, cartData) {
 }
 
 
-//סינון קטגוריות
-//ניסיון ראשון
-/*const checkbox = document.querySelectorAll('#myCheck');
-const sortRow = document.querySelector('.sort-row');
-checkbox.forEach(function(check){
-
-    check.addEventListener('change' , function(event){
-
-        fetch('products.json')
-        .then(response =>response.json())
-        .then(data =>{
-
-            const container = document.querySelector(".items");
-            const cartData = JSON.parse(localStorage.getItem("cart") || "[]"); // לוקח את העגלה מה- localStorage
-
-            if(check.checked){
-
-                container.innerHTML = ''; 
-
-                const filter = data.filter(product => product.company === check.value);
-                console.log(filter);
-
-                //מחזיר מערך של כול המוצרים שבחרתי
-                filter.forEach(product =>{
-                    createNewProducts(product, container, cartData);
-                });
-                    
-                
-            } else{
-                //אם לא בחרנו כלום
-                container.innerHTML = ''; 
-                data.forEach(product => {
-                    createNewProducts(product, container, cartData);
-                });
-            }
-
-        })
-        .catch(err =>console.error(err))
-        
-    })
-});*/
-
-
-//עובד
 document.addEventListener( "DOMContentLoaded" , () =>{
     const checkbox = document.querySelectorAll('#myCheck'); 
     const sortRow = document.querySelector('.sort-row');
     const container = document.querySelector('.items');
     let filterArr = [];
+    let sortArr = [];
 
     fetch('products.json')
         .then(response => response.json())
         .then(data => {
             filterArr = data; 
 
+            document.querySelector('.sort-model')?.addEventListener('change',function(event){
+                let type = event.target.value;  
+                if(sortArr.length>0){
+                    const sortedProducts = onSort(type, [...sortArr]);
+                    renderProducts(sortedProducts , container);    
+                }else{
+                    const sortedProducts = onSort(type, [...filterArr]);
+                    renderProducts(sortedProducts , container);      
+                }    
+            })
+            
             renderProducts(filterArr , container);
         })
         .catch(error => {  return console.error("שגיאה בטעינת המוצרים:", error); })
@@ -244,8 +196,15 @@ document.addEventListener( "DOMContentLoaded" , () =>{
             .map(checkbox => checkbox.value);
 
             if(selectSort.length > 0){
-                const filtered = filterArr.filter(product => selectSort.includes(product.company));
-                renderProducts(filtered , container);
+                const filtered = filterArr.filter(product => 
+                    selectSort.includes(product.attributes.Hz )         //קצב רענון
+                ||  selectSort.includes(product.company)                //חברה
+                ||  selectSort.includes(product.attributes.storage)     //אחסון
+                ||  selectSort.includes(product.attributes.ram)         //זכרון
+                ||  selectSort.includes(product.attributes.rezolution)  //רזולוצייה
+                );
+                sortArr=filtered;
+                renderProducts(sortArr , container);
             } 
             else{
                 renderProducts(filterArr , container);
@@ -253,3 +212,4 @@ document.addEventListener( "DOMContentLoaded" , () =>{
         });
     });
 });
+
