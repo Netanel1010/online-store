@@ -1,10 +1,4 @@
 function onSort (type , product){
-
-    /*if(type == 'Recommend'){
-        return product.sort(function(a,b){
-            return b.Recommend - a.Recommend
-        })
-    }*/
      if(type == 'price_low_high'){
         return  product.sort(function(a,b){
             return a.priceNew - b.priceNew
@@ -214,7 +208,7 @@ checkbox.forEach(function(check){
 });*/
 
 
-
+//עובד
 document.addEventListener( "DOMContentLoaded" , () =>{
     const checkbox = document.querySelectorAll('#myCheck'); 
     const sortRow = document.querySelector('.sort-row');

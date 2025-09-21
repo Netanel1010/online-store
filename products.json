@@ -1025,7 +1025,7 @@
         "priceOld": 3176,
         "priceNew": 2678,
         "priceEilat": 2269,
-        "image": "images/Recommended/Gigabyte RTX 4070 Gaming.webp",
+        "image": "images/product item/GRAPHICS CARD/Gigabyte RTX 4070 Gaming.webp",
         "mainImage": "images/product-page/450x450/Gigabyte RTX 4070 OCV2-1-450x450.webp",
         "gallery": [
             {
@@ -1505,17 +1505,29 @@
         "category": "gpu",
         "company":"gigabyte",
         "id": "N5070WF3OC12GD",
-        "name": "Gigabyte RTX 5070 WINDFORCE OC SFF 12G GV-",
+        "name": "Gigabyte RTX 5070 WINDFORCE OC SFF 12G",
         "fullName": "Gigabyte RTX 5070 WINDFORCE OC SFF 12G GV-N5070WF3OC-12GD",
         "priceOld": null,
         "priceNew": 2804,
         "priceEilat": 2376,
-        "image": "images/product item/CPU/AMD.webp",
-        "mainImage": "images/product-page/450x450/AMD AM5 Tray-450x450.jpg",
+        "image": "images/product item/GRAPHICS CARD/5070-gigabyte.avif",
+        "mainImage": "images/product-page/450x450/5070-gigabyte-1-450x450.avif",
         "gallery": [
             {
-                "small": "images/product-page/74x74/AMD AM5 Tray-74x74.jpg",
-                "large": "images/product-page/450x450/AMD AM5 Tray-450x450.jpg"
+                "small": "images/product-page/74x74/5070-gigabyte-1-74x74.avif",
+                "large": "images/product-page/450x450/5070-gigabyte-1-450x450.avif"
+            },
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-2-74x74.avif",
+                "large": "images/product-page/450x450/5070-gigabyte-2-450x450.avif"
+            },
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-3-74x74.avif",
+                "large": "images/product-page/450x450/5070-gigabyte-3-450x450.avif"
+            }, 
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-4-74x74.avif",
+                "large": "images/product-page/450x450/5070-gigabyte-4-450x450.avif"
             }
         ],
         "brand": "images/Product brands/gigabyte.webp",
@@ -1548,6 +1560,69 @@
             "Recommended PSU":"750W with Power Connectors 1x16-Pin",
             "עיצוב תרמי":"WINDFORCE cooling system",
             "אריזה":"Retail - קופסה"
+        }
+    },
+    {
+        "Recommend": true,
+        "category": "gpu",
+        "company":"gigabyte",
+        "id": "N507TEAGLEOCICE16GD",
+        "name": "Gigabyte GeForce RTX 5070 Ti EAGLE OC ICE SFF 16G",
+        "fullName": "Gigabyte GeForce RTX 5070 Ti EAGLE OC ICE SFF 16G GV-N507TEAGLEOC ICE-16GD",
+        "priceOld": null,
+        "priceNew": 4487,
+        "priceEilat": 3802,
+        "image": "images/product item/GRAPHICS CARD/5070-gigabyte-ice-228x228.avif",
+        "mainImage": "images/product-page/450X450/5070-gigabyte-ice-1-450x450.avif",
+        "gallery": [
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-ice-1-74x74.jpg",
+                "large": "images/product-page/450X450/5070-gigabyte-ice-1-450x450.avif"
+            },
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-ice-2-74x74.jpg",
+                "large": "images/product-page/450X450/5070-gigabyte-ice-2-450x450.avif"
+            },
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-ice-3-74x74.jpg",
+                "large": "images/product-page/450X450/5070-gigabyte-ice-3-450x450.avif"
+            }, 
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-ice-4-74x74.jpg",
+                "large": "images/product-page/450X450/5070-gigabyte-ice-4-450x450.avif"
+            }
+        ],
+        "brand": "images/Product brands/gigabyte.webp",
+        "brandPage": "images/product-page/Brands/gigabyte-100x40.webp",
+        "link": "https://www.gigabyte.com/Graphics-Card/GV-N507TEAGLEOC-ICE-16GD#kf",
+        "warranty": "3 Years",
+        "features": [
+            "Powered by the NVIDIA Blackwell architecture and DLSS 4",
+            "Powered by GeForce RTX™ 5070 Ti",
+            "Integrated with 16GB GDDR7 256bit memory interface",
+            "WINDFORCE cooling system - Hawk fan, Server-grade thermal conductive gel",
+            "RGB Lighting",
+            "Dual BIOS (Performance / Silent)",
+            "NVIDIA SFF-ready",
+            "Reinforced structure",
+            "Versatile VGA holder"
+        ],
+        "attributes": {
+            "מעבד גרפי": "NVIDIA RTX 5070 TI",
+            "מהירות ליבה":"2542MHz",
+            "מהירות זכרון": "28Gbps",
+            "גודל זכרון כרטיס מסך": "16GB",
+            "סוג זכרון גרפי": "GDDR7",
+            "רוחב פס זכרון": "256bit",
+            "כמות מסכים מקסימלית": "4",
+            "רזולוציה דיגיטלית מקסימלית": "7680x4320",
+            "מימדים": "L=304 W=126  H=50mm",
+            "גרסת DirectX": "12 Ultimate",
+            "גרסת OpenGL":"4.6",
+            "חיבור גרפי":"HDMI | DisplayPort",
+            "ממשק כרטיס מסך":"PCIe 5.0 x16",
+            "Recommended PSU":"750W with Power Connectors 1x16-Pin",
+            "עיצוב תרמי":"WINDFORCE cooling system"
         }
     }
 ]
