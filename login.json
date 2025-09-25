@@ -1,42 +1,26 @@
 [
     {
-        "firstName":"",
-        "lastName":"",
-        "email":"",
-        "phon":"",
-        "password":"",
-        "username":""
+        "firstName":"netanel",
+        "lastName":"babayev",
+        "email":"netanel.fire@gmail.com",
+        "phone":"0542182383",
+        "password":"12345678",
+        "username":"Netanel"
     },
     {
-        "firstName":"",
-        "lastName":"",
-        "email":"",
-        "phon":"",
-        "password":"",
-        "username":""
+        "firstName":"or",
+        "lastName":"zion",
+        "email":"or@gmail.com",
+        "phone":"0542182383",
+        "password":"12345678",
+        "username":"OR"
     },
     {
-        "firstName":"",
-        "lastName":"",
-        "email":"",
-        "phon":"",
-        "password":"",
-        "username":""
-    },
-    {
-        "firstName":"",
-        "lastName":"",
-        "email":"",
-        "phon":"",
-        "password":"",
-        "username":""
-    },
-    {
-        "firstName":"",
-        "lastName":"",
-        "email":"",
-        "phon":"",
-        "password":"",
-        "username":""
+        "firstName":"akiva",
+        "lastName":"katabi",
+        "email":"akiva@gmail.com",
+        "phone":"0542182383",
+        "password":"123123123",
+        "username":"Akiva"
     }
 ]
