@@ -1,0 +1,26 @@
+[
+    {
+        "firstName":"netanel",
+        "lastName":"babayev",
+        "email":"netanel.fire@gmail.com",
+        "phone":"0542182383",
+        "password":"12345678",
+        "username":"Netanel"
+    },
+    {
+        "firstName":"or",
+        "lastName":"zion",
+        "email":"or@gmail.com",
+        "phone":"0542182383",
+        "password":"12345678",
+        "username":"OR"
+    },
+    {
+        "firstName":"akiva",
+        "lastName":"katabi",
+        "email":"akiva@gmail.com",
+        "phone":"0542182383",
+        "password":"123123123",
+        "username":"Akiva"
+    }
+]
