@@ -22,5 +22,13 @@
         "phone":"0542182383",
         "password":"123123123",
         "username":"Akiva"
+    },
+    {
+        "firstName":"sofiya",
+        "lastName":"babayev",
+        "email":"sofiyaba576@gmail.com",
+        "phone":"0542182383",
+        "password":"12345678",
+        "username":"Sofiya"
     }
 ]
