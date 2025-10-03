@@ -54,69 +54,178 @@
     </header>
 
     <main>
+        <div class="back-to-top"><i class="fa-solid fa-arrow-up"></i></div>
+        
         <div class="products-image">
             <img src="images/Flux_Dev_a_stunning_illustration_of_i_build_a_website_online_t_0.jpg">
         </div>
         <div class="products-name">
             <h1>מוצרים</h1>
         </div>
-
         <div class="products-container">
                <i class="fa-solid fa-sliders"></i>
+
             <div class="sort">
                 <div class="sort-column">
-                    <h3>סנן לפני מותג</h3>
-                    <label>
-                        <input type="checkbox">
-                        <div class="sort-row">
-                            <p>AMD</p>
-                            <span>3</span>
-                        </div>
-                    </label>
-                    <label>
-                        <input type="checkbox">
-                        <div class="sort-row">
-                            <p>Intel</p>
-                            <span>3</span>
-                        </div>
-                    </label>
-                    <label>
-                        <input type="checkbox">
-                        <div class="sort-row">
-                            <p>Corsair</p>
-                            <span>5</span>
-                        </div>
-                    </label>
-                    <label>
-                        <input type="checkbox">
-                        <div class="sort-row">
-                            <p>CoolerMaster</p>
-                            <span>2</span>
-                        </div>
-                    </label>
-                    <label>
-                        <input type="checkbox">
-                        <div class="sort-row">
-                            <p>Asus</p>
-                            <span>1</span>
-                        </div>
-                    </label>
-                    <label>
-                        <input type="checkbox">
-                        <div class="sort-row">
-                            <p>Gigabyte</p>
-                            <span>4</span>
-                        </div>
-                    </label>
-                    <label>
-                        <input type="checkbox">
-                        <div class="sort-row">
-                            <p>Samsung</p>
-                            <span>1</span>
-                        </div>
-                    </label>
+                    <div class="sort-list">
+                        <h3>הפעל סינון</h3>
+                            <div class="brandSort">
+                                <p>מותגים</p>
+                                <label>
+                                <input type="checkbox" id="myCheck" value="amd">
+                                <div class="sort-row">
+                                    <p>AMD</p>
+                                    <span>3</span>
+                                </div>
+                                </label>
+                                <label>
+                                <input type="checkbox" id="myCheck" value="intel">
+                                <div class="sort-row">
+                                    <p>Intel</p>
+                                    <span>3</span>
+                                </div>
+                                </label>
+                                <label>
+                                <input type="checkbox" id="myCheck" value="corsair">
+                                <div class="sort-row">
+                                        <p>Corsair</p>
+                                        <span>5</span>
+                                </div>
+                                </label>
+                                <label>
+                                <input type="checkbox" id="myCheck" value="cooler master">
+                                <div class="sort-row">
+                                    <p>CoolerMaster</p>
+                                    <span>2</span>
+                                </div>
+                                </label>
+                                <label>
+                                <input type="checkbox" id="myCheck" value="asus">
+                                <div class="sort-row">
+                                    <p>Asus</p>
+                                    <span>1</span>
+                                </div>
+                                </label>
+                                <label>
+                                <input type="checkbox" id="myCheck" value="gigabyte">
+                                <div class="sort-row">
+                                    <p>Gigabyte</p>
+                                    <span>4</span>
+                                </div>
+                                </label>
+                                <label>
+                                <input type="checkbox" id="myCheck" value="samsung">
+                                <div class="sort-row">
+                                    <p>Samsung</p>
+                                    <span>1</span>
+                                </div>
+                                </label>
+                            </div>
+
+                            <div class="hzSort">
+                                <p>קצב רענון מסך</p>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="165Hz">
+                                    <div class="sort-row">
+                                        <p>165Hz</p>
+                                        <span>1</span>
+                                    </div>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="170Hz">
+                                    <div class="sort-row">
+                                        <p>170Hz</p>
+                                        <span>1</span>
+                                    </div>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="180Hz">
+                                    <div class="sort-row">
+                                        <p>180Hz</p>
+                                        <span>1</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="ssdSort">
+                                <p>נפח כונן</p>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="512GB">
+                                    <div class="sort-row">
+                                        <p>512GB</p>
+                                        <span>0</span>
+                                    </div>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="1.0TB">
+                                    <div class="sort-row">
+                                        <p>1TB</p>
+                                        <span>0</span>
+                                    </div>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="2.0TB">
+                                    <div class="sort-row">
+                                        <p>2TB</p>
+                                        <span>1</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="ramSort">
+                                <p>זכרון </p>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="">
+                                    <div class="sort-row">
+                                        <p>8GB</p>
+                                        <span>0</span>
+                                    </div>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="">
+                                    <div class="sort-row">
+                                        <p>16GB</p>
+                                        <span>0</span>
+                                    </div>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="32GB (2x16GB)">
+                                    <div class="sort-row">
+                                        <p>32GB</p>
+                                        <span>1</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="rezolutionSort">
+                                <p>רזולוצייה</p>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="4k UHD (3840x2160)">
+                                    <div class="sort-row">
+                                        <p>4K UHD</p>
+                                        <span>1</span>
+                                    </div>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="QHD (2560x1440)">
+                                    <div class="sort-row">
+                                        <p>2K QHD</p>
+                                        <span>1</span>
+                                    </div>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="myCheck" value="FHD (1920x1080)">
+                                    <div class="sort-row">
+                                        <p>Full HD</p>
+                                        <span>1</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                    </div>
                 </div>
             </div>
+
             <div class="sort-image">
                 <div class="cpu-image-top">
                     <div class="imges">
@@ -153,13 +262,13 @@
                     <div class="sort-model">
                         <label for="model"></label>
                         <select name="model" id="model">
-                            <option class="option" value="חדשים">חדשים</option>
-                            <option class="option" value="שם (א - ת)">שם (א - ת)</option>
-                            <option class="option" value="שם (ת - א)">שם (ת - א)</option>
+                            <option class="option" value="news">חדשים</option>
+                            <option class="option" value="name_(a-z)">שם (א - ת)</option>
+                            <option class="option" value="name_(z-a)">שם (ת - א)</option>
                             <option class="option" value="price_low_high">מחיר (נמוך > גבוה)</option>
                             <option class="option" value="price_high_low">מחיר (גבוה > נמוך)</option>
                         </select>
-                    </div> 
+                    </div>
 
                     <div class="items"></div><!--JS-->
                     
@@ -176,7 +285,10 @@
                 <p>Email@gmail.com</p>
                 <p>Phone: +012 345 6789</p>
                 <p>Address: sironit</p>
-                <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3931.8394244235706!2d34.85354840482807!3d32.35089562367929!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151d6ac92b8eebc9%3A0x607b4fc05238d484!2z15fXldejINeR15zXlSDXkdeZ15k!5e0!3m2!1siw!2sil!4v1738159138906!5m2!1siw!2sil" allowfullscreen="" loading="0" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                <iframe 
+                    src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3931.8394244235706!2d34.85354840482807!3d32.35089562367929!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151d6ac92b8eebc9%3A0x607b4fc05238d484!2z15fXldejINeR15zXlSDXkdeZ15k!5e0!3m2!1siw!2sil!4v1738159138906!5m2!1siw!2sil" 
+                    allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
             </div>
 
             <div class="links">
@@ -214,8 +326,8 @@
 
     </footer>
     
-    <script src="main.js"></script>
-    <script src="products.js"></script>
+    <script src="main.js" ></script>
+    <script src="products.js" ></script>
 </body>
 </html>
 

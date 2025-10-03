@@ -2,16 +2,19 @@ const header = document.querySelector("header");
 const head = document.querySelector("header .head");
 
 
+//בודק אם נמצא אלמנט ההמבורגר
 document.addEventListener("DOMContentLoaded", function() {
   const hamburger = document.querySelector(".hamburger");
+  //אם נמצא אלמנט ההמבורגר, מוסיף לו מאזין קליק שמפעיל את הפונקציה
   if (hamburger) {
     hamburger.addEventListener("click", toggleMenu);
   }
 
-   const closeMenuBtn = document.getElementById("closeMenuBtn");
+   const closeMenuBtn = document.querySelector("#closeMenuBtn");
+  //אם נמצא כפתור הסגירה, מוסיף לו מאזין קליק שמסיר את הקלאס active מהתפריט הצדדי (סוגר אותו) וגם מסיר את המאזין ללחיצה מחוץ לתפריט.
   if (closeMenuBtn) {
     closeMenuBtn.addEventListener("click", function() {
-      const sideMenu = document.getElementById("sideMenu");
+      const sideMenu = document.querySelector("#sideMenu");
       if (sideMenu) {
         sideMenu.classList.remove("active");
         document.removeEventListener("mousedown", closeMenuOnClickOutside);
@@ -20,6 +23,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 });
 
+//מסיר את הקלאס 'active' מהתפריט הצדדי (סוגר אותו)
 function toggleMenu() {
   const sideMenu = document.getElementById("sideMenu");
   if (sideMenu) {
@@ -34,8 +38,9 @@ function toggleMenu() {
   }
 }
 
+//פותח או סוגר את התפריט הצדדי על ידי החלפת הקלאס 'active'
 function closeMenuOnClickOutside(event) {
-  const sideMenu = document.getElementById("sideMenu");
+  const sideMenu = document.querySelector("#sideMenu");
   const hamburger = document.querySelector(".hamburger");
   if (
     sideMenu &&
@@ -48,13 +53,14 @@ function closeMenuOnClickOutside(event) {
 }
 
 
-/*חיפוש*/
+//חיפוש
 const search = document.querySelector(".search");
 const input = document.createElement("input");
 input.type = "text";
 input.placeholder = "חפש מוצרים...";
 search.appendChild(input);
 
+//מבצע בקשת נתונים מהמוצרים ומטפל בתוצאות החיפוש
 fetch('products.json')
   .then(response => response.json())
   .then(data=>{
@@ -103,6 +109,9 @@ fetch('products.json')
   .catch(error => console.error(error));
 
 
+
+  
+//הוספת מס פריטים בעגלה
 const cart = document.querySelector(".cart");
 /*עכשיו במקום להשתמש בכול הממך לשתי הפריטים הבאים שזה דוקיומנט נשתמש ב - cart*/
 /* מועדפים */
@@ -141,7 +150,6 @@ fetch('products.json')
     const saleNone = document.querySelector("#saleNone");/*מה שעוטף הכול*/
 
     if (!saleContainer || !saleNone) {
-      console.warn("לא נמצא .sale או #saleNone בדף זה. ייתכן וזה product page.html");
       return;
     }
 
@@ -163,9 +171,11 @@ fetch('products.json')
 
       const imgLink = document.createElement("a");
       imgLink.href = `product page.html?id=${product.id}`;
+      imgLink.ariaLabel = "";
 
       const img = document.createElement("img");
       img.src = product.image;
+      img.alt = "תמונה של המוצר";
       img.classList.add("image");
       imgLink.appendChild(img);
       itemDiv.appendChild(imgLink);
@@ -300,6 +310,8 @@ fetch('products.json')
 
     const recommendContainer = document.querySelector('.recommend');
     const recommendNone = document.querySelector('#recommendNone');
+
+    if(!recommendContainer||!recommendNone){return;}
 
 
     const recommendProducts = data.filter(product => product.Recommend === true);
@@ -447,3 +459,343 @@ fetch('products.json')
 
   })
   .catch(err => console.error("שגיאה בטעינת המוצרים:", err));
+
+
+//גלילה למעלה
+document.addEventListener("DOMContentLoaded", function(){
+  //גלילה חלקה למעלה
+  document.querySelector('.back-to-top')?.addEventListener('click' , function(event){
+    event.preventDefault();
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    })
+
+  })
+  //גלילה בהתאם למסך
+  document.addEventListener('scroll' , function(){
+
+    const {scrollTop , clientHeight}=document.documentElement;
+
+    /*const scrollTop = document.documentElement.scrollTop;
+    const screnSize = document.documentElement.clientHeight;*/
+
+    if( scrollTop > ( clientHeight / 2 ) ){
+        document.querySelector('.back-to-top').classList.add('active');
+    } else {
+        document.querySelector('.back-to-top').classList.remove('active');
+    }
+
+  })
+});
+
+//א
+//תמונות מתחלפות
+/*const sliderImg = document.querySelectorAll('.slider');
+let currentSlide = 0;
+let autoSlide =null; 
+
+if(sliderImg.length > 0){
+    const imageMain = document.querySelector('.imageMain');
+      //אחורה
+    document.querySelector('.prev')?.addEventListener('click' ,  function(){
+    
+    if(currentSlide > 0){
+      sliderImg[currentSlide].classList.remove('is-active');
+      sliderImg[currentSlide-1].classList.add('is-active');
+      currentSlide--;
+    } else{
+      sliderImg[currentSlide].classList.remove('is-active');
+      sliderImg[sliderImg.length-1].classList.add('is-active');
+      currentSlide = sliderImg.length-1;
+    }
+    //לא בדקתי
+    resetAutoSlide();
+    });
+  
+    //קדימה
+    document.querySelector('.next')?.addEventListener('click' , function(){
+    
+    if(currentSlide === sliderImg.length-1){
+      sliderImg[currentSlide].classList.remove('is-active');
+      sliderImg[0].classList.add('is-active');
+      currentSlide = 0;
+    }else{
+      sliderImg[currentSlide].classList.remove('is-active');
+      sliderImg[currentSlide+1].classList.add('is-active');
+      currentSlide++;
+    }
+    //לא בדקתי
+    resetAutoSlide();
+    });
+
+    //לחיצה על המספרים משנה את התמונה
+    function createDots(){
+
+    const dotsDiv = document.querySelector('.dots');
+    
+    if(!dotsDiv) return ;
+
+    sliderImg.forEach(function(item , index){
+      
+      //create button
+      const buttonDot = document.createElement('button');
+      buttonDot.classList.add('dot');
+
+      const buttonDotI = document.createElement('i');
+      buttonDotI.classList.add('fa-regular', 'fa-circle');
+
+      buttonDot.addEventListener('click' , function(){
+
+        //נעלים את כול תמונות
+        sliderImg.forEach(function(item){
+          item.classList.remove('is-active'); 
+        })
+
+        //לא בדקתי
+        document.querySelectorAll('.dot i').forEach(dot => {
+          dot.classList.remove('active-dot');
+        });
+
+        //נציג את התמונה במקום שבחרתי
+        currentSlide = index;
+        sliderImg[index].classList.add('is-active');
+
+        //לא בדקתי
+        buttonDotI.classList.add('active-dot');
+        //לא בדקתי
+        resetAutoSlide();
+      })
+      buttonDot.append(buttonDotI);
+      dotsDiv.append(buttonDot);
+    })
+
+    if(imageMain && !imageMain.contains(dotsDiv)){
+      imageMain.append(dotsDiv);
+    }
+
+    }
+    createDots();
+
+    //לא בדקתי
+    //מעבר אוטומטי 
+    function startAutoSlide(){
+
+      if(autoSlide){
+        clearInterval(autoSlide);
+        autoSlide = null;
+      }
+
+
+    // יוצרים אינטרוול שירוץ כל 4000 מילישניות (4 שניות)
+    autoSlide = setInterval(function(){
+
+      // קודם מסירים את המחלקה 'is-active' מכל התמונות
+      sliderImg.forEach(item => item.classList.remove('is-active'));
+
+      // מסירים גם את ההדגשה 'active-dot' מכל הנקודות
+      document.querySelectorAll('.dot i').forEach(dot => dot.classList.remove('active-dot'));
+
+      // מעדכנים את currentSlide ל-slide הבא
+      // % sliderImg.length = אם הגענו לסוף, חוזרים להתחלה
+      currentSlide = (currentSlide + 1) % sliderImg.length;
+
+      // מוסיפים את המחלקה 'is-active' לתמונה הנוכחית
+      sliderImg[currentSlide].classList.add('is-active');
+
+      // מוסיפים הדגשה ל-dot שמתאים לתמונה הנוכחית
+      document.querySelectorAll('.dot i')[currentSlide].classList.add('active-dot');
+
+    }, 4000); // סוף setInterval – כל 4 שניות
+    }
+    startAutoSlide();
+
+    function resetAutoSlide(){
+    clearInterval(autoSlide);
+    startAutoSlide();
+    }
+
+    // עצירה כשמעבירים עכבר על התמונה
+    if(imageMain){
+    imageMain.addEventListener('mouseenter', () => {
+      clearInterval(autoSlide); // עוצרים
+    });
+
+    imageMain.addEventListener('mouseleave', () => {
+      startAutoSlide(); // ממשיכים שוב
+    });
+    }
+}*/
+
+
+//ב
+// Slider Component
+/*document.addEventListener('DOMContentLoaded', () => {
+  const slides = document.querySelectorAll('.slider');
+  const prevBtn = document.querySelector('.prev');
+  const nextBtn = document.querySelector('.next');
+  const imageMain = document.querySelector('.imageMain');
+  const dotsContainer = document.querySelector('.dots');
+
+  let currentSlide = 0;
+  let autoSlideInterval = null;
+  let dots = [];
+
+  // --- פונקציות עזר ---
+  function showSlide(index) {
+    // לוודא שהאינדקס תמיד תקין (מעגלי)
+    currentSlide = (index + slides.length) % slides.length;
+
+    // מנקים הכל
+    slides.forEach(slide => slide.classList.remove('is-active'));
+    dots.forEach(dot => dot.classList.remove('active-dot'));
+
+    // מציגים את התמונה והנקודה הנכונה
+    slides[currentSlide].classList.add('is-active');
+    dots[currentSlide].classList.add('active-dot');
+  }
+
+  function nextSlide() {
+    showSlide(currentSlide + 1);
+  }
+
+  function prevSlide() {
+    showSlide(currentSlide - 1);
+  }
+
+  function startAutoSlide() {
+    autoSlideInterval = setInterval(nextSlide, 4000);
+  }
+
+  function stopAutoSlide() {
+    clearInterval(autoSlideInterval);
+  }
+
+  function resetAutoSlide() {
+    stopAutoSlide();
+    startAutoSlide();
+  }
+
+  function createDots() {
+    slides.forEach((_, index) => {
+      const button = document.createElement('button');
+      button.classList.add('dot');
+
+      const icon = document.createElement('i');
+      icon.classList.add('fa-regular', 'fa-circle');
+
+      button.append(icon);
+      dotsContainer.append(button);
+
+      // שמירה ברשימה
+      dots.push(icon);
+
+      button.addEventListener('click', () => {
+        showSlide(index);
+        resetAutoSlide();
+      });
+    });
+  }
+
+  // --- חיבורים והפעלה ---
+  if (slides.length > 0) {
+    createDots();
+    showSlide(0);
+    startAutoSlide();
+
+    prevBtn?.addEventListener('click', () => {
+      prevSlide();
+      resetAutoSlide();
+    });
+
+    nextBtn?.addEventListener('click', () => {
+      nextSlide();
+      resetAutoSlide();
+    });
+
+    // עצירה/הפעלה עם עכבר
+    imageMain?.addEventListener('mouseenter', stopAutoSlide);
+    imageMain?.addEventListener('mouseleave', startAutoSlide);
+  }
+});*/
+
+//ד
+document.addEventListener("DOMContentLoaded" , function(){
+  const slides = document.querySelectorAll('.slider');
+  const prevBtn =  document.querySelector('.prev');
+  const nextBtn = document.querySelector('.next');
+  const imageMain = document.querySelector('.imageMain');
+  const dotsContainer = document.querySelector('.dots');
+
+  let currentSlide = 0;
+  let autoSlideInterval = null;
+  let dots = [];
+
+  function showSlide(index){
+    currentSlide = (index + slides.length) %  slides.length
+
+    slides.forEach(slide => slide.classList.remove('is-active'));
+    dots.forEach(dot => dot.classList.remove('active-dot'));
+
+    slides[currentSlide].classList.add('is-active');
+    dots[currentSlide].classList.add('active-dot');
+  }
+
+  function nextSlide(){ showSlide(currentSlide+1); };
+  function prevSlide(){ showSlide(currentSlide-1); };
+
+  function startAutoSlide(){
+    stopAutoSlide();
+    autoSlideInterval = setInterval(nextSlide , 4000);
+  }
+
+  function stopAutoSlide(){
+    if(autoSlideInterval){
+      clearInterval(autoSlideInterval);
+      autoSlideInterval = null;
+    }
+  }
+
+  function resetAutoSlide(){ startAutoSlide();}
+
+  function createDots(){
+    slides.forEach((_ , index) =>{
+
+      const buttonDot = document.createElement('button');
+      buttonDot.classList.add('dot');
+
+      const buttonIcon = document.createElement('i');
+      buttonIcon.classList.add('fa-regular', 'fa-circle');
+
+      buttonDot.append(buttonIcon);
+      dotsContainer.append(buttonDot);
+
+      dots.push(buttonDot);
+
+      buttonDot.addEventListener('click' , function(){
+        showSlide(index);
+        resetAutoSlide();
+      })
+    })
+  }
+
+  if(slides.length > 0){
+    createDots();
+    showSlide(0);
+    startAutoSlide();
+
+    prevBtn?.addEventListener('click' , function(){
+      prevSlide();
+      resetAutoSlide();
+    })
+
+    nextBtn?.addEventListener('click' , function(){
+      nextSlide();
+      resetAutoSlide();
+    })
+
+    imageMain?.addEventListener('mouseenter' ,stopAutoSlide);
+    imageMain?.addEventListener('mouseleave' ,startAutoSlide);
+  }
+});

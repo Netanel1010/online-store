@@ -1,4 +1,4 @@
-# 🛒 Online Store
+# 🛒 Online Store!
 
 A responsive front-end web application simulating an online shopping experience.  
 Built as part of my first-year practical studies in Software Engineering.

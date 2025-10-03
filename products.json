@@ -2,6 +2,7 @@
     {
         "Recommend": false,
         "category": "gpu",
+        "company":"gigabyte",
         "id": "N406TGAMINGOC8GD",
         "name": "Gigabyte RTX 4060 Ti GV-N406TGAMING OC-8GD",
         "fullName": "Gigabyte RTX 4060 Ti (DLSS 3) GV-N406TGAMING OC-8GD",
@@ -71,6 +72,7 @@
     {
         "Recommend": false,
         "category": "cpu",
+        "company":"intel",
         "id": "C14900KFT",
         "name": "Intel Core i9 14900KF / 1700 Tray",
         "fullName": "Intel® Core™ i9 processor 14900KF 36M Cache, up to 6.00 GHz",
@@ -118,6 +120,7 @@
     {
         "Recommend": false,
         "category": "cooler",
+        "company":"cooler master",
         "id": "MLW-D24M-A18PC-R2",
         "name": "CoolerMaster MasterLiquid ML240L V2 RGB",
         "fullName": "CoolerMaster MasterLiquid ML240L V2 RGB Liquid Cooler",
@@ -174,6 +177,7 @@
     {
         "Recommend": false,
         "category": "motherboard",
+        "company":"asus",
         "id": "90MB1CX0-M1EAY0",
         "name": "Asus PRIME B760M-A WiFi D4",
         "fullName": "Asus PRIME B760M-A WiFi D4 Micro-ATX Motherboard",
@@ -237,6 +241,7 @@
     {
         "Recommend": false,
         "category": "memory",
+        "company":"corsair",
         "id": "CMG32GX4M2E3200C16",
         "name": "Corsair DDR4 32G (2x16G) 3200 CL16 Vengeance RGB",
         "fullName": "Corsair DDR4 32G (2x16G) 3200 CL16 Vengeance RGB RS",
@@ -273,7 +278,7 @@
         ],
         "attributes": {
             "סוג זכרון": "DDR4",
-            "קיבולת": "32GB (2x16GB)",
+            "ram": "32GB (2x16GB)",
             "מהירות": "3200MHz",
             "תזמון (CL)": "16",
             "מתח": "1.32V",
@@ -284,6 +289,7 @@
     {
         "Recommend": false,
         "category": "case",
+        "company":"corsair",
         "id": "CC-9011240-WW",
         "name": "מארז מחשב Corsair 4000D RGB Airflow",
         "fullName": "Corsair 4000D RGB Airflow Tempered Glass ATX Mid-Tower Case",
@@ -332,6 +338,7 @@
     {
         "Recommend": false,
         "category": "psu",
+        "company":"gigabyte",
         "id": "GP-P650G",
         "name": "Gigabyte PSU 650W Gold 80+ P650G",
         "fullName": "Gigabyte P650G 650W 80 Plus Gold Certified Power Supply",
@@ -384,6 +391,7 @@
     {
         "Recommend": false,
         "category": "storage",
+        "company":"samsung",
         "id": "MZ-V8P2T0BW",
         "name": "Samsung SSD 2.0TB 980 Pro NVMe M.2",
         "fullName": "Samsung SSD 2.0TB 980 Pro NVMe M.2 PCIe Gen4",
@@ -420,7 +428,7 @@
         ],
         "attributes": {
             "סוג כונן": "NVMe M.2 SSD",
-            "קיבולת": "2.0TB",
+            "storage": "2.0TB",
             "מהירות קריאה רציפה": "Up to 7000 MB/s",
             "מהירות כתיבה רציפה": "Up to 5000 MB/s",
             "חיבור": "PCIe Gen4 x4",
@@ -431,9 +439,10 @@
     {
         "Recommend": false,
         "category": "monitor",
+        "company":"gigabyte",
         "id": "M27Q",
         "name": "Gigabyte 27 M27Q (Rev 2.0) IPS QHD 170Hz 0.5ms",
-        "fullName": "מסך מחשב לגיימינג Gigabyte 27 M27Q (Rev 2.0) IPS QHD 165Hz 1ms",
+        "fullName": "מסך מחשב לגיימינג Gigabyte 27 M27Q (Rev 2.0) IPS QHD 170Hz 1ms",
         "priceOld": 858,
         "priceNew": 969,
         "priceEilat": 821,
@@ -466,7 +475,7 @@
         "link": "https://www.gigabyte.com/Monitor/M27Q#kf",
         "warranty": "3 Years",
         "features": [
-            "IPS Panel with 165Hz Refresh Rate",
+            "IPS Panel with 170Hz Refresh Rate",
             "QHD (2560x1440) Resolution",
             "1ms Response Time",
             "HDR Ready",
@@ -475,9 +484,9 @@
         ],
         "attributes": {
             "גודל מסך": "27 אינץ",
-            "רזולוציה": "QHD (2560x1440)",
+            "rezolution": "QHD (2560x1440)",
             "פאנל": "IPS",
-            "קצב רענון": "165Hz",
+            "Hz": "170Hz",
             "זמן תגובה": "1ms (MPRT)",
             "בהירות מקסימלית": "400 cd/m²",
             "חיבורים": "HDMI | DisplayPort | USB-C | Headphone Jack",
@@ -488,6 +497,7 @@
     {
         "Recommend": false,
         "category": "thermal",
+        "company":"cooler master",
         "id": "MGZ-NDSG-N07M-R2",
         "name": "CoolerMaster CryoFuze 0.7ml Thermal Grease",
         "fullName": "CoolerMaster CryoFuze 0.7ml Thermal Grease",
@@ -537,6 +547,7 @@
     {
         "Recommend": true,
         "category": "case",
+        "company":"corsair",
         "id": "CC-9011200-WW",
         "name": " מארז מחשב Corsair 4000D Airflow TG",
         "fullName": "Corsair 4000D Airflow Tempered Glass ATX Mid-Tower Case",
@@ -593,6 +604,7 @@
     {
         "Recommend": true,
         "category": "keyboard",
+        "company":"corsair",
         "id": "CH-9226765-NA",
         "name": "מקלדת גיימינג Corsair K55 RGB PRO",
         "fullName": "מקלדת גיימינג Corsair K55 RGB PRO עברית/אנגלית",
@@ -648,6 +660,7 @@
     {
         "Recommend": true,
         "category": "headset",
+        "company":"corsair",
         "id": "CA-9011270-NA",
         "name": "אוזניות קשת חוטיות לגיימינג עם מיקרופון מובנה Corsair HS65",
         "fullName": "אוזניות קשת חוטיות לגיימינג עם מיקרופון מובנה Corsair HS65 Surround",
@@ -703,6 +716,7 @@
     {
         "Recommend": true,
         "category": "monitor",
+        "company":"gigabyte",
         "id": "GS27FC",
         "name": "מסך מחשב קעור לגיימינג Gigabyte 27 VA FHD 180Hz",
         "fullName": "מסך מחשב קעור לגיימינג Gigabyte 27 VA FHD 180Hz 1ms 1500R",
@@ -748,9 +762,9 @@
         "attributes": {
             "גודל מסך": "27 אינץ",
             "צורת מסך": "מסך קעור",
-            "רזולוציה": "FHD (1920x1080)",
+            "rezolution": "FHD (1920x1080)",
             "פאנל": "VA",
-            "קצב רענון": "180Hz",
+            "Hz": "180Hz",
             "זמן תגובה": "1ms (MPRT)",
             "בהירות מקסימלית": "250 cd/m²",
             "חיבורים": "HDMI | DisplayPort | Headphone Jack",
@@ -761,6 +775,7 @@
     {
         "Recommend": false,
         "category": "monitor",
+        "company":"gigabyte",
         "id": "FO32U",
         "name": "מסך מחשב לגיימינג Gigabyte 32 AORUS FO32U UHD",
         "fullName": "מסך מחשב לגיימינג Gigabyte 32 AORUS FO32U UHD OLED 165Hz 0.03ms",
@@ -808,10 +823,10 @@
         "attributes": {
             "גודל מסך": "32 אינץ",
             "צורת מסך": "מסך שטוח",
-            "רזולוציה": "4k UHD (3840x2160)",
+            "rezolution": "4k UHD (3840x2160)",
             "יישום מסך": "גיימינג",
             "פאנל": "OLED",
-            "קצב רענון": "165Hz",
+            "Hz": "165Hz",
             "זמן תגובה": "0.03ms (GTG)",
             "תצורת מסך": "16:9",
             "בהירות מסך": "cd/m2 250",
@@ -827,6 +842,7 @@
     {
         "Recommend": false,
         "category": "case",
+        "company":"corsair",
         "id": "CC-9011098-WW",
         "name": "מארז מחשב Corsair Crystal 570X RGB",
         "fullName": "Corsair Crystal 570X RGB Tempered Glass ATX Mid-Tower Case",
@@ -882,6 +898,7 @@
     {
         "Recommend": false,
         "category": "cooler",
+        "company":"corsair",
         "id": "CW-9060079-WW",
         "name": "Corsair iCUE H150i RGB ELITE Liquid CPU Cooler",
         "fullName": "Corsair iCUE H150i RGB ELITE Liquid CPU Cooler - White",
@@ -937,6 +954,7 @@
     {
         "Recommend": false,
         "category": "motherboard",
+        "company":"gigabyte",
         "id": "GZ790AORUSELITEXWIFI7",
         "name": "Gigabyte Z790 AORUS ELITE X WIFI7",
         "fullName": "Gigabyte Z790 AORUS ELITE X WIFI7 ATX Motherboard",
@@ -1000,13 +1018,14 @@
     {
         "Recommend": true,
         "category": "gpu",
+        "company":"gigabyte",
         "id": "N4070GAMINGOCV212GD",
         "name": "Gigabyte RTX 4070 (DLSS 3) GV-N4070GAMING",
         "fullName": "Gigabyte RTX 4070 (DLSS 3) GV-N4070GAMING OCV2-12GD",
         "priceOld": 3176,
         "priceNew": 2678,
         "priceEilat": 2269,
-        "image": "images/Recommended/Gigabyte RTX 4070 Gaming.webp",
+        "image": "images/product item/GRAPHICS CARD/Gigabyte RTX 4070 Gaming.webp",
         "mainImage": "images/product-page/450x450/Gigabyte RTX 4070 OCV2-1-450x450.webp",
         "gallery": [
             {
@@ -1065,6 +1084,7 @@
     {
         "Recommend": false,
         "category": "cpu",
+        "company":"intel",
         "id": "C285T",
         "name": "Intel Core Ultra 9 285 / 1851 Tray",
         "fullName": "Intel Core Ultra 9 285 / 1851 Tray",
@@ -1106,6 +1126,7 @@
     {
         "Recommend": false,
         "category": "cpu",
+        "company":"intel",
         "id": "C265T",
         "name": "Intel Core Ultra 7 265 / 1851 Tray",
         "fullName": "Intel Core Ultra 7 265 / 1851 Tray",
@@ -1147,6 +1168,7 @@
     {
         "Recommend": false,
         "category": "cpu",
+        "company":"intel",
         "id": "C265FT",
         "name": "Intel Core Ultra 7 265F / 1851 Tray",
         "fullName": "Intel Core Ultra 7 265F / 1851 Tray",
@@ -1188,6 +1210,7 @@
     {
         "Recommend": false,
         "category": "cpu",
+        "company":"intel",
         "id": "C245T",
         "name": "Intel Core Ultra 5 245 / 1851 Tray",
         "fullName": "Intel Core Ultra 5 245 / 1851 Tray",
@@ -1229,6 +1252,7 @@
     {
         "Recommend": false,
         "category": "cpu",
+        "company":"intel",
         "id": "C225FT",
         "name": "Intel Core Ultra 5 225F / 1851 Tray",
         "fullName": "Intel Core Ultra 5 225F / 1851 Tray",
@@ -1270,6 +1294,7 @@
     {
         "Recommend": false,
         "category": "cpu",
+        "company":"intel",
         "id": "C225TC225T",
         "name": "Intel Core Ultra 5 225 / 1851 Tray",
         "fullName": "Intel Core Ultra 5 225 / 1851 Tray",
@@ -1311,6 +1336,7 @@
     {
         "Recommend": false,
         "category": "cpu",
+        "company":"intel",
         "id": "C235T",
         "name": "Intel Core Ultra 5 235 / 1851 Tray",
         "fullName": "Intel Core Ultra 5 235 / 1851 Tray",
@@ -1352,6 +1378,7 @@
     {
         "Recommend": false,
         "category": "cpu",
+        "company":"amd",
         "id": "100-000000910",
         "name": "AMD Ryzen 7 7800X3D AM5 Tray",
         "fullName": "AMD Ryzen 7 7800X3D AM5 Tray",
@@ -1393,6 +1420,7 @@
     {
         "Recommend": false,
         "category": "cpu",
+        "company":"intel",
         "id": "C12900KT",
         "name": "Intel Core i9 12900K / 1700 Tray",
         "fullName": "Intel Core i9 12900K / 1700 Tray",
@@ -1434,6 +1462,7 @@
     {
         "Recommend": false,
         "category": "cpu",
+        "company":"amd",
         "id": "100-000000593",
         "name": "AMD Ryzen 5 7600X AM5 Tray",
         "fullName": "AMD Ryzen 5 7600X AM5 Tray",
@@ -1469,6 +1498,131 @@
             "תמיכה בזכרון": "DDR5",
             "גרסת PCI Express": "5.0",
             "צריכת חשמל - מעבד": "105W"
+        }
+    },
+    {
+        "Recommend": true,
+        "category": "gpu",
+        "company":"gigabyte",
+        "id": "N5070WF3OC12GD",
+        "name": "Gigabyte RTX 5070 WINDFORCE OC SFF 12G",
+        "fullName": "Gigabyte RTX 5070 WINDFORCE OC SFF 12G GV-N5070WF3OC-12GD",
+        "priceOld": null,
+        "priceNew": 2804,
+        "priceEilat": 2376,
+        "image": "images/product item/GRAPHICS CARD/5070-gigabyte.avif",
+        "mainImage": "images/product-page/450x450/5070-gigabyte-1-450x450.avif",
+        "gallery": [
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-1-74x74.avif",
+                "large": "images/product-page/450x450/5070-gigabyte-1-450x450.avif"
+            },
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-2-74x74.avif",
+                "large": "images/product-page/450x450/5070-gigabyte-2-450x450.avif"
+            },
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-3-74x74.avif",
+                "large": "images/product-page/450x450/5070-gigabyte-3-450x450.avif"
+            }, 
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-4-74x74.avif",
+                "large": "images/product-page/450x450/5070-gigabyte-4-450x450.avif"
+            }
+        ],
+        "brand": "images/Product brands/gigabyte.webp",
+        "brandPage": "images/product-page/Brands/gigabyte-100x40.webp",
+        "link": "https://www.gigabyte.com/Graphics-Card/GV-N5070WF3OC-12GD#kf",
+        "warranty": "3 Years",
+        "features": [
+            "Powered by the NVIDIA Blackwell architecture and DLSS 4",
+            "Powered by GeForce RTX 5070",
+            "Integrated with 12GB GDDR7 192bit memory interface",
+            "WINDFORCE cooling system",
+            "Hawk fan",
+            "Server-grade thermal conductive gel",
+            "NVIDIA SFF-ready",
+            "Reinforced structure"
+        ],
+        "attributes": {
+            "מעבד גרפי": "NVIDIA RTX 5070",
+            "מהירות זכרון": "28Gbps",
+            "גודל זכרון כרטיס מסך": "12GB",
+            "סוג זכרון גרפי": "GDDR7",
+            "רוחב פס זכרון": "192bit",
+            "כמות מסכים מקסימלית": "4",
+            "רזולוציה דיגיטלית מקסימלית": "7680x4320",
+            "מימדים": "L=282 W=110 H=50mm",
+            "גרסת DirectX": "12 Ultimate",
+            "גרסת OpenGL":"4.6",
+            "חיבור גרפי":"HDMI | DisplayPort",
+            "ממשק כרטיס מסך":"PCIe 5.0 x16",
+            "Recommended PSU":"750W with Power Connectors 1x16-Pin",
+            "עיצוב תרמי":"WINDFORCE cooling system",
+            "אריזה":"Retail - קופסה"
+        }
+    },
+    {
+        "Recommend": true,
+        "category": "gpu",
+        "company":"gigabyte",
+        "id": "N507TEAGLEOCICE16GD",
+        "name": "Gigabyte GeForce RTX 5070 Ti EAGLE OC ICE SFF 16G",
+        "fullName": "Gigabyte GeForce RTX 5070 Ti EAGLE OC ICE SFF 16G GV-N507TEAGLEOC ICE-16GD",
+        "priceOld": null,
+        "priceNew": 4487,
+        "priceEilat": 3802,
+        "image": "images/product item/GRAPHICS CARD/5070-gigabyte-ice-228x228.avif",
+        "mainImage": "images/product-page/450x450/5070-gigabyte-ice-1-450x450.avif",
+        "gallery": [
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-ice-1-74x74.jpg",
+                "large": "images/product-page/450x450/5070-gigabyte-ice-1-450x450.avif"
+            },
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-ice-2-74x74.jpg",
+                "large": "images/product-page/450x450/5070-gigabyte-ice-2-450x450.avif"
+            },
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-ice-3-74x74.jpg",
+                "large": "images/product-page/450x450/5070-gigabyte-ice-3-450x450.avif"
+            }, 
+            {
+                "small": "images/product-page/74x74/5070-gigabyte-ice-4-74x74.jpg",
+                "large": "images/product-page/450x450/5070-gigabyte-ice-4-450x450.avif"
+            }
+        ],
+        "brand": "images/Product brands/gigabyte.webp",
+        "brandPage": "images/product-page/Brands/gigabyte-100x40.webp",
+        "link": "https://www.gigabyte.com/Graphics-Card/GV-N507TEAGLEOC-ICE-16GD#kf",
+        "warranty": "3 Years",
+        "features": [
+            "Powered by the NVIDIA Blackwell architecture and DLSS 4",
+            "Powered by GeForce RTX™ 5070 Ti",
+            "Integrated with 16GB GDDR7 256bit memory interface",
+            "WINDFORCE cooling system - Hawk fan, Server-grade thermal conductive gel",
+            "RGB Lighting",
+            "Dual BIOS (Performance / Silent)",
+            "NVIDIA SFF-ready",
+            "Reinforced structure",
+            "Versatile VGA holder"
+        ],
+        "attributes": {
+            "מעבד גרפי": "NVIDIA RTX 5070 TI",
+            "מהירות ליבה":"2542MHz",
+            "מהירות זכרון": "28Gbps",
+            "גודל זכרון כרטיס מסך": "16GB",
+            "סוג זכרון גרפי": "GDDR7",
+            "רוחב פס זכרון": "256bit",
+            "כמות מסכים מקסימלית": "4",
+            "רזולוציה דיגיטלית מקסימלית": "7680x4320",
+            "מימדים": "L=304 W=126  H=50mm",
+            "גרסת DirectX": "12 Ultimate",
+            "גרסת OpenGL":"4.6",
+            "חיבור גרפי":"HDMI | DisplayPort",
+            "ממשק כרטיס מסך":"PCIe 5.0 x16",
+            "Recommended PSU":"750W with Power Connectors 1x16-Pin",
+            "עיצוב תרמי":"WINDFORCE cooling system"
         }
     }
 ]
