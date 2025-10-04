@@ -2810,7 +2810,7 @@ footer .bottom-bar{
     .head .cart a {
         margin: 8px;
     }
-    .head .cart .whatsapp-ico {
+    .head .cart .whatsapp{
         display: none;
     }
     header #search-result .list-group {
@@ -2829,6 +2829,7 @@ footer .bottom-bar{
     .content .images{
         width: 100%;
         margin-top: 48px;
+        justify-content: center;
     }
     .content .images .imageMain{
         width: auto;
@@ -2863,8 +2864,8 @@ footer .bottom-bar{
         top: 34px;
         left: 7px;
     }
-    .dots{
-        display: none;
+    .dots .dot{
+        font-size: 10px;
     }
     .Brands-name{
         display: none;

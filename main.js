@@ -58,6 +58,7 @@ const search = document.querySelector(".search");
 const input = document.createElement("input");
 input.type = "text";
 input.placeholder = "חפש מוצרים...";
+input.placeholder = 'בס"ד';
 search.appendChild(input);
 
 //מבצע בקשת נתונים מהמוצרים ומטפל בתוצאות החיפוש
