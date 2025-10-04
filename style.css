@@ -2864,8 +2864,8 @@ footer .bottom-bar{
         top: 34px;
         left: 7px;
     }
-    .dots{
-        display: none;
+    .dots .dot{
+        font-size: 10px;
     }
     .Brands-name{
         display: none;
