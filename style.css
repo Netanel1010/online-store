@@ -1501,6 +1501,7 @@ footer .bottom-bar{
 	background-color: #FF4B2B;
 	color: #FFFFFF;
 	font-size: 12px;
+    cursor: pointer;
 	font-weight: bold;
 	padding: 12px 45px;
 	letter-spacing: 1px;
@@ -1516,6 +1517,7 @@ footer .bottom-bar{
 .form-page button.ghost {
 	background-color: transparent;
 	border-color: #FFFFFF;
+    cursor: pointer;
 }
 .form-page form {
 	background-color: #FFFFFF;
@@ -1590,7 +1592,7 @@ footer .bottom-bar{
 	height: 100%;
 	overflow: hidden;
 	transition: transform 0.6s ease-in-out;
-	z-index: 100;
+	z-index: 50;
 }
 .form-page .container.right-panel-active .overlay-container{
 	transform: translateX(-100%);
@@ -1642,17 +1644,19 @@ footer .bottom-bar{
 }
 .form-page .social-container {
 	margin: 20px 0;
+    
 }
 .form-page .social-container a {
-	border: 1px solid #DDDDDD;
-	border-radius: 50%;
-	display: inline-flex;
-	justify-content: center;
+    height: 36px;
+	width: 36px;
+    display: inline-flex;
+    justify-content: center;
 	align-items: center;
-	margin: 0 5px;
-	height: 40px;
-	width: 40px;
+	margin: 0 10px;
 }
+
+
+
 
 
 
@@ -2824,7 +2828,7 @@ footer .bottom-bar{
         max-width: 30px;
     }
     .head .cart a .badge{
-        top: 28%;
+        top: 34%;
     }
     .content .images{
         width: 100%;
