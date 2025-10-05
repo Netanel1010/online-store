@@ -207,6 +207,11 @@ header #search-result .list-group .list-group-item a:hover {
     border-radius: 50%;
     box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.4);
 }
+.cart svg{
+    fill: white;
+    width: 32px;
+    height: 32px;
+}
 
 
 .hamburger {
@@ -1400,6 +1405,10 @@ footer .bottom-bar{
     color: #fff;
     border: 1px solid #ff6d00;
 }
+
+
+
+
 /*.login{
     direction: rtl;
     margin-top: 8%;
@@ -1463,7 +1472,8 @@ footer .bottom-bar{
 }
 .login span a:hover{
     text-decoration-line: underline;
-}*/   
+}*/
+
 
 .form-page{
 	background: #f6f5f7;

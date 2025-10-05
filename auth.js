@@ -10,22 +10,34 @@ signInButton.addEventListener('click', () => {
 	container.classList.remove("right-panel-active");
 });
 
+
 document.addEventListener('DOMContentLoaded' , ()=>{
     fetch('login.json')
     .then(res => res.json())
     .then(data => {  
-    
-        const email = document.querySelector('.email');
-        const password = document.querySelector('.psw'); 
-        let userIcon = document.querySelector('.fa-user');
-        const button = document.querySelector('.submit');
-        const login = document.querySelector('.login');
+        
+        const formPage = document.querySelector('.form-page');
+
+        const signUp = document.querySelector('.sign-up-container');
+        const signIn = document.querySelector('.sign-in-container');
+        
+        const email = signIn.querySelector('.email');
+        console.log(email)
+        const password = signIn.querySelector('.psw'); 
+        console.log(password)    
+        const button = signIn.querySelector('.submit');
+        console.log(button)
+
+        const userCircle= document.querySelector('.svg-circle');
+        const userPath = document.querySelector('.svg-path');
+        
 
         // בדיקה אם כבר שמור משתמש ב-localStorage
         const savedUser = JSON.parse(localStorage.getItem("user"));
         if (savedUser) {
-            login.innerHTML = '';
-            userIcon.style.color = "#00ff00";
+            container.innerHTML = '';
+            userCircle.style.fill = "#00ff00";
+            userPath.style.fill = "#00ff00";
 
             let connect = document.createElement('div');
             connect.classList.add('connect');
@@ -36,7 +48,7 @@ document.addEventListener('DOMContentLoaded' , ()=>{
             buttonDelet.textContent = 'לתנתק';
 
             buttonDelet.addEventListener('click' , ()=>{
-                login.innerHTML = '';
+                container.innerHTML = '';
                 localStorage.removeItem('user');
                 location.reload();
                 const loginNameDiv = document.createElement('div');
@@ -46,7 +58,7 @@ document.addEventListener('DOMContentLoaded' , ()=>{
                 loginH1.innerText = 'כניסה';
 
                 loginNameDiv.appendChild(loginH1);
-                login.appendChild(loginNameDiv);
+                container.appendChild(loginNameDiv);
 
                 
                 const emailLabel = document.createElement('label');
@@ -59,9 +71,9 @@ document.addEventListener('DOMContentLoaded' , ()=>{
                 emailInput.placeholder = 'אימייל';
                 emailInput.required = true;
 
-                login.appendChild(emailLabel);
-                login.appendChild(emailInput);
-                login.appendChild(document.createElement('br'));
+                container.appendChild(emailLabel);
+                container.appendChild(emailInput);
+                container.appendChild(document.createElement('br'));
 
                 
                 const passwordLabel = document.createElement('label');
@@ -74,9 +86,9 @@ document.addEventListener('DOMContentLoaded' , ()=>{
                 passwordInput.placeholder = 'סיסמה';
                 passwordInput.required = true;
 
-                login.appendChild(passwordLabel);
-                login.appendChild(passwordInput);
-                login.appendChild(document.createElement('br'));
+                container.appendChild(passwordLabel);
+                container.appendChild(passwordInput);
+                container.appendChild(document.createElement('br'));
 
                 
                 const forRemDiv = document.createElement('div');
@@ -96,7 +108,7 @@ document.addEventListener('DOMContentLoaded' , ()=>{
 
                 forRemDiv.appendChild(remLabel);
                 forRemDiv.appendChild(forgotLink);
-                login.appendChild(forRemDiv);
+                container.appendChild(forRemDiv);
 
                 
                 const loginEnterDiv = document.createElement('div');
@@ -107,7 +119,7 @@ document.addEventListener('DOMContentLoaded' , ()=>{
                 submitButton.innerText = 'כניסה';
 
                 loginEnterDiv.appendChild(submitButton);
-                login.appendChild(loginEnterDiv);
+                container.appendChild(loginEnterDiv);
 
 
                 const signupSpan = document.createElement('span');
@@ -118,12 +130,12 @@ document.addEventListener('DOMContentLoaded' , ()=>{
                 signupLink.innerText = 'להירשם';
 
                 signupSpan.appendChild(signupLink);
-                login.appendChild(signupSpan);
+                container.appendChild(signupSpan);
 
             })
             connect.append(buttonDelet);
             connect.append(text);   
-            login.append(connect);  
+            container.append(connect);  
         }
 
         // האזנה ללחיצה על "כניסה"
@@ -135,15 +147,16 @@ document.addEventListener('DOMContentLoaded' , ()=>{
                 // שמירה ב-localStorage
                 localStorage.setItem("user", JSON.stringify(loginSubmit));
 
-                login.innerHTML = '';
-                userIcon.style.color = "#00ff00";
+                container.innerHTML = '';
+                userCircle.style.fill = "#00ff00";
+                userPath.style.fill = "#00ff00";
 
                 let connect = document.createElement('div');
                 connect.classList.add('connect');
                 let text = document.createElement('h2');
                 text.innerText = `${loginSubmit.firstName} ${loginSubmit.lastName} is connect!`;
                 connect.append(text);
-                login.append(connect);  
+                container.append(connect);  
             } else {
                 console.log('email or password is not correct');
             }
