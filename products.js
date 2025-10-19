@@ -149,7 +149,7 @@ function createNewProducts (product, container, cartData) {
 }
 
 
-document.addEventListener( "DOMContentLoaded" , () =>{
+/*document.addEventListener( "DOMContentLoaded" , () =>{
     const checkbox = document.querySelectorAll('#myCheck'); 
     const sortRow = document.querySelector('.sort-row');
     const container = document.querySelector('.items');
@@ -211,5 +211,212 @@ document.addEventListener( "DOMContentLoaded" , () =>{
             }
         });
     });
+});*/
+
+document.addEventListener("DOMContentLoaded", () => {
+    const checkboxList = document.querySelectorAll('input[type="checkbox"]');
+    const selectSort = document.querySelector('.sort-model select');
+    const clearBtn = document.querySelector('.clear-filters');
+    const container = document.querySelector('.items');
+
+    let allProducts = [];
+
+    // --- טעינת המוצרים ---
+    fetch('products.json')
+        .then(res => res.json())
+        .then(data => {
+            allProducts = data;
+
+            // הגדר מצב ראשוני לפי URL
+            const params = new URLSearchParams(window.location.search);
+            const selectedFilters = params.get('filters') ? params.get('filters').split(',') : [];
+            const sortType = params.get('sort') || '';
+
+            checkboxList.forEach(ch => {
+                if (selectedFilters.includes(ch.value)) ch.checked = true;
+            });
+
+            if (sortType) selectSort.value = sortType;
+
+            applyFilterAndSort();
+
+            // --- מאזיני אירועים ---
+            selectSort.addEventListener('change', () => {
+                updateURL();
+                applyFilterAndSort();
+            });
+
+            checkboxList.forEach(ch => {
+                ch.addEventListener('change', () => {
+                    updateURL();
+                    applyFilterAndSort();
+                });
+            });
+
+            clearBtn.addEventListener('click', () => {
+                checkboxList.forEach(ch => ch.checked = false);
+                selectSort.value = 'news'; // או ברירת מחדל
+                updateURL(true);
+                applyFilterAndSort();
+            });
+        })
+        .catch(err => console.error("שגיאה בטעינת המוצרים:", err));
+
+    // --- פונקציה לסינון ומיון ---
+    function applyFilterAndSort() {
+        const checkedValues = Array.from(checkboxList)
+            .filter(c => c.checked)
+            .map(c => c.value);
+
+        let filtered = allProducts;
+
+        if (checkedValues.length > 0) {
+            filtered = allProducts.filter(product =>
+                checkedValues.includes(product.attributes.Hz) ||
+                checkedValues.includes(product.company) ||
+                checkedValues.includes(product.attributes.storage) ||
+                checkedValues.includes(product.attributes.ram) ||
+                checkedValues.includes(product.attributes.rezolution)
+            );
+        }
+
+        let sorted = filtered;
+        if (selectSort.value) {
+            sorted = onSort(selectSort.value, [...filtered]);
+        }
+
+
+        renderProducts(sorted);
+    }
+
+    // --- עדכון URL ---
+    function updateURL(clear = false) {
+        const params = new URLSearchParams();
+
+        if (!clear) {
+            const checkedValues = Array.from(checkboxList)
+                .filter(c => c.checked)
+                .map(c => c.value);
+
+            if (checkedValues.length > 0) params.set('filters', checkedValues.join(','));
+            if (selectSort.value) {
+                params.set('sort', selectSort.value);
+            }
+
+        }
+
+        const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+        window.history.replaceState({}, '', newUrl);
+    }
+
+    // --- רינדור מוצרים ---
+    function renderProducts(products) {
+        container.innerHTML = '';
+        const cartData = JSON.parse(localStorage.getItem("cart") || "[]");
+        products.forEach(product => {
+            createNewProducts(product, container, cartData);
+        });
+    }
 });
 
+/*document.addEventListener("DOMContentLoaded", () => {
+    const checkbox = document.querySelectorAll('#myCheck'); 
+    const sortRow = document.querySelector('.sort-row');
+    const container = document.querySelector('.items');
+    const clearBtn = document.querySelector('.clear-filters'); // כפתור נקה
+    let filterArr = [];
+    let sortArr = [];
+
+    // --- טעינת המוצרים ---
+    fetch('products.json')
+        .then(response => response.json())
+        .then(data => {
+            filterArr = data; 
+
+            // --- מיון ---
+            document.querySelector('.sort-model')?.addEventListener('change', function(event){
+                let type = event.target.value;  
+                if(sortArr.length > 0){
+                    const sortedProducts = onSort(type, [...sortArr]);
+                    renderProducts(sortedProducts , container);    
+                } else {
+                    const sortedProducts = onSort(type, [...filterArr]);
+                    renderProducts(sortedProducts , container);      
+                }    
+
+                updateURL(); // <-- הוספנו שמירה ב-URL
+            });
+
+            // --- סימון צ'קבוקסים מה-URL ---
+            const params = new URLSearchParams(window.location.search);
+            const selectedFilters = params.get('filters') ? params.get('filters').split(',') : [];
+            const sortType = params.get('sort') || '';
+            checkbox.forEach(ch => {
+                if (selectedFilters.includes(ch.value)) ch.checked = true;
+            });
+            if (sortType) document.querySelector('.sort-model').value = sortType;
+
+            renderProducts(filterArr , container);
+        })
+        .catch(error => console.error("שגיאה בטעינת המוצרים:", error));
+
+    // --- פונקציה לרינדור ---
+    function renderProducts(products , container){
+        container.innerHTML = '';
+        const cartData = JSON.parse(localStorage.getItem("cart") || "[]");
+        products.forEach(product => {
+            createNewProducts(product, container, cartData);
+        });
+    }
+
+    // --- סינון ---
+    checkbox.forEach(check => {
+        check.addEventListener('change', () => {
+            const selectSortValues = Array.from(checkbox)
+                .filter(c => c.checked)
+                .map(c => c.value);
+
+            if(selectSortValues.length > 0){
+                const filtered = filterArr.filter(product => 
+                    selectSortValues.includes(product.attributes.Hz ) ||
+                    selectSortValues.includes(product.company) ||
+                    selectSortValues.includes(product.attributes.storage) ||
+                    selectSortValues.includes(product.attributes.ram) ||
+                    selectSortValues.includes(product.attributes.rezolution)
+                );
+                sortArr = filtered;
+                renderProducts(sortArr , container);
+            } else {
+                renderProducts(filterArr , container);
+            }
+
+            updateURL(); // <-- הוספנו שמירה ב-URL
+        });
+    });
+
+    // --- כפתור נקה סינון ---
+    clearBtn?.addEventListener('click', () => {
+        checkbox.forEach(ch => ch.checked = false);
+        sortArr = [];
+        document.querySelector('.sort-model').value = 'news'; // ברירת מחדל
+        renderProducts(filterArr , container);
+        updateURL(true);
+    });
+
+    // --- פונקציה לעדכון URL ---
+    function updateURL(clear = false){
+        const params = new URLSearchParams();
+        if(!clear){
+            const checkedValues = Array.from(checkbox)
+                .filter(c => c.checked)
+                .map(c => c.value);
+
+            if(checkedValues.length > 0) params.set('filters', checkedValues.join(','));
+            const sortVal = document.querySelector('.sort-model').value;
+            if(sortVal) params.set('sort', sortVal);
+        }
+
+        const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+        window.history.replaceState({}, '', newUrl);
+    }
+});*/
