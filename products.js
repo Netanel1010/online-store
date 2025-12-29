@@ -148,7 +148,7 @@ function createNewProducts (product, container, cartData) {
             container.style.width = '100%';
 }
 
-
+//מקורי
 /*document.addEventListener( "DOMContentLoaded" , () =>{
     const checkbox = document.querySelectorAll('#myCheck'); 
     const sortRow = document.querySelector('.sort-row');
@@ -213,6 +213,7 @@ function createNewProducts (product, container, cartData) {
     });
 });*/
 
+//AI
 document.addEventListener("DOMContentLoaded", () => {
     const checkboxList = document.querySelectorAll('input[type="checkbox"]');
     const selectSort = document.querySelector('.sort-model select');
@@ -319,6 +320,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+//לא מוצלח
 /*document.addEventListener("DOMContentLoaded", () => {
     const checkbox = document.querySelectorAll('#myCheck'); 
     const sortRow = document.querySelector('.sort-row');
@@ -420,3 +422,5 @@ document.addEventListener("DOMContentLoaded", () => {
         window.history.replaceState({}, '', newUrl);
     }
 });*/
+
+
