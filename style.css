@@ -282,8 +282,8 @@ header #search-result .list-group .list-group-item a:hover {
     border: 1px solid black;
     border-radius: 50%;
     position: fixed;
-    right: 10px;
-    bottom: 20px;
+    right: 1rem;
+    bottom: 5rem;
     cursor: pointer;
     transform: translateX(150%);
     transition: all ease 0.5s;
@@ -296,6 +296,7 @@ header #search-result .list-group .list-group-item a:hover {
     color: #ffffff;
     border: 1px solid #ff6d00;
 }
+
 .content{
     display: flex;
     justify-content: center;
