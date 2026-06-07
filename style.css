@@ -274,7 +274,7 @@ header #search-result .list-group .list-group-item a:hover {
 .back-to-top{
     font-size: 28px;
     height: 50px;
-    width: 50px;
+    width: 50px;;
     padding: 5px;
     display: flex;
     justify-content: center;
@@ -2179,15 +2179,37 @@ footer .bottom-bar{
     margin-top: 5px;
 }
 
-.product-name-top{
+
+.breadcrumb{
     display: flex;
     justify-content: center;
-    margin-top: 68px;
+    align-items: center;
+    margin-top: 90px;
     margin-bottom: 50px;
+    color: #5f5f5f;
+    direction: rtl;
+    max-width: 100%;
 }
-.product-name-top h3:hover{
-    color: #ff6d00;
+.breadcrumb .link{
+    text-decoration: none;
+    color: #5f5f5f;
 }
+.breadcrumb-dot{
+    margin: 0 10px;
+    color: #aaa;
+    font-size: 26px;
+    font-weight: bold;
+    line-height: 1;
+}
+.breadcrumb .current {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: bottom;
+}
+
+
 .product-center{
     max-width: 1800px;
     margin: 0 auto;

@@ -23,11 +23,65 @@ fetch("products.json")
     //id=product-page
     const container = document.querySelector("#product-page");
 
-    //product-name-top
-    const nameTop = document.createElement("div");
-    nameTop.classList.add("product-name-top");
-    nameTop.innerHTML = `<h3>${product.fullName || "Product Page"}</h3>`;
-    container.appendChild(nameTop);
+    // 🆕 חדש — תרגום קטגוריות לעברית
+    const categoryMap = {
+      cpu: "מעבדים",
+      gpu: "כרטיסי מסך",
+      memory: "זכרונות",
+      storage: "אחסון",
+      motherboard: "לוחות אם",
+      monitor:"מסכי מחשב",
+      psu:"ספקי כח",
+      cooler:"פתרונות קירור",
+      case:"מארזים",
+      keyboard:"מקלדות",
+      thermal:"משחות טרמיות",
+      headset:"אוזניות"
+    };
+    // breadcrumb container
+    const breadcrumb = document.createElement("div");
+    breadcrumb.classList.add("breadcrumb");
+
+    // 1. בית
+    const homeLink = document.createElement("a");
+    homeLink.href = "index.html";
+    homeLink.setAttribute("aria-label", "דף בית");
+    homeLink.classList.add("link");
+    homeLink.textContent = "בית";
+
+    breadcrumb.appendChild(homeLink);
+
+    // dot
+    const dot1 = document.createElement("span");
+    dot1.classList.add("breadcrumb-dot");
+    dot1.textContent = "•";
+    breadcrumb.appendChild(dot1);
+
+    // 2. קטגוריה
+    const categoryLink = document.createElement("a");
+    categoryLink.href = `category.html?category=${product.category}`;
+    categoryLink.classList.add("link");
+    categoryLink.textContent = categoryMap[product.category] || product.category;
+
+    breadcrumb.appendChild(categoryLink);
+
+    // dot
+    const dot2 = document.createElement("span");
+    dot2.classList.add("breadcrumb-dot");
+    dot2.textContent = "•";
+    breadcrumb.appendChild(dot2);
+
+    // 3. מוצר נוכחי (לא לינק)
+    const current = document.createElement("span");
+    current.classList.add("current");
+    current.textContent = product.name;
+
+    breadcrumb.appendChild(current);
+
+    // הוספה לדף
+    container.appendChild(breadcrumb);
+
+
 
     //product-center
     const productCenter = document.createElement("div");
