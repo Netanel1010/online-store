@@ -1,51 +1,66 @@
-# 🛒 Online Store!
+# 🖥️ Online Store
 
-A responsive front-end web application simulating an online shopping experience.  
-Built as part of my first-year practical studies in Software Engineering.
+A responsive front-end online store built with **HTML5, CSS3, and Vanilla JavaScript**.
+
+This project was developed during my **first year (Semesters 2 & 3) of Software Engineering practical studies** as a hands-on project for practicing front-end web development and building interactive web applications.
+
+The project focuses on creating an e-commerce-style experience using client-side technologies, including product categories, shopping cart functionality, favorites, user login, and browser-based data persistence with `localStorage`.
 
 ## 🚀 Live Demo
 
 🔗 [Online Store Website](https://netanel1010.github.io/online-store/)
 
-## 📌 Overview
+## ✨ Features
 
-This project demonstrates core front-end development skills using:
+* 📱 Responsive design for different screen sizes
+* 🛍️ Product listing and product categories
+* 🔎 Product and category navigation
+* 🛒 Shopping cart with quantity management and item removal
+* ❤️ Favorites system
+* 👤 User login and registration interface
+* 💾 Client-side data persistence using `localStorage`
+* 🖼️ Product images and category/brand sections
+* 📱 Mobile navigation menu
+* 🔗 Deployed using GitHub Pages
 
-- **HTML5** – Semantic structure and accessibility  
-- **CSS3** – Responsive design with Flexbox & Grid  
-- **JavaScript (Vanilla)** – Interactive UI and dynamic content  
+## 🧩 Project Structure
 
-Although currently front-end only, the application is structured with future scalability in mind, including plans for integrating back-end technologies like **Node.js** and **MongoDB**.
+The project is organized into separate HTML, CSS, and JavaScript files.
 
-## 💡 Features
+### JavaScript Functionality
 
-- Responsive layout across devices  
-- Product listing page  
-- Category navigation  
-- Dynamic UI interactions  
-- Clean and modular code structure
+* `auth.js` – handles the client-side login state and user data stored in `localStorage`
+* `cart.js` – manages the shopping cart, quantities, totals, and item removal
+* `favorites.js` – handles favorite products
+* `category.js` – handles category-related functionality
 
-## 🧠 Future Enhancements
+## 🛠️ Technologies
 
-- Full-stack integration (Node.js, MongoDB)  
-- Shopping cart functionality  
-- User authentication  
-- Admin dashboard  
-- Product management system
+| Category        | Technology               |
+| --------------- | ------------------------ |
+| Structure       | HTML5                    |
+| Styling         | CSS3                     |
+| Programming     | Vanilla JavaScript (ES6) |
+| Data            | JSON                     |
+| Browser Storage | localStorage             |
+| Deployment      | GitHub Pages             |
 
-## 📁 Technologies
+## 💾 Data Storage
 
-| Purpose             | Technology         |
-|---------------------|--------------------|
-| Structure           | HTML5              |
-| Styling             | CSS3 (Flexbox/Grid)|
-| Logic & Interaction | JavaScript (ES6)   |
+The application uses **browser `localStorage`** for client-side data persistence.
 
-## 👨‍💻 About the Developer
+It is used to retain information such as the logged-in user and shopping cart data between page loads.
 
-I'm a Software Engineering student currently building a solid foundation in web development.  
-This project reflects my passion for creating user-friendly, responsive interfaces, and my commitment to continuous learning and improvement.
+## 🎓 Project Context
 
----
+Developed during my **first year (Semesters 2 & 3) of Software Engineering practical studies**.
 
-Feel free to check out my repositories and follow my progress!
+The project provided hands-on experience with **HTML, CSS, JavaScript, DOM manipulation, browser storage, responsive design, and interactive front-end development**.
+
+## 👨‍💻 Author
+
+**Netanel Babayev**
+
+Software Engineering Student
+
+🔗 [GitHub Profile](https://github.com/Netanel1010)
