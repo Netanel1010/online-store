@@ -49,3 +49,7 @@ management and the mobile menu dialog.
 2. **e2e**: `npm ci`, install Chromium, build and serve the site, run the Playwright suite. On
    failure the HTML report, screenshots and traces are kept as an artifact for 7 days
    (`playwright-report/` and `test-results/` are git-ignored and never committed).
+
+A test that only passes on its retry is reported as **flaky** in the log and the HTML report, so
+it is visible rather than hidden. In CI Playwright retries a failed test once and gives assertions
+10 s instead of 5 s, because the runners are slower than a developer machine.

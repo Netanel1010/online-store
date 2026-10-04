@@ -15,6 +15,9 @@ export default defineConfig({
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
   workers: isCI ? 2 : undefined,
+  // GitHub's runners are slower than a developer machine, so auto-retrying assertions get twice
+  // as long there. A genuine failure still fails; it just is not mistaken for a slow machine.
+  expect: { timeout: isCI ? 10_000 : 5_000 },
   reporter: isCI ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL: `http://localhost:${port}/online-store/`,
