@@ -1,11 +1,31 @@
-# Dependency directories
-/node_modules
-/vendor 
+# Dependencies
+node_modules/
 
-# Temporary files
+# Build output
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Environment files (keep the example)
+.env
+.env.*
+!.env.example
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 .DS_Store
-.vscode/
-
-# Build outputs
-/dist
-/build
+Thumbs.db
