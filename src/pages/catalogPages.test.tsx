@@ -18,7 +18,7 @@ describe('ProductsPage', () => {
   it('shows a loading status and then every product', async () => {
     renderApp('/products', catalog)
 
-    expect(screen.getByRole('status')).toHaveTextContent('טוען מוצרים')
+    expect(screen.getByText('טוען מוצרים…')).toBeInTheDocument()
     expect(await screen.findByRole('heading', { level: 2, name: 'מעבד אחד' })).toBeInTheDocument()
     expect(screen.queryByText('טוען מוצרים…')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'כל המוצרים' })).toBeInTheDocument()

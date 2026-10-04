@@ -11,7 +11,9 @@ export function ProductsPage() {
       <Breadcrumbs items={[{ label: 'בית', to: paths.home }, { label: 'מוצרים' }]} />
       <h1 className="mb-6 text-3xl font-bold">כל המוצרים</h1>
       <CatalogBoundary loading={<ProductGridSkeleton />}>
-        {(products) => <ProductListing allProducts={products} products={products} />}
+        {(products) => (
+          <ProductListing allProducts={products} scopeProducts={products} mode="all" />
+        )}
       </CatalogBoundary>
     </>
   )

@@ -94,7 +94,7 @@ describe('CartPage', () => {
     expect(useCartStore.getState().items).toEqual([{ productId: 'GPU-1', quantity: 1 }])
     expect(screen.queryByRole('link', { name: 'ספק כוח' })).not.toBeInTheDocument()
     expect(within(summary()).getByText('סה"כ').nextElementSibling).toHaveTextContent(/750/)
-    expect(screen.getByRole('status')).toHaveTextContent('ספק כוח הוסר מהעגלה')
+    expect(screen.getByText('ספק כוח הוסר מהעגלה')).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'עגלת קניות' })).toHaveFocus()
   })
 

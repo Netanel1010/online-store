@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
+import { ToastProvider } from '@/features/notifications/ToastProvider'
 import { ShopStateReconciler } from '@/features/shop/ShopStateReconciler'
 
 export function RootLayout() {
@@ -21,21 +22,23 @@ export function RootLayout() {
   }, [pathname])
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-white"
-      >
-        דלג לתוכן הראשי
-      </a>
-      <Header />
-      <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 focus:outline-none">
-        <div className="container-page py-8">
-          <Outlet />
-        </div>
-      </main>
-      <Footer />
-      <ShopStateReconciler />
-    </div>
+    <ToastProvider>
+      <div className="flex min-h-dvh flex-col">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-white"
+        >
+          דלג לתוכן הראשי
+        </a>
+        <Header />
+        <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 focus:outline-none">
+          <div className="container-page py-8">
+            <Outlet />
+          </div>
+        </main>
+        <Footer />
+        <ShopStateReconciler />
+      </div>
+    </ToastProvider>
   )
 }

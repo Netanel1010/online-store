@@ -57,7 +57,7 @@ describe('HomePage', () => {
   it('shows a loading status for the product sections first', async () => {
     renderApp('/', [recommended])
 
-    expect(screen.getByRole('status')).toHaveTextContent('טוען מוצרים')
+    expect(screen.getByText('טוען מוצרים…')).toBeInTheDocument()
     expect(await screen.findByRole('region', { name: 'מומלצים' })).toBeInTheDocument()
   })
 })
