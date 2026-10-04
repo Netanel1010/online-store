@@ -15,6 +15,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Some component tests walk through several pages (register, redirect, fill a form). They take
+    // about 2-3 s alone but close to the 5 s default when all test files run in parallel on a busy
+    // or small machine, which made them intermittently time out. A real hang still fails promptly.
+    testTimeout: 15_000,
     // Playwright specs run in a real browser through `npm run test:e2e`, not in Vitest.
     exclude: [...configDefaults.exclude, 'e2e/**'],
   },
