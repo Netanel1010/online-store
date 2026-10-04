@@ -67,7 +67,7 @@ export function CartPage() {
 
           return (
             <div className="grid items-start gap-8 lg:grid-cols-[1fr_22rem]">
-              <ul className="divide-y divide-line border-y border-line">
+              <ul className="max-w-4xl divide-y divide-line border-y border-line">
                 {lines.map((line) => (
                   <CartLineItem
                     key={line.product.id}
