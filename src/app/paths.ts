@@ -4,6 +4,9 @@ export const paths = {
   products: '/products',
   category: (id: string) => `/category/${encodeURIComponent(id)}`,
   product: (id: string) => `/products/${encodeURIComponent(id)}`,
+  search: '/search',
+  /** Search results for a text, e.g. /search?q=intel. */
+  searchFor: (q: string) => `/search?${new URLSearchParams({ q }).toString()}`,
   cart: '/cart',
   favorites: '/favorites',
 } as const

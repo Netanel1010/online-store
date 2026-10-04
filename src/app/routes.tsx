@@ -7,6 +7,7 @@ import { HomePage } from '@/pages/HomePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProductDetailPage } from '@/pages/ProductDetailPage'
 import { ProductsPage } from '@/pages/ProductsPage'
+import { SearchPage } from '@/pages/SearchPage'
 
 export function AppRoutes() {
   return (
@@ -16,6 +17,7 @@ export function AppRoutes() {
         <Route path="products" element={<ProductsPage />} />
         <Route path="products/:productId" element={<ProductDetailPage />} />
         <Route path="category/:categoryId" element={<CategoryPage />} />
+        <Route path="search" element={<SearchPage />} />
         <Route path="cart" element={<CartPage />} />
         <Route path="favorites" element={<FavoritesPage />} />
         <Route path="*" element={<NotFoundPage />} />

@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router'
 import { paths } from '@/app/paths'
 import { CloseIcon, MenuIcon } from '@/components/icons'
 import { CATEGORIES } from '@/features/products/categories'
+import { SearchForm } from '@/features/search/SearchForm'
 import { mainLinks, navLinkClass } from './navigation'
 
 /**
@@ -13,12 +14,13 @@ import { mainLinks, navLinkClass } from './navigation'
 export function MobileNav() {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [open, setOpen] = useState(false)
-  const { pathname } = useLocation()
+  const { key: locationKey } = useLocation()
 
-  // Close after navigating. The dialog's `close` event keeps `open` in sync.
+  // Close after any navigation (including a new search on the same page). The dialog's `close`
+  // event keeps `open` in sync.
   useEffect(() => {
     dialogRef.current?.close()
-  }, [pathname])
+  }, [locationKey])
 
   return (
     <>
@@ -59,6 +61,8 @@ export function MobileNav() {
               <CloseIcon className="size-6" />
             </button>
           </div>
+
+          <SearchForm className="flex px-4 py-3" />
 
           <nav aria-label="ניווט ראשי" className="p-2">
             <ul>

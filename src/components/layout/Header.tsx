@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router'
 import { paths } from '@/app/paths'
 import { CATEGORIES } from '@/features/products/categories'
+import { SearchForm } from '@/features/search/SearchForm'
 import { HeaderShopLinks } from '@/features/shop/HeaderShopLinks'
 import { MobileNav } from './MobileNav'
 import { mainLinks, navLinkClass } from './navigation'
@@ -36,6 +37,8 @@ export function Header() {
             ))}
           </ul>
         </nav>
+
+        <SearchForm className="hidden max-w-md flex-1 md:flex" />
 
         <HeaderShopLinks />
       </div>
