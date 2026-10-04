@@ -111,10 +111,7 @@
     },
     "images": {
       "card": "images/products/c14900kft/card.webp",
-      "gallery": [
-        "images/products/c14900kft/1.webp",
-        "images/products/c14900kft/2.webp"
-      ]
+      "gallery": ["images/products/c14900kft/1.webp", "images/products/c14900kft/2.webp"]
     },
     "isRecommended": false,
     "warranty": "3 שנים",
@@ -1387,9 +1384,7 @@
     },
     "images": {
       "card": "images/products/c285t/card.webp",
-      "gallery": [
-        "images/products/c285t/1.webp"
-      ]
+      "gallery": ["images/products/c285t/1.webp"]
     },
     "isRecommended": false,
     "warranty": "3 שנים",
@@ -1453,9 +1448,7 @@
     },
     "images": {
       "card": "images/products/c265t/card.webp",
-      "gallery": [
-        "images/products/c265t/1.webp"
-      ]
+      "gallery": ["images/products/c265t/1.webp"]
     },
     "isRecommended": false,
     "warranty": "3 שנים",
@@ -1519,9 +1512,7 @@
     },
     "images": {
       "card": "images/products/c265ft/card.webp",
-      "gallery": [
-        "images/products/c265ft/1.webp"
-      ]
+      "gallery": ["images/products/c265ft/1.webp"]
     },
     "isRecommended": false,
     "warranty": "3 שנים",
@@ -1585,9 +1576,7 @@
     },
     "images": {
       "card": "images/products/c245t/card.webp",
-      "gallery": [
-        "images/products/c245t/1.webp"
-      ]
+      "gallery": ["images/products/c245t/1.webp"]
     },
     "isRecommended": false,
     "warranty": "3 שנים",
@@ -1651,9 +1640,7 @@
     },
     "images": {
       "card": "images/products/c225ft/card.webp",
-      "gallery": [
-        "images/products/c225ft/1.webp"
-      ]
+      "gallery": ["images/products/c225ft/1.webp"]
     },
     "isRecommended": false,
     "warranty": "3 שנים",
@@ -1717,9 +1704,7 @@
     },
     "images": {
       "card": "images/products/c225tc225t/card.webp",
-      "gallery": [
-        "images/products/c225tc225t/1.webp"
-      ]
+      "gallery": ["images/products/c225tc225t/1.webp"]
     },
     "isRecommended": false,
     "warranty": "3 שנים",
@@ -1783,9 +1768,7 @@
     },
     "images": {
       "card": "images/products/c235t/card.webp",
-      "gallery": [
-        "images/products/c235t/1.webp"
-      ]
+      "gallery": ["images/products/c235t/1.webp"]
     },
     "isRecommended": false,
     "warranty": "3 שנים",
@@ -1849,9 +1832,7 @@
     },
     "images": {
       "card": "images/products/100-000000910/card.webp",
-      "gallery": [
-        "images/products/100-000000910/1.webp"
-      ]
+      "gallery": ["images/products/100-000000910/1.webp"]
     },
     "isRecommended": false,
     "warranty": "3 שנים",
@@ -1915,9 +1896,7 @@
     },
     "images": {
       "card": "images/products/c12900kt/card.webp",
-      "gallery": [
-        "images/products/c12900kt/1.webp"
-      ]
+      "gallery": ["images/products/c12900kt/1.webp"]
     },
     "isRecommended": false,
     "warranty": "3 שנים",
@@ -1981,9 +1960,7 @@
     },
     "images": {
       "card": "images/products/100-000000593/card.webp",
-      "gallery": [
-        "images/products/100-000000593/1.webp"
-      ]
+      "gallery": ["images/products/100-000000593/1.webp"]
     },
     "isRecommended": false,
     "warranty": "3 שנים",
