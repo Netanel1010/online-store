@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
+import { useAuthStore } from '@/features/auth/authStore'
 import { useCartStore } from '@/features/cart/cartStore'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 
@@ -21,6 +22,7 @@ afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
   // Persisted stores outlive a test: reset their state, then wipe what they wrote to storage.
+  useAuthStore.setState({ users: [], currentUserId: null })
   useCartStore.setState({ items: [] })
   useFavoritesStore.setState({ ids: [] })
   localStorage.clear()
