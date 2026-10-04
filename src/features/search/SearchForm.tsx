@@ -3,20 +3,37 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { paths } from '@/app/paths'
 import { SearchIcon } from '@/components/icons'
 
-interface SearchFormInnerProps {
-  initialValue: string
-  className: string
-}
-
-function SearchFormInner({ initialValue, className }: SearchFormInnerProps) {
+/**
+ * Product search box. It submits to the search results page, and while that page is open the box
+ * mirrors the text from the URL, so it always matches what the results are for (also after the
+ * browser's back and forward buttons).
+ */
+export function SearchForm({ className = 'flex' }: { className?: string }) {
   const inputId = useId()
   const navigate = useNavigate()
-  const [draft, setDraft] = useState(initialValue)
+  const { pathname } = useLocation()
+  const [params] = useSearchParams()
+  const urlText = pathname === paths.search ? (params.get('q') ?? '') : ''
+
+  const [draft, setDraft] = useState(urlText)
+  const [syncedUrlText, setSyncedUrlText] = useState(urlText)
+  const [submittedText, setSubmittedText] = useState<string | null>(null)
+
+  // The URL text changed since the box last looked at it. If it is the search this box just
+  // submitted, the URL has only caught up with the box: keep whatever has been typed since (on a
+  // slow device the next search may already be half typed). Any other change (back, forward, a
+  // search from another box) is shown as it is.
+  if (urlText !== syncedUrlText) {
+    setSyncedUrlText(urlText)
+    if (urlText !== submittedText) setDraft(urlText)
+  }
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const text = draft.trim()
-    if (text !== '') navigate(paths.searchFor(text))
+    if (text === '') return
+    setSubmittedText(text)
+    navigate(paths.searchFor(text))
   }
 
   return (
@@ -44,17 +61,4 @@ function SearchFormInner({ initialValue, className }: SearchFormInnerProps) {
       </button>
     </form>
   )
-}
-
-/**
- * Product search box. It submits to the search results page, and while that page is open it
- * shows the text from the URL, so the box always matches what the results are for.
- */
-export function SearchForm({ className = 'flex' }: { className?: string }) {
-  const { pathname } = useLocation()
-  const [params] = useSearchParams()
-  const urlText = pathname === paths.search ? (params.get('q') ?? '') : ''
-
-  // Keyed by the URL text: when it changes (new search, browser back) the draft resets to it.
-  return <SearchFormInner key={urlText} initialValue={urlText} className={className} />
 }

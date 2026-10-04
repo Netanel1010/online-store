@@ -10,8 +10,6 @@ async function searchFor(page: import('@playwright/test').Page, text: string) {
   await searchBox(page).fill(text)
   await searchBox(page).press('Enter')
   await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(text.trim())
-  // The box re-renders from the URL a moment later; wait for it so the next fill is not lost.
-  await expect(searchBox(page)).toHaveValue(text.trim())
 }
 
 const corsair = catalog.filter((product) => product.brand === 'corsair')
@@ -133,6 +131,27 @@ test.describe('header search', () => {
     await expect(page).toHaveURL(/q=corsair$/)
     await expect(page.getByRole('article')).toHaveCount(corsair.length)
     await expect(searchBox(page)).toHaveValue('corsair')
+  })
+
+  test('typing right after submitting a search is not lost on a slow device', async ({
+    page,
+    context,
+  }) => {
+    await page.goto('')
+    const session = await context.newCDPSession(page)
+    await session.send('Emulation.setCPUThrottlingRate', { rate: 6 })
+
+    await searchBox(page).fill('corsair')
+    await searchBox(page).press('Enter')
+    // No waiting: the next search is typed before the first one has been rendered. (The box used
+    // to be reset to the previous search, so the second Enter searched for the old text again.)
+    await searchBox(page).fill('intel')
+    await searchBox(page).press('Enter')
+
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get('q'), { timeout: 15_000 })
+      .toBe('intel')
+    await expect(searchBox(page)).toHaveValue('intel')
   })
 
   test('shows search text as plain text and never as HTML', async ({ page }) => {
