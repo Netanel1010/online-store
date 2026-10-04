@@ -1,0 +1,2205 @@
+[
+  {
+    "id": "N406TGAMINGOC8GD",
+    "category": "gpu",
+    "brand": "gigabyte",
+    "name": "Gigabyte RTX 4060 Ti GV-N406TGAMING OC-8GD",
+    "fullName": "Gigabyte RTX 4060 Ti (DLSS 3) GV-N406TGAMING OC-8GD",
+    "price": {
+      "current": 2138,
+      "eilat": 1630
+    },
+    "images": {
+      "card": "images/products/n406tgamingoc8gd/card.webp",
+      "gallery": [
+        "images/products/n406tgamingoc8gd/1.webp",
+        "images/products/n406tgamingoc8gd/2.webp",
+        "images/products/n406tgamingoc8gd/3.webp",
+        "images/products/n406tgamingoc8gd/4.webp",
+        "images/products/n406tgamingoc8gd/5.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.gigabyte.com/Graphics-Card/GV-N406TGAMING-OC-8GD#kf",
+    "features": [
+      "DLSS 3 Technology",
+      "8GB GDDR6 Memory",
+      "Ray Tracing Cores",
+      "PCIe 4.0 Interface",
+      "Dual-Fan Cooling System",
+      "RGB Fusion 2.0 Lighting",
+      "WINDFORCE COOLING SYSTEM",
+      "ALTERNATE SPINNING",
+      "3D ACTIVE FAN",
+      "SCREEN COOLING",
+      "HEAT PIPES DIRECT TOUCH",
+      "RGB FUSION"
+    ],
+    "specs": [
+      {
+        "label": "מעבד גרפי",
+        "value": "NVIDIA RTX 4060 Ti"
+      },
+      {
+        "label": "מהירות ליבה",
+        "value": "2580MHz"
+      },
+      {
+        "label": "מהירות זכרון",
+        "value": "18Gbps"
+      },
+      {
+        "label": "גודל זכרון כרטיס מסך",
+        "value": "8GB"
+      },
+      {
+        "label": "סוג זכרון גרפי",
+        "value": "GDDR6"
+      },
+      {
+        "label": "רוחב פס זכרון",
+        "value": "128-bit"
+      },
+      {
+        "label": "רזולוציה דיגיטלית מקסימלית",
+        "value": "7680x4320"
+      },
+      {
+        "label": "מימדים",
+        "value": "L=281 W=117 H=53mm"
+      },
+      {
+        "label": "גרסת DirectX",
+        "value": "12 Ultimate"
+      },
+      {
+        "label": "גרסת OpenGL",
+        "value": "4.6"
+      },
+      {
+        "label": "חיבור גרפי",
+        "value": "HDMI | DisplayPort"
+      },
+      {
+        "label": "ממשק כרטיס מסך",
+        "value": "PCI-E 4.0 x16"
+      },
+      {
+        "label": "ספק כוח מומלץ",
+        "value": "500W with Power Cable 1x8-Pin"
+      },
+      {
+        "label": "עיצוב טרמים",
+        "value": "WINDFORCE COOLING SYSTEM"
+      },
+      {
+        "label": "אריזה",
+        "value": "Gigabyte Retail Box"
+      }
+    ]
+  },
+  {
+    "id": "C14900KFT",
+    "category": "cpu",
+    "brand": "intel",
+    "name": "Intel Core i9 14900KF / 1700 Tray",
+    "fullName": "Intel® Core™ i9 processor 14900KF 36M Cache, up to 6.00 GHz",
+    "price": {
+      "current": 2069,
+      "eilat": 1753
+    },
+    "images": {
+      "card": "images/products/c14900kft/card.webp",
+      "gallery": ["images/products/c14900kft/1.webp", "images/products/c14900kft/2.webp"]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.intel.com/content/www/us/en/products/sku/236787/intel-core-i9-processor-14900kf-36m-cache-up-to-6-00-ghz/specifications.html",
+    "features": [
+      "24 Cores (8 Performance-cores, 16 Efficient-cores)",
+      "32 Threads",
+      "Base Clock: 3.2 GHz",
+      "Max Turbo Frequency: 6.0 GHz",
+      "Intel Smart Cache: 36 MB",
+      "Supports DDR5 Memory",
+      "Integrated Intel UHD Graphics 770"
+    ],
+    "specs": [
+      {
+        "label": "מעבד",
+        "value": "Intel Core i9-14900KF"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1700"
+      },
+      {
+        "label": "מספר ליבות",
+        "value": "24"
+      },
+      {
+        "label": "מספר תהליכים",
+        "value": "32"
+      },
+      {
+        "label": "מהירות בסיס",
+        "value": "3.2 GHz"
+      },
+      {
+        "label": "מהירות טורבו מקסימלית",
+        "value": "6.0 GHz"
+      },
+      {
+        "label": "זכרון מטמון",
+        "value": "36 MB Intel Smart Cache"
+      },
+      {
+        "label": "תמיכה בזכרון",
+        "value": "DDR5"
+      },
+      {
+        "label": "גרסת PCI Express",
+        "value": "5.0"
+      },
+      {
+        "label": "תרמלים",
+        "value": "No Integrated Graphics"
+      }
+    ]
+  },
+  {
+    "id": "MLW-D24M-A18PC-R2",
+    "category": "cooler",
+    "brand": "cooler-master",
+    "name": "CoolerMaster MasterLiquid ML240L V2 RGB",
+    "fullName": "CoolerMaster MasterLiquid ML240L V2 RGB Liquid Cooler",
+    "price": {
+      "current": 259,
+      "eilat": 220
+    },
+    "images": {
+      "card": "images/products/mlw-d24m-a18pc-r2/card.webp",
+      "gallery": [
+        "images/products/mlw-d24m-a18pc-r2/1.webp",
+        "images/products/mlw-d24m-a18pc-r2/2.webp",
+        "images/products/mlw-d24m-a18pc-r2/3.webp",
+        "images/products/mlw-d24m-a18pc-r2/4.webp",
+        "images/products/mlw-d24m-a18pc-r2/5.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "שנתיים",
+    "manufacturerUrl": "https://www.coolermaster.com/en-global/products/masterliquid-ml240l-v2-rgb/",
+    "features": [
+      "Dual Chamber Pump Design",
+      "Addressable RGB Lighting",
+      "High Airflow Fans",
+      "Easy Installation",
+      "Durable Sleeved Cables",
+      "Supports Intel and AMD Sockets"
+    ],
+    "specs": [
+      {
+        "label": "סוג קירור",
+        "value": "קירור מים"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1700 | AM4 | LGA 1200 | LGA 1151 | LGA 1150 | LGA 1155 | AM5"
+      },
+      {
+        "label": "גודל רדיאטור",
+        "value": "240mm"
+      },
+      {
+        "label": "מאווררים כלולים",
+        "value": "2x 120mm ARGB Fans"
+      },
+      {
+        "label": "מהירות מאוורר",
+        "value": "650-1800 RPM"
+      },
+      {
+        "label": "רעש מקסימלי",
+        "value": "8-30 dBA"
+      },
+      {
+        "label": "חיבור חשמל",
+        "value": "4-pin PWM"
+      },
+      {
+        "label": "אורך צינורות",
+        "value": "400mm"
+      }
+    ]
+  },
+  {
+    "id": "90MB1CX0-M1EAY0",
+    "category": "motherboard",
+    "brand": "asus",
+    "name": "Asus PRIME B760M-A WiFi D4",
+    "fullName": "Asus PRIME B760M-A WiFi D4 Micro-ATX Motherboard",
+    "price": {
+      "current": 640,
+      "eilat": 550
+    },
+    "images": {
+      "card": "images/products/90mb1cx0-m1eay0/card.webp",
+      "gallery": [
+        "images/products/90mb1cx0-m1eay0/1.webp",
+        "images/products/90mb1cx0-m1eay0/2.webp",
+        "images/products/90mb1cx0-m1eay0/3.webp",
+        "images/products/90mb1cx0-m1eay0/4.webp",
+        "images/products/90mb1cx0-m1eay0/5.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.asus.com/motherboards-components/motherboards/prime/prime-b760m-a-wifi-d4/",
+    "features": [
+      "Supports 13th and 12th Gen Intel® Core™ Processors",
+      "Dual Channel DDR4 Memory, 4 DIMMs",
+      "PCIe 4.0 x16 Slot, PCIe 4.0 x1 Slot",
+      "Integrated Wi-Fi 6 and Bluetooth 5.2",
+      "USB 3.2 Gen 2x2 Type-C® with Power Delivery",
+      "Realtek® ALC897 HD Audio Codec",
+      "Comprehensive Cooling Solutions"
+    ],
+    "specs": [
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1700"
+      },
+      {
+        "label": "ערכת שבבים",
+        "value": "Intel B760"
+      },
+      {
+        "label": "גודל לוח",
+        "value": "Micro-ATX"
+      },
+      {
+        "label": "חריצי זיכרון",
+        "value": "4 x DDR4 DIMMs"
+      },
+      {
+        "label": "זיכרון מקסימלי",
+        "value": "128GB"
+      },
+      {
+        "label": "מהירות זיכרון",
+        "value": "DDR4 3200MHz (OC)"
+      },
+      {
+        "label": "חריצי הרחבה",
+        "value": "1 x PCIe 4.0 x16, 1 x PCIe 4.0 x1"
+      },
+      {
+        "label": "אחסון",
+        "value": "2 x M.2, 4 x SATA 6Gb/s"
+      },
+      {
+        "label": "שמע",
+        "value": "Realtek ALC897"
+      },
+      {
+        "label": "רשת",
+        "value": "Wi-Fi 6, Realtek 2.5GbE LAN"
+      },
+      {
+        "label": "חיבורי USB",
+        "value": "1 x USB 3.2 Gen 2x2 Type-C, 4 x USB 3.2 Gen 2, 6 x USB 3.2 Gen 1"
+      },
+      {
+        "label": "חיבורים אחוריים",
+        "value": "1 x HDMI, 1 x DisplayPort, 1 x USB Type-C, 4 x USB 3.2 Gen 2, 2 x USB 3.2 Gen 1, 1 x RJ-45 LAN, Audio jacks"
+      },
+      {
+        "label": "מחברי חשמל",
+        "value": "24-pin ATX, 8-pin CPU"
+      },
+      {
+        "label": "קירור",
+        "value": "Comprehensive Cooling Solutions"
+      }
+    ]
+  },
+  {
+    "id": "CMG32GX4M2E3200C16",
+    "category": "memory",
+    "brand": "corsair",
+    "name": "Corsair DDR4 32G (2x16G) 3200 CL16 Vengeance RGB",
+    "fullName": "Corsair DDR4 32G (2x16G) 3200 CL16 Vengeance RGB RS",
+    "price": {
+      "current": 340,
+      "eilat": 290
+    },
+    "images": {
+      "card": "images/products/cmg32gx4m2e3200c16/card.webp",
+      "gallery": [
+        "images/products/cmg32gx4m2e3200c16/1.webp",
+        "images/products/cmg32gx4m2e3200c16/2.webp",
+        "images/products/cmg32gx4m2e3200c16/3.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "לכל החיים",
+    "manufacturerUrl": "https://www.corsair.com/eu/en/p/memory/cmg32gx4m2e3200c16/vengeance-rgb-rs-32gb-2-x-16gb-ddr4-dram-3200mhz-c16-memory-kit-cmg32gx4m2e3200c16#tab-techspecs",
+    "features": [
+      "High-performance DDR4 memory",
+      "32GB (2x16GB) kit",
+      "3200MHz speed",
+      "CL16 latency",
+      "Dynamic multi-zone RGB lighting",
+      "Compatible with Intel and AMD platforms"
+    ],
+    "specs": [
+      {
+        "label": "סוג זכרון",
+        "value": "DDR4"
+      },
+      {
+        "label": "זיכרון",
+        "value": "32GB (2x16GB)"
+      },
+      {
+        "label": "מהירות",
+        "value": "3200MHz"
+      },
+      {
+        "label": "תזמון (CL)",
+        "value": "16"
+      },
+      {
+        "label": "מתח",
+        "value": "1.32V"
+      },
+      {
+        "label": "תמיכה ב-XMP",
+        "value": "כן"
+      },
+      {
+        "label": "תאורה",
+        "value": "ARGB"
+      }
+    ]
+  },
+  {
+    "id": "CC-9011240-WW",
+    "category": "case",
+    "brand": "corsair",
+    "name": "מארז מחשב Corsair 4000D RGB Airflow",
+    "fullName": "Corsair 4000D RGB Airflow Tempered Glass ATX Mid-Tower Case",
+    "price": {
+      "current": 534,
+      "eilat": 460
+    },
+    "images": {
+      "card": "images/products/cc-9011240-ww/card.webp",
+      "gallery": [
+        "images/products/cc-9011240-ww/1.webp",
+        "images/products/cc-9011240-ww/2.webp",
+        "images/products/cc-9011240-ww/3.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "שנתיים",
+    "manufacturerUrl": "https://www.corsair.com/us/en/p/pc-cases/cc-9011240-ww/icue-4000d-rgb-airflow-mid-tower-case-black-3x-af120-rgb-elite-fans-icue-lighting-node-pro-controller-high-airflow-design-cc-9011240-ww",
+    "features": [
+      "High Airflow Design",
+      "Tempered Glass Side Panel",
+      "Three Included RGB Fans",
+      "Cable Management System",
+      "Dust Filters",
+      "Supports ATX, Micro-ATX, and Mini-ITX Motherboards"
+    ],
+    "specs": [
+      {
+        "label": "סוג מארז",
+        "value": "Mid-Tower"
+      },
+      {
+        "label": "חומר",
+        "value": "Steel and Tempered Glass"
+      },
+      {
+        "label": "תמיכה בלוחות אם",
+        "value": "ATX, Micro-ATX, Mini-ITX"
+      },
+      {
+        "label": "מאווררים כלולים",
+        "value": "3x 120mm RGB Fans"
+      },
+      {
+        "label": "חריצי הרחבה",
+        "value": "7"
+      },
+      {
+        "label": "חריצי כוננים",
+        "value": "2x 3.5"
+      },
+      {
+        "label": "חיבורים קדמיים",
+        "value": "USB 3.0, USB-C, Audio In/Out"
+      },
+      {
+        "label": "גודל מארז",
+        "value": "460mm x 230mm x 466mm"
+      }
+    ]
+  },
+  {
+    "id": "GP-P650G",
+    "category": "psu",
+    "brand": "gigabyte",
+    "name": "Gigabyte PSU 650W Gold 80+ P650G",
+    "fullName": "Gigabyte P650G 650W 80 Plus Gold Certified Power Supply",
+    "price": {
+      "current": 280,
+      "eilat": 240
+    },
+    "images": {
+      "card": "images/products/gp-p650g/card.webp",
+      "gallery": [
+        "images/products/gp-p650g/1.webp",
+        "images/products/gp-p650g/2.webp",
+        "images/products/gp-p650g/3.webp",
+        "images/products/gp-p650g/4.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "5 שנים",
+    "manufacturerUrl": "https://www.gigabyte.com/Power-Supply/GP-P650G#kf",
+    "features": [
+      "80 Plus Gold Certified",
+      "Fully Modular Design",
+      "High Efficiency and Reliability",
+      "Smart Fan 2.0 Technology",
+      "Compact Size for Easy Installation",
+      "Supports Intel ATX 12V v2.4 and EPS 2.92 Standards"
+    ],
+    "specs": [
+      {
+        "label": "ספק כוח",
+        "value": "Gigabyte P650G"
+      },
+      {
+        "label": "קיבולת",
+        "value": "650W"
+      },
+      {
+        "label": "תקן יעילות",
+        "value": "80 Plus Gold"
+      },
+      {
+        "label": "מודולריות",
+        "value": "Fully Modular"
+      },
+      {
+        "label": "חיבורים",
+        "value": "1x 24-pin ATX, 1x 8-pin CPU, 4x 6+2-pin PCIe, 6x SATA, 3x Molex"
+      },
+      {
+        "label": "מאוורר",
+        "value": "140mm Smart Fan"
+      },
+      {
+        "label": "אורך כבלים",
+        "value": "550mm"
+      }
+    ]
+  },
+  {
+    "id": "MZ-V8P2T0BW",
+    "category": "storage",
+    "brand": "samsung",
+    "name": "Samsung SSD 2.0TB 980 Pro NVMe M.2",
+    "fullName": "Samsung SSD 2.0TB 980 Pro NVMe M.2 PCIe Gen4",
+    "price": {
+      "current": 741,
+      "eilat": 640
+    },
+    "images": {
+      "card": "images/products/mz-v8p2t0bw/card.webp",
+      "gallery": [
+        "images/products/mz-v8p2t0bw/1.webp",
+        "images/products/mz-v8p2t0bw/2.webp",
+        "images/products/mz-v8p2t0bw/3.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "5 שנים",
+    "manufacturerUrl": "https://www.samsung.com/za/memory-storage/nvme-ssd/980-pro-2tb-nvme-pcie-gen-4-mz-v8p2t0bw/",
+    "features": [
+      "PCIe 4.0 NVMe Interface",
+      "Up to 7000 MB/s Sequential Read Speed",
+      "Up to 5000 MB/s Sequential Write Speed",
+      "Dynamic Thermal Guard Technology",
+      "Samsung Magician Software Support",
+      "5-Year Limited Warranty"
+    ],
+    "specs": [
+      {
+        "label": "סוג כונן",
+        "value": "NVMe M.2 SSD"
+      },
+      {
+        "label": "אחסון",
+        "value": "2.0TB"
+      },
+      {
+        "label": "מהירות קריאה רציפה",
+        "value": "Up to 7000 MB/s"
+      },
+      {
+        "label": "מהירות כתיבה רציפה",
+        "value": "Up to 5000 MB/s"
+      },
+      {
+        "label": "חיבור",
+        "value": "PCIe Gen4 x4"
+      },
+      {
+        "label": "פורמט",
+        "value": "M.2 2280"
+      },
+      {
+        "label": "טכנולוגיית קירור",
+        "value": "Dynamic Thermal Guard"
+      }
+    ]
+  },
+  {
+    "id": "M27Q",
+    "category": "monitor",
+    "brand": "gigabyte",
+    "name": "Gigabyte 27 M27Q (Rev 2.0) IPS QHD 170Hz 0.5ms",
+    "fullName": "מסך מחשב לגיימינג Gigabyte 27 M27Q (Rev 2.0) IPS QHD 170Hz 1ms",
+    "price": {
+      "current": 969,
+      "eilat": 821
+    },
+    "images": {
+      "card": "images/products/m27q/card.webp",
+      "gallery": [
+        "images/products/m27q/1.webp",
+        "images/products/m27q/2.webp",
+        "images/products/m27q/3.webp",
+        "images/products/m27q/4.webp",
+        "images/products/m27q/5.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.gigabyte.com/Monitor/M27Q#kf",
+    "features": [
+      "IPS Panel with 170Hz Refresh Rate",
+      "QHD (2560x1440) Resolution",
+      "1ms Response Time",
+      "HDR Ready",
+      "Adaptive-Sync Technology",
+      "Wide Color Gamut"
+    ],
+    "specs": [
+      {
+        "label": "גודל מסך",
+        "value": "27 אינץ"
+      },
+      {
+        "label": "רזולוציה",
+        "value": "QHD (2560x1440)"
+      },
+      {
+        "label": "פאנל",
+        "value": "IPS"
+      },
+      {
+        "label": "קצב רענון",
+        "value": "170Hz"
+      },
+      {
+        "label": "זמן תגובה",
+        "value": "1ms (MPRT)"
+      },
+      {
+        "label": "בהירות מקסימלית",
+        "value": "400 cd/m²"
+      },
+      {
+        "label": "חיבורים",
+        "value": "HDMI | DisplayPort | USB-C | Headphone Jack"
+      },
+      {
+        "label": "מאפייני מסך",
+        "value": "HDR | Adaptive-Sync | Flicker-Free"
+      },
+      {
+        "label": "VESA",
+        "value": "VESA 100x100"
+      }
+    ]
+  },
+  {
+    "id": "MGZ-NDSG-N07M-R2",
+    "category": "thermal",
+    "brand": "cooler-master",
+    "name": "CoolerMaster CryoFuze 0.7ml Thermal Grease",
+    "fullName": "CoolerMaster CryoFuze 0.7ml Thermal Grease",
+    "price": {
+      "current": 70,
+      "eilat": 60
+    },
+    "images": {
+      "card": "images/products/mgz-ndsg-n07m-r2/card.webp",
+      "gallery": [
+        "images/products/mgz-ndsg-n07m-r2/1.webp",
+        "images/products/mgz-ndsg-n07m-r2/2.webp",
+        "images/products/mgz-ndsg-n07m-r2/3.webp",
+        "images/products/mgz-ndsg-n07m-r2/4.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "שנתיים",
+    "manufacturerUrl": "https://www.coolermaster.com/en-global/catalog/cooling/thermal-paste/",
+    "features": [
+      "High Thermal Conductivity",
+      "Easy Application",
+      "Non-Curing Formula",
+      "Long-Lasting Performance",
+      "Compatible with All CPU Coolers"
+    ],
+    "specs": [
+      {
+        "label": "סוג תרמלי",
+        "value": "Thermal Grease"
+      },
+      {
+        "label": "נפח",
+        "value": "0.7ml"
+      },
+      {
+        "label": "חומר",
+        "value": "Metal Oxide Compound"
+      },
+      {
+        "label": "טמפרטורת עבודה",
+        "value": "-50°C to 150°C"
+      },
+      {
+        "label": "עמידות בפני חמצון",
+        "value": "כן"
+      },
+      {
+        "label": "יישום",
+        "value": "CPU, GPU, Heatsinks"
+      }
+    ]
+  },
+  {
+    "id": "CC-9011200-WW",
+    "category": "case",
+    "brand": "corsair",
+    "name": " מארז מחשב Corsair 4000D Airflow TG",
+    "fullName": "Corsair 4000D Airflow Tempered Glass ATX Mid-Tower Case",
+    "price": {
+      "current": 323,
+      "eilat": 280
+    },
+    "images": {
+      "card": "images/products/cc-9011200-ww/card.webp",
+      "gallery": [
+        "images/products/cc-9011200-ww/1.webp",
+        "images/products/cc-9011200-ww/2.webp",
+        "images/products/cc-9011200-ww/3.webp",
+        "images/products/cc-9011200-ww/4.webp",
+        "images/products/cc-9011200-ww/5.webp"
+      ]
+    },
+    "isRecommended": true,
+    "warranty": "שנתיים",
+    "manufacturerUrl": "https://www.corsair.com/us/en/p/pc-cases/cc-9011200-ww/icue-4000d-airflow-mid-tower-case-black-cc-9011200-ww",
+    "features": [
+      "High Airflow Design",
+      "Tempered Glass Side Panel",
+      "Cable Management System",
+      "Dust Filters",
+      "Supports ATX, Micro-ATX, and Mini-ITX Motherboards",
+      "Easy to Build and Upgrade"
+    ],
+    "specs": [
+      {
+        "label": "סוג מארז",
+        "value": "Mid-Tower"
+      },
+      {
+        "label": "חומר",
+        "value": "Steel and Tempered Glass"
+      },
+      {
+        "label": "תמיכה בלוחות אם",
+        "value": "ATX, Micro-ATX, Mini-ITX"
+      },
+      {
+        "label": "מאווררים כלולים",
+        "value": "2x 120mm Fans"
+      },
+      {
+        "label": "חריצי הרחבה",
+        "value": "7"
+      },
+      {
+        "label": "חריצי כוננים",
+        "value": "2x 3.5\" + 2x 2.5\""
+      },
+      {
+        "label": "חיבורים קדמיים",
+        "value": "USB 3.0, USB-C, Audio In/Out"
+      },
+      {
+        "label": "גודל מארז",
+        "value": "460mm x 230mm x 466mm"
+      }
+    ]
+  },
+  {
+    "id": "CH-9226765-NA",
+    "category": "keyboard",
+    "brand": "corsair",
+    "name": "מקלדת גיימינג Corsair K55 RGB PRO",
+    "fullName": "מקלדת גיימינג Corsair K55 RGB PRO עברית/אנגלית",
+    "price": {
+      "current": 296,
+      "eilat": 255
+    },
+    "images": {
+      "card": "images/products/ch-9226765-na/card.webp",
+      "gallery": [
+        "images/products/ch-9226765-na/1.webp",
+        "images/products/ch-9226765-na/2.webp",
+        "images/products/ch-9226765-na/3.webp",
+        "images/products/ch-9226765-na/4.webp",
+        "images/products/ch-9226765-na/5.webp"
+      ]
+    },
+    "isRecommended": true,
+    "warranty": "שנתיים",
+    "manufacturerUrl": "https://www.corsair.com/us/en/p/gaming-keyboards/ch-9226765-na/k55-rgb-pro-gaming-keyboard-ch-9226765-na",
+    "features": [
+      "RGB Backlighting with Multiple Effects",
+      "Six Programmable Macro Keys",
+      "Detachable Palm Rest",
+      "Dust and Spill Resistant Design",
+      "Dedicated Media Controls",
+      "Quiet and Responsive Keys"
+    ],
+    "specs": [
+      {
+        "label": "סוג מקלדת",
+        "value": "מקלדת גיימינג"
+      },
+      {
+        "label": "חיבור",
+        "value": "USB Wired"
+      },
+      {
+        "label": "תאורה",
+        "value": "RGB Backlighting"
+      },
+      {
+        "label": "מפתחות",
+        "value": "Membrane Keys"
+      },
+      {
+        "label": "מאפיינים נוספים",
+        "value": "Programmable Macro Keys | Detachable Palm Rest | Media Controls"
+      },
+      {
+        "label": "גודל",
+        "value": "Full Size"
+      },
+      {
+        "label": "שפה",
+        "value": "עברית/אנגלית"
+      }
+    ]
+  },
+  {
+    "id": "CA-9011270-NA",
+    "category": "headset",
+    "brand": "corsair",
+    "name": "אוזניות קשת חוטיות לגיימינג עם מיקרופון מובנה Corsair HS65",
+    "fullName": "אוזניות קשת חוטיות לגיימינג עם מיקרופון מובנה Corsair HS65 Surround",
+    "price": {
+      "current": 370,
+      "eilat": 320
+    },
+    "images": {
+      "card": "images/products/ca-9011270-na/card.webp",
+      "gallery": [
+        "images/products/ca-9011270-na/1.webp",
+        "images/products/ca-9011270-na/2.webp",
+        "images/products/ca-9011270-na/3.webp",
+        "images/products/ca-9011270-na/4.webp",
+        "images/products/ca-9011270-na/5.webp"
+      ]
+    },
+    "isRecommended": true,
+    "warranty": "שנתיים",
+    "manufacturerUrl": "https://www.corsair.com/us/en/p/gaming-headsets/ca-9011270-na/hs65-surround-gaming-headset-ca-9011270-na",
+    "features": [
+      "Immersive 7.1 Surround Sound",
+      "Custom-tuned 50mm Neodymium Drivers",
+      "Comfortable Memory Foam Ear Pads",
+      "Adjustable Noise-Cancelling Microphone",
+      "Durable Aluminum Construction",
+      "On-ear Volume and Mute Controls"
+    ],
+    "specs": [
+      {
+        "label": "סוג אוזניות",
+        "value": "אוזניות קשת לגיימינג"
+      },
+      {
+        "label": "חיבור",
+        "value": "Wired (3.5mm)"
+      },
+      {
+        "label": "תכונות שמע",
+        "value": "7.1 Surround Sound"
+      },
+      {
+        "label": "דרייברים",
+        "value": "50mm Neodymium"
+      },
+      {
+        "label": "מיקרופון",
+        "value": "Adjustable Noise-Cancelling"
+      },
+      {
+        "label": "מאפיינים נוספים",
+        "value": "Memory Foam Ear Pads | On-ear Controls | Durable Build"
+      },
+      {
+        "label": "צבע",
+        "value": "שחור"
+      }
+    ]
+  },
+  {
+    "id": "GS27FC",
+    "category": "monitor",
+    "brand": "gigabyte",
+    "name": "מסך מחשב קעור לגיימינג Gigabyte 27 VA FHD 180Hz",
+    "fullName": "מסך מחשב קעור לגיימינג Gigabyte 27 VA FHD 180Hz 1ms 1500R",
+    "price": {
+      "current": 588
+    },
+    "images": {
+      "card": "images/products/gs27fc/card.webp",
+      "gallery": [
+        "images/products/gs27fc/1.webp",
+        "images/products/gs27fc/2.webp",
+        "images/products/gs27fc/3.webp",
+        "images/products/gs27fc/4.webp",
+        "images/products/gs27fc/5.webp"
+      ]
+    },
+    "isRecommended": true,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.gigabyte.com/Monitor/GS27FC/sp#sp",
+    "features": [
+      "Curved VA Panel",
+      "FHD (1920x1080) Resolution",
+      "180Hz Refresh Rate",
+      "1ms Response Time",
+      "AMD FreeSync Premium",
+      "Wide Viewing Angles"
+    ],
+    "specs": [
+      {
+        "label": "גודל מסך",
+        "value": "27 אינץ"
+      },
+      {
+        "label": "צורת מסך",
+        "value": "מסך קעור"
+      },
+      {
+        "label": "רזולוציה",
+        "value": "FHD (1920x1080)"
+      },
+      {
+        "label": "פאנל",
+        "value": "VA"
+      },
+      {
+        "label": "קצב רענון",
+        "value": "180Hz"
+      },
+      {
+        "label": "זמן תגובה",
+        "value": "1ms (MPRT)"
+      },
+      {
+        "label": "בהירות מקסימלית",
+        "value": "250 cd/m²"
+      },
+      {
+        "label": "חיבורים",
+        "value": "HDMI | DisplayPort | Headphone Jack"
+      },
+      {
+        "label": "מאפייני מסך",
+        "value": "FreeSync Premium | Flicker-Free | Low Blue Light"
+      },
+      {
+        "label": "VESA",
+        "value": "VESA 100x100"
+      }
+    ]
+  },
+  {
+    "id": "FO32U",
+    "category": "monitor",
+    "brand": "gigabyte",
+    "name": "מסך מחשב לגיימינג Gigabyte 32 AORUS FO32U UHD",
+    "fullName": "מסך מחשב לגיימינג Gigabyte 32 AORUS FO32U UHD OLED 165Hz 0.03ms",
+    "price": {
+      "current": 4096,
+      "original": 7551,
+      "eilat": 3500
+    },
+    "images": {
+      "card": "images/products/fo32u/card.webp",
+      "gallery": [
+        "images/products/fo32u/1.webp",
+        "images/products/fo32u/2.webp",
+        "images/products/fo32u/3.webp",
+        "images/products/fo32u/4.webp",
+        "images/products/fo32u/5.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.gigabyte.com/Monitor/AORUS-FO32U",
+    "features": [
+      "AORUS FO32U OLED Gaming Monitor",
+      "פאנל - Pixel Perfect",
+      "יתרון גיימינג",
+      "נבנה עבור דומיננטיות",
+      "KVM Functionality for Multiple Devices",
+      "165Hz Refresh Rate",
+      "0.03ms Response Time",
+      "4k UHD Resolution"
+    ],
+    "specs": [
+      {
+        "label": "גודל מסך",
+        "value": "32 אינץ"
+      },
+      {
+        "label": "צורת מסך",
+        "value": "מסך שטוח"
+      },
+      {
+        "label": "רזולוציה",
+        "value": "4k UHD (3840x2160)"
+      },
+      {
+        "label": "יישום מסך",
+        "value": "גיימינג"
+      },
+      {
+        "label": "פאנל",
+        "value": "OLED"
+      },
+      {
+        "label": "קצב רענון",
+        "value": "165Hz"
+      },
+      {
+        "label": "זמן תגובה",
+        "value": "0.03ms (GTG)"
+      },
+      {
+        "label": "תצורת מסך",
+        "value": "16:9"
+      },
+      {
+        "label": "בהירות מסך",
+        "value": "cd/m2 250"
+      },
+      {
+        "label": "רמקולים",
+        "value": "מובנים"
+      },
+      {
+        "label": "חיבורי מסך",
+        "value": "Microphone | Headphone | USB | DisplayPort | HDMI"
+      },
+      {
+        "label": "מאפייני מסך",
+        "value": "HDR | Flicker Free | Picture-In-Picture | Eye Protection | Picture-By-Picture | KVM"
+      },
+      {
+        "label": "פעולות מכניות",
+        "value": "Pivot | Height Adjustment | Swivel | Tilt"
+      },
+      {
+        "label": "צבע",
+        "value": "שחור"
+      },
+      {
+        "label": "VESA",
+        "value": "VESA 100x100"
+      },
+      {
+        "label": "מידות",
+        "value": "718.3 x 613.6 x 158.6mm"
+      }
+    ]
+  },
+  {
+    "id": "CC-9011098-WW",
+    "category": "case",
+    "brand": "corsair",
+    "name": "מארז מחשב Corsair Crystal 570X RGB",
+    "fullName": "Corsair Crystal 570X RGB Tempered Glass ATX Mid-Tower Case",
+    "price": {
+      "current": 480,
+      "original": 850,
+      "eilat": 415
+    },
+    "images": {
+      "card": "images/products/cc-9011098-ww/card.webp",
+      "gallery": [
+        "images/products/cc-9011098-ww/1.webp",
+        "images/products/cc-9011098-ww/2.webp",
+        "images/products/cc-9011098-ww/3.webp",
+        "images/products/cc-9011098-ww/4.webp",
+        "images/products/cc-9011098-ww/5.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "שנתיים",
+    "manufacturerUrl": "https://www.corsair.com/us/en/p/pc-cases/cc-9011098-ww/crystal-series-570x-rgb-atx-mid-tower-case-cc-9011098-ww",
+    "features": [
+      "Four Tempered Glass Panels",
+      "Three LL120 RGB Fans",
+      "Direct Airflow Path Design",
+      "Easy Cable Management",
+      "Tool-Free Drive Installation",
+      "Supports Radiators up to 360mm"
+    ],
+    "specs": [
+      {
+        "label": "סוג מארז",
+        "value": "ATX Mid-Tower"
+      },
+      {
+        "label": "תמיכה בלוח אם",
+        "value": "ATX | Micro-ATX | Mini-ITX"
+      },
+      {
+        "label": "חומר מארז",
+        "value": "Tempered Glass | Steel"
+      },
+      {
+        "label": "מאווררים כלולים",
+        "value": "3x LL120 RGB Fans"
+      },
+      {
+        "label": "תמיכה בקירור מים",
+        "value": "360mm Radiator Support"
+      },
+      {
+        "label": "חיבורים קדמיים",
+        "value": "USB 3.0 | USB 2.0 | Audio In/Out"
+      },
+      {
+        "label": "גודל מארז",
+        "value": "L=500 W=230 H=520mm"
+      }
+    ]
+  },
+  {
+    "id": "CW-9060079-WW",
+    "category": "cooler",
+    "brand": "corsair",
+    "name": "Corsair iCUE H150i RGB ELITE Liquid CPU Cooler",
+    "fullName": "Corsair iCUE H150i RGB ELITE Liquid CPU Cooler - White",
+    "price": {
+      "current": 746,
+      "original": 781,
+      "eilat": 682
+    },
+    "images": {
+      "card": "images/products/cw-9060079-ww/card.webp",
+      "gallery": [
+        "images/products/cw-9060079-ww/1.webp",
+        "images/products/cw-9060079-ww/2.webp",
+        "images/products/cw-9060079-ww/3.webp",
+        "images/products/cw-9060079-ww/4.webp",
+        "images/products/cw-9060079-ww/5.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "5 שנים",
+    "manufacturerUrl": "https://www.corsair.com/us/en/p/cpu-coolers/cw-9060079-ww/icue-h150i-rgb-elite-liquid-cpu-cooler-white-cw-9060079-ww",
+    "features": [
+      "DYNAMIC LIGHTING AND STYLE   With 16 RGB LEDs on a modern pump head design , the ELITE series deliver great cooling with the looks to match.Produce stunning, customizable lighting effects using CORSAIR iCUE software to add vivid colors and style to your system.",
+      "YOUR SETUP AT YOUR COMMAND   Adjust fan and pump speeds, control and synchronize your cooler's RGB lighting with all iCUE-compatible devices, and monitor CPU and coolant temperatures, all from a single intuitive interface.",
+      "Outperform The Competition   Elevate your CPU performance with all-in-one liquid cooling driven by CORSAIR AF ELITE Series fans with AirGuide technology.",
+      "Specialized Cooling Modes  Zero RPM and Variable Pump Speed specialized cooling modes in iCUE keep noise to a minimum when your system is idle or under light loads.",
+      "High-Performance Pump and   Cold Plate  Equipped with a thermally optimized copper cold plate and pre-applied thermal compound, the low-noise pump design delivers high-performance, quiet cooling.",
+      "Effortless Installation   With tool-free mounting bracket, convenient USB Type-C port connection, and wide compatibility for the latest Intel® and AMD motherboard sockets, the Elite Series AIO coolers are designed for a quick and painless installation."
+    ],
+    "specs": [
+      {
+        "label": "סוג קירור",
+        "value": "קירור מים"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "1155 | 1150 | 1151 | AM4 | 2066 | 1200 | 1700 | AM5 | 1851"
+      },
+      {
+        "label": "רדיאטורים",
+        "value": "3"
+      },
+      {
+        "label": "סוג תאורה",
+        "value": "ARGB | ללא תאורה"
+      },
+      {
+        "label": "מאוורר מובנה (ממ)",
+        "value": "120"
+      },
+      {
+        "label": "הספק תרמי מירבי",
+        "value": "250W"
+      },
+      {
+        "label": "הערות",
+        "value": "Compatible with CORSAIR iCUE"
+      }
+    ]
+  },
+  {
+    "id": "GZ790AORUSELITEXWIFI7",
+    "category": "motherboard",
+    "brand": "gigabyte",
+    "name": "Gigabyte Z790 AORUS ELITE X WIFI7",
+    "fullName": "Gigabyte Z790 AORUS ELITE X WIFI7 ATX Motherboard",
+    "price": {
+      "current": 1333,
+      "original": 1520,
+      "eilat": 1150
+    },
+    "images": {
+      "card": "images/products/gz790aoruselitexwifi7/card.webp",
+      "gallery": [
+        "images/products/gz790aoruselitexwifi7/1.webp",
+        "images/products/gz790aoruselitexwifi7/2.webp",
+        "images/products/gz790aoruselitexwifi7/3.webp",
+        "images/products/gz790aoruselitexwifi7/4.webp",
+        "images/products/gz790aoruselitexwifi7/5.webp"
+      ]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.gigabyte.com/Motherboard/Z790-AORUS-ELITE-X-WIFI7#kf",
+    "features": [
+      "Supports 13th and 12th Gen Intel® Core™ Processors",
+      "Dual Channel Non-ECC Unbuffered DDR5, 4 DIMMs",
+      "PCIe 5.0 x16 Slot, PCIe 4.0 x16 Slot",
+      "Integrated Wi-Fi 7 and Bluetooth 5.3",
+      "USB 3.2 Gen 2x2 Type-C® with Power Delivery",
+      "Realtek® ALC1220-VB HD Audio Codec",
+      "Smart Fan 6 with Multiple Temperature Sensors"
+    ],
+    "specs": [
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1700"
+      },
+      {
+        "label": "ערכת שבבים",
+        "value": "Intel Z790"
+      },
+      {
+        "label": "גודל לוח",
+        "value": "ATX"
+      },
+      {
+        "label": "חריצי זיכרון",
+        "value": "4 x DDR5 DIMMs"
+      },
+      {
+        "label": "זיכרון מקסימלי",
+        "value": "128GB"
+      },
+      {
+        "label": "מהירות זיכרון",
+        "value": "DDR5 6000MHz (OC)"
+      },
+      {
+        "label": "חריצי הרחבה",
+        "value": "1 x PCIe 5.0 x16, 1 x PCIe 4.0 x16"
+      },
+      {
+        "label": "אחסון",
+        "value": "4 x M.2, 6 x SATA 6Gb/s"
+      },
+      {
+        "label": "שמע",
+        "value": "Realtek ALC1220-VB"
+      },
+      {
+        "label": "רשת",
+        "value": "Intel Wi-Fi 7, Realtek 2.5GbE LAN"
+      },
+      {
+        "label": "חיבורי USB",
+        "value": "1 x USB 3.2 Gen 2x2 Type-C, 4 x USB 3.2 Gen 2, 6 x USB 3.2 Gen 1"
+      },
+      {
+        "label": "חיבורים אחוריים",
+        "value": "1 x HDMI, 1 x DisplayPort, 1 x USB Type-C, 4 x USB 3.2 Gen 2, 2 x USB 3.2 Gen 1, 1 x RJ-45 LAN, Audio jacks"
+      },
+      {
+        "label": "מחברי חשמל",
+        "value": "24-pin ATX, 8-pin CPU, 4-pin CPU"
+      },
+      {
+        "label": "קירור",
+        "value": "Smart Fan 6"
+      }
+    ]
+  },
+  {
+    "id": "N4070GAMINGOCV212GD",
+    "category": "gpu",
+    "brand": "gigabyte",
+    "name": "Gigabyte RTX 4070 (DLSS 3) GV-N4070GAMING",
+    "fullName": "Gigabyte RTX 4070 (DLSS 3) GV-N4070GAMING OCV2-12GD",
+    "price": {
+      "current": 2678,
+      "original": 3176,
+      "eilat": 2269
+    },
+    "images": {
+      "card": "images/products/n4070gamingocv212gd/card.webp",
+      "gallery": [
+        "images/products/n4070gamingocv212gd/1.webp",
+        "images/products/n4070gamingocv212gd/2.webp",
+        "images/products/n4070gamingocv212gd/3.webp",
+        "images/products/n4070gamingocv212gd/4.webp",
+        "images/products/n4070gamingocv212gd/5.webp"
+      ]
+    },
+    "isRecommended": true,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.gigabyte.com/Graphics-Card/GV-N4070GAMING-OCV2-12GD#kf",
+    "features": [
+      "Powered by NVIDIA DLSS 3, ultra-efficient Ada Lovelace arch, and full ray tracing",
+      "4th Generation Tensor Cores: Up to 4x performance with DLSS 3 vs. brute-force rendering",
+      "3rd Generation RT Cores: Up to 2X ray tracing performance",
+      "Powered by GeForce RTX™ 4070",
+      "Integrated with 12GB GDDR6X 192bit memory interface",
+      "WINDFORCE Cooling System",
+      "RGB Fusion",
+      "Dual BIOS",
+      "Protection Metal Back Plate"
+    ],
+    "specs": [
+      {
+        "label": "מעבד גרפי",
+        "value": "NVIDIA RTX 4070"
+      },
+      {
+        "label": "מהירות ליבה",
+        "value": "2565MHz"
+      },
+      {
+        "label": "מהירות זכרון",
+        "value": "21Gbps"
+      },
+      {
+        "label": "גודל זכרון כרטיס מסך",
+        "value": "12GB"
+      },
+      {
+        "label": "סוג זכרון גרפי",
+        "value": "GDDR6X"
+      },
+      {
+        "label": "רוחב פס זכרון",
+        "value": "192bit"
+      },
+      {
+        "label": "כמות מסכים מקסימלית",
+        "value": "4"
+      },
+      {
+        "label": "רזולוציה דיגיטלית מקסימלית",
+        "value": "7680x4320"
+      },
+      {
+        "label": "מימדים",
+        "value": "L=300 W=130 H=50mm"
+      },
+      {
+        "label": "גרסת DirectX",
+        "value": "12 Ultimate"
+      },
+      {
+        "label": "גרסת OpenGL",
+        "value": "4.6"
+      },
+      {
+        "label": "חיבור גרפי",
+        "value": "HDMI | DisplayPort"
+      },
+      {
+        "label": "ממשק כרטיס מסך",
+        "value": "PCI-E 4.0 x16"
+      },
+      {
+        "label": "ספק כוח מומלץ",
+        "value": "650W with Power Cable 1x8-Pin"
+      }
+    ]
+  },
+  {
+    "id": "C285T",
+    "category": "cpu",
+    "brand": "intel",
+    "name": "Intel Core Ultra 9 285 / 1851 Tray",
+    "fullName": "Intel Core Ultra 9 285 / 1851 Tray",
+    "price": {
+      "current": 2837,
+      "eilat": 2450
+    },
+    "images": {
+      "card": "images/products/c285t/card.webp",
+      "gallery": ["images/products/c285t/1.webp"]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.intel.com/content/www/us/en/products/sku/241061/intel-core-ultra-9-processor-285-36m-cache-up-to-5-60-ghz/specifications.html",
+    "features": [
+      "12 Performance-cores and 16 Efficient-cores",
+      "Supports DDR5 and DDR4 Memory",
+      "Intel Turbo Boost Max Technology 3.0",
+      "Intel Deep Learning Boost",
+      "Intel Thread Director for Optimized Performance",
+      "Integrated Intel UHD Graphics"
+    ],
+    "specs": [
+      {
+        "label": "סוג מעבד",
+        "value": "Intel Core Ultra 9"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1851"
+      },
+      {
+        "label": "מספר ליבות",
+        "value": "8 Performance-cores + 16 Efficient-cores"
+      },
+      {
+        "label": "מהירות שעון בסיסית",
+        "value": "1.9 GHz"
+      },
+      {
+        "label": "מהירות שעון מרבית",
+        "value": "5.6 GHz"
+      },
+      {
+        "label": "זכרון מטמון",
+        "value": "36MB Intel Smart | L2 40MB"
+      },
+      {
+        "label": "תמיכה בזכרון",
+        "value": "DDR5/DDR4"
+      },
+      {
+        "label": "גרסת PCI Express",
+        "value": "5.0"
+      },
+      {
+        "label": "צריכת חשמל - מעבד",
+        "value": "65W | Max Turbo 182W"
+      }
+    ]
+  },
+  {
+    "id": "C265T",
+    "category": "cpu",
+    "brand": "intel",
+    "name": "Intel Core Ultra 7 265 / 1851 Tray",
+    "fullName": "Intel Core Ultra 7 265 / 1851 Tray",
+    "price": {
+      "current": 1785,
+      "eilat": 1550
+    },
+    "images": {
+      "card": "images/products/c265t/card.webp",
+      "gallery": ["images/products/c265t/1.webp"]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.intel.com/content/www/us/en/products/sku/241068/intel-core-ultra-7-processor-265-30m-cache-up-to-5-30-ghz/specifications.html",
+    "features": [
+      "8 Performance-cores and 8 Efficient-cores",
+      "Supports DDR5 and DDR4 Memory",
+      "Intel Turbo Boost Max Technology 3.0",
+      "Intel Deep Learning Boost",
+      "Intel Thread Director for Optimized Performance",
+      "Integrated Intel UHD Graphics"
+    ],
+    "specs": [
+      {
+        "label": "סוג מעבד",
+        "value": "Intel Core Ultra 7"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1851"
+      },
+      {
+        "label": "מספר ליבות",
+        "value": "8 Performance-cores + 12 Efficient-cores"
+      },
+      {
+        "label": "מהירות שעון בסיסית",
+        "value": "1.8 GHz"
+      },
+      {
+        "label": "מהירות שעון מרבית",
+        "value": "5.3 GHz"
+      },
+      {
+        "label": "זכרון מטמון",
+        "value": "30MB Intel Smart | L2 36MB"
+      },
+      {
+        "label": "תמיכה בזכרון",
+        "value": "DDR5/DDR4"
+      },
+      {
+        "label": "גרסת PCI Express",
+        "value": "5.0"
+      },
+      {
+        "label": "צריכת חשמל - מעבד",
+        "value": "65W | Max Turbo 182W"
+      }
+    ]
+  },
+  {
+    "id": "C265FT",
+    "category": "cpu",
+    "brand": "intel",
+    "name": "Intel Core Ultra 7 265F / 1851 Tray",
+    "fullName": "Intel Core Ultra 7 265F / 1851 Tray",
+    "price": {
+      "current": 1714,
+      "eilat": 1490
+    },
+    "images": {
+      "card": "images/products/c265ft/card.webp",
+      "gallery": ["images/products/c265ft/1.webp"]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.intel.com/content/www/us/en/products/sku/241064/intel-core-ultra-7-processor-265f-30m-cache-up-to-5-30-ghz/specifications.html",
+    "features": [
+      "8 Performance-cores and 8 Efficient-cores",
+      "Supports DDR5 and DDR4 Memory",
+      "Intel Turbo Boost Max Technology 3.0",
+      "Intel Deep Learning Boost",
+      "Intel Thread Director for Optimized Performance",
+      "Integrated Intel UHD Graphics"
+    ],
+    "specs": [
+      {
+        "label": "סוג מעבד",
+        "value": "Intel Core Ultra 7"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1851"
+      },
+      {
+        "label": "מספר ליבות",
+        "value": "8 Performance-cores + 12 Efficient-cores"
+      },
+      {
+        "label": "מהירות שעון בסיסית",
+        "value": "1.8 GHz"
+      },
+      {
+        "label": "מהירות שעון מרבית",
+        "value": "5.3 GHz"
+      },
+      {
+        "label": "זכרון מטמון",
+        "value": "30MB Intel Smart | L2 36MB"
+      },
+      {
+        "label": "תמיכה בזכרון",
+        "value": "DDR5/DDR4"
+      },
+      {
+        "label": "גרסת PCI Express",
+        "value": "5.0"
+      },
+      {
+        "label": "צריכת חשמל - מעבד",
+        "value": "65W | Max Turbo 182W"
+      }
+    ]
+  },
+  {
+    "id": "C245T",
+    "category": "cpu",
+    "brand": "intel",
+    "name": "Intel Core Ultra 5 245 / 1851 Tray",
+    "fullName": "Intel Core Ultra 5 245 / 1851 Tray",
+    "price": {
+      "current": 1423,
+      "eilat": 1250
+    },
+    "images": {
+      "card": "images/products/c245t/card.webp",
+      "gallery": ["images/products/c245t/1.webp"]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.intel.com/content/www/us/en/products/sku/241876/intel-core-ultra-5-processor-245-24m-cache-up-to-5-10-ghz/specifications.html",
+    "features": [
+      "6 Performance-cores and 8 Efficient-cores",
+      "Supports DDR5 and DDR4 Memory",
+      "Intel Turbo Boost Max Technology 3.0",
+      "Intel Deep Learning Boost",
+      "Intel Thread Director for Optimized Performance",
+      "Integrated Intel UHD Graphics"
+    ],
+    "specs": [
+      {
+        "label": "סוג מעבד",
+        "value": "Intel Core Ultra 5"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1851"
+      },
+      {
+        "label": "מספר ליבות",
+        "value": "6 Performance-cores + 8 Efficient-cores"
+      },
+      {
+        "label": "מהירות שעון בסיסית",
+        "value": "3.0 GHz"
+      },
+      {
+        "label": "מהירות שעון מרבית",
+        "value": "5.1 GHz"
+      },
+      {
+        "label": "זכרון מטמון",
+        "value": "24MB Intel Smart | L2 26MB"
+      },
+      {
+        "label": "תמיכה בזכרון",
+        "value": "DDR5/DDR4"
+      },
+      {
+        "label": "גרסת PCI Express",
+        "value": "5.0"
+      },
+      {
+        "label": "צריכת חשמל - מעבד",
+        "value": "65W | Max Turbo 121W"
+      }
+    ]
+  },
+  {
+    "id": "C225FT",
+    "category": "cpu",
+    "brand": "intel",
+    "name": "Intel Core Ultra 5 225F / 1851 Tray",
+    "fullName": "Intel Core Ultra 5 225F / 1851 Tray",
+    "price": {
+      "current": 1141,
+      "eilat": 1000
+    },
+    "images": {
+      "card": "images/products/c225ft/card.webp",
+      "gallery": ["images/products/c225ft/1.webp"]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.intel.com/content/www/us/en/products/sku/241069/intel-core-ultra-5-processor-225f-20m-cache-up-to-4-90-ghz/specifications.html",
+    "features": [
+      "6 Performance-cores and 4 Efficient-cores",
+      "Supports DDR5 and DDR4 Memory",
+      "Intel Turbo Boost Max Technology 3.0",
+      "Intel Deep Learning Boost",
+      "Intel Thread Director for Optimized Performance",
+      "Integrated Intel UHD Graphics"
+    ],
+    "specs": [
+      {
+        "label": "סוג מעבד",
+        "value": "Intel Core Ultra 5"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1851"
+      },
+      {
+        "label": "מספר ליבות",
+        "value": "6 Performance-cores + 4 Efficient-cores"
+      },
+      {
+        "label": "מהירות שעון בסיסית",
+        "value": "2.7 GHz"
+      },
+      {
+        "label": "מהירות שעון מרבית",
+        "value": "4.9 GHz"
+      },
+      {
+        "label": "זכרון מטמון",
+        "value": "20MB Intel Smart | L2 22MB"
+      },
+      {
+        "label": "תמיכה בזכרון",
+        "value": "DDR5/DDR4"
+      },
+      {
+        "label": "גרסת PCI Express",
+        "value": "5.0"
+      },
+      {
+        "label": "צריכת חשמל - מעבד",
+        "value": "65W | Max Turbo 121W"
+      }
+    ]
+  },
+  {
+    "id": "C225TC225T",
+    "category": "cpu",
+    "brand": "intel",
+    "name": "Intel Core Ultra 5 225 / 1851 Tray",
+    "fullName": "Intel Core Ultra 5 225 / 1851 Tray",
+    "price": {
+      "current": 1231,
+      "eilat": 1100
+    },
+    "images": {
+      "card": "images/products/c225tc225t/card.webp",
+      "gallery": ["images/products/c225tc225t/1.webp"]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.intel.com/content/www/us/en/products/sku/241070/intel-core-ultra-5-processor-225-20m-cache-up-to-4-90-ghz/specifications.html",
+    "features": [
+      "6 Performance-cores and 4 Efficient-cores",
+      "Supports DDR5 and DDR4 Memory",
+      "Intel Turbo Boost Max Technology 3.0",
+      "Intel Deep Learning Boost",
+      "Intel Thread Director for Optimized Performance",
+      "Integrated Intel UHD Graphics"
+    ],
+    "specs": [
+      {
+        "label": "סוג מעבד",
+        "value": "Intel Core Ultra 5"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1851"
+      },
+      {
+        "label": "מספר ליבות",
+        "value": "6 Performance-cores + 4 Efficient-cores"
+      },
+      {
+        "label": "מהירות שעון בסיסית",
+        "value": "2.7 GHz"
+      },
+      {
+        "label": "מהירות שעון מרבית",
+        "value": "4.9 GHz"
+      },
+      {
+        "label": "זכרון מטמון",
+        "value": "20MB Intel Smart | L2 22MB"
+      },
+      {
+        "label": "תמיכה בזכרון",
+        "value": "DDR5/DDR4"
+      },
+      {
+        "label": "גרסת PCI Express",
+        "value": "5.0"
+      },
+      {
+        "label": "צריכת חשמל - מעבד",
+        "value": "65W | Max Turbo 121W"
+      }
+    ]
+  },
+  {
+    "id": "C235T",
+    "category": "cpu",
+    "brand": "intel",
+    "name": "Intel Core Ultra 5 235 / 1851 Tray",
+    "fullName": "Intel Core Ultra 5 235 / 1851 Tray",
+    "price": {
+      "current": 1292,
+      "eilat": 1150
+    },
+    "images": {
+      "card": "images/products/c235t/card.webp",
+      "gallery": ["images/products/c235t/1.webp"]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.intel.com/content/www/us/en/products/sku/241674/intel-core-ultra-5-processor-235-24m-cache-up-to-5-00-ghz/specifications.html",
+    "features": [
+      "6 Performance-cores and 8 Efficient-cores",
+      "Supports DDR5 and DDR4 Memory",
+      "Intel Turbo Boost Max Technology 3.0",
+      "Intel Deep Learning Boost",
+      "Intel Thread Director for Optimized Performance",
+      "Integrated Intel UHD Graphics"
+    ],
+    "specs": [
+      {
+        "label": "סוג מעבד",
+        "value": "Intel Core Ultra 5"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1851"
+      },
+      {
+        "label": "מספר ליבות",
+        "value": "6 Performance-cores + 8 Efficient-cores"
+      },
+      {
+        "label": "מהירות שעון בסיסית",
+        "value": "2.9 GHz"
+      },
+      {
+        "label": "מהירות שעון מרבית",
+        "value": "5.0 GHz"
+      },
+      {
+        "label": "זכרון מטמון",
+        "value": "24MB Intel Smart | L2 26MB"
+      },
+      {
+        "label": "תמיכה בזכרון",
+        "value": "DDR5/DDR4"
+      },
+      {
+        "label": "גרסת PCI Express",
+        "value": "5.0"
+      },
+      {
+        "label": "צריכת חשמל - מעבד",
+        "value": "65W | Max Turbo 121W"
+      }
+    ]
+  },
+  {
+    "id": "100-000000910",
+    "category": "cpu",
+    "brand": "amd",
+    "name": "AMD Ryzen 7 7800X3D AM5 Tray",
+    "fullName": "AMD Ryzen 7 7800X3D AM5 Tray",
+    "price": {
+      "current": 1858,
+      "eilat": 1620
+    },
+    "images": {
+      "card": "images/products/100-000000910/card.webp",
+      "gallery": ["images/products/100-000000910/1.webp"]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.amd.com/en/products/processors/desktops/ryzen/7000-series/amd-ryzen-7-7800x3d.html",
+    "features": [
+      "8 Cores and 16 Threads",
+      "3D V-Cache Technology for Enhanced Gaming Performance",
+      "Supports DDR5 Memory",
+      "AMD Precision Boost 2 Technology",
+      "AMD StoreMI Technology",
+      "Integrated AMD Radeon Graphics"
+    ],
+    "specs": [
+      {
+        "label": "סוג מעבד",
+        "value": "AMD Ryzen 7 7800X3D"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "AM5"
+      },
+      {
+        "label": "מספר ליבות",
+        "value": "8 Cores"
+      },
+      {
+        "label": "מהירות שעון בסיסית",
+        "value": "4.2 GHz"
+      },
+      {
+        "label": "מהירות שעון מרבית",
+        "value": "5.0 GHz"
+      },
+      {
+        "label": "זכרון מטמון",
+        "value": "96MB L3 Cache | 8MB L2 Cache"
+      },
+      {
+        "label": "תמיכה בזכרון",
+        "value": "DDR5"
+      },
+      {
+        "label": "גרסת PCI Express",
+        "value": "5.0"
+      },
+      {
+        "label": "צריכת חשמל - מעבד",
+        "value": "120W"
+      }
+    ]
+  },
+  {
+    "id": "C12900KT",
+    "category": "cpu",
+    "brand": "intel",
+    "name": "Intel Core i9 12900K / 1700 Tray",
+    "fullName": "Intel Core i9 12900K / 1700 Tray",
+    "price": {
+      "current": 1857,
+      "eilat": 1620
+    },
+    "images": {
+      "card": "images/products/c12900kt/card.webp",
+      "gallery": ["images/products/c12900kt/1.webp"]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.intel.com/content/www/us/en/products/sku/134599/intel-core-i912900k-processor-30m-cache-up-to-5-20-ghz/specifications.html",
+    "features": [
+      "16 Cores (8 Performance-cores + 8 Efficient-cores)",
+      "Supports DDR5 and DDR4 Memory",
+      "Intel Turbo Boost Max Technology 3.0",
+      "Intel Deep Learning Boost",
+      "Intel Thread Director for Optimized Performance",
+      "Integrated Intel UHD Graphics 770"
+    ],
+    "specs": [
+      {
+        "label": "סוג מעבד",
+        "value": "Intel Core i9 12900K"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "LGA 1700"
+      },
+      {
+        "label": "מספר ליבות",
+        "value": "8 Performance-cores + 8 Efficient-cores"
+      },
+      {
+        "label": "מהירות שעון בסיסית",
+        "value": "3.2 GHz"
+      },
+      {
+        "label": "מהירות שעון מרבית",
+        "value": "5.2 GHz"
+      },
+      {
+        "label": "זכרון מטמון",
+        "value": "30MB Intel Smart | L2 14MB"
+      },
+      {
+        "label": "תמיכה בזכרון",
+        "value": "DDR5/DDR4"
+      },
+      {
+        "label": "גרסת PCI Express",
+        "value": "5.0"
+      },
+      {
+        "label": "צריכת חשמל - מעבד",
+        "value": "125W | Max Turbo 241W"
+      }
+    ]
+  },
+  {
+    "id": "100-000000593",
+    "category": "cpu",
+    "brand": "amd",
+    "name": "AMD Ryzen 5 7600X AM5 Tray",
+    "fullName": "AMD Ryzen 5 7600X AM5 Tray",
+    "price": {
+      "current": 939,
+      "eilat": 820
+    },
+    "images": {
+      "card": "images/products/100-000000593/card.webp",
+      "gallery": ["images/products/100-000000593/1.webp"]
+    },
+    "isRecommended": false,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.amd.com/en/products/processor/amd-ryzen-5-7600x",
+    "features": [
+      "6 Cores and 12 Threads",
+      "Supports DDR5 Memory",
+      "AMD Precision Boost 2 Technology",
+      "AMD StoreMI Technology",
+      "Integrated AMD Radeon Graphics"
+    ],
+    "specs": [
+      {
+        "label": "סוג מעבד",
+        "value": "AMD Ryzen 5 7600X"
+      },
+      {
+        "label": "תושבת מעבד",
+        "value": "AM5"
+      },
+      {
+        "label": "מספר ליבות",
+        "value": "6 Cores"
+      },
+      {
+        "label": "מהירות שעון בסיסית",
+        "value": "4.7 GHz"
+      },
+      {
+        "label": "מהירות שעון מרבית",
+        "value": "5.3 GHz"
+      },
+      {
+        "label": "זכרון מטמון",
+        "value": "32MB L3 Cache | 6MB L2 Cache"
+      },
+      {
+        "label": "תמיכה בזכרון",
+        "value": "DDR5"
+      },
+      {
+        "label": "גרסת PCI Express",
+        "value": "5.0"
+      },
+      {
+        "label": "צריכת חשמל - מעבד",
+        "value": "105W"
+      }
+    ]
+  },
+  {
+    "id": "N5070WF3OC12GD",
+    "category": "gpu",
+    "brand": "gigabyte",
+    "name": "Gigabyte RTX 5070 WINDFORCE OC SFF 12G",
+    "fullName": "Gigabyte RTX 5070 WINDFORCE OC SFF 12G GV-N5070WF3OC-12GD",
+    "price": {
+      "current": 2804,
+      "eilat": 2376
+    },
+    "images": {
+      "card": "images/products/n5070wf3oc12gd/card.webp",
+      "gallery": [
+        "images/products/n5070wf3oc12gd/1.webp",
+        "images/products/n5070wf3oc12gd/2.webp",
+        "images/products/n5070wf3oc12gd/3.webp",
+        "images/products/n5070wf3oc12gd/4.webp"
+      ]
+    },
+    "isRecommended": true,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.gigabyte.com/Graphics-Card/GV-N5070WF3OC-12GD#kf",
+    "features": [
+      "Powered by the NVIDIA Blackwell architecture and DLSS 4",
+      "Powered by GeForce RTX 5070",
+      "Integrated with 12GB GDDR7 192bit memory interface",
+      "WINDFORCE cooling system",
+      "Hawk fan",
+      "Server-grade thermal conductive gel",
+      "NVIDIA SFF-ready",
+      "Reinforced structure"
+    ],
+    "specs": [
+      {
+        "label": "מעבד גרפי",
+        "value": "NVIDIA RTX 5070"
+      },
+      {
+        "label": "מהירות זכרון",
+        "value": "28Gbps"
+      },
+      {
+        "label": "גודל זכרון כרטיס מסך",
+        "value": "12GB"
+      },
+      {
+        "label": "סוג זכרון גרפי",
+        "value": "GDDR7"
+      },
+      {
+        "label": "רוחב פס זכרון",
+        "value": "192bit"
+      },
+      {
+        "label": "כמות מסכים מקסימלית",
+        "value": "4"
+      },
+      {
+        "label": "רזולוציה דיגיטלית מקסימלית",
+        "value": "7680x4320"
+      },
+      {
+        "label": "מימדים",
+        "value": "L=282 W=110 H=50mm"
+      },
+      {
+        "label": "גרסת DirectX",
+        "value": "12 Ultimate"
+      },
+      {
+        "label": "גרסת OpenGL",
+        "value": "4.6"
+      },
+      {
+        "label": "חיבור גרפי",
+        "value": "HDMI | DisplayPort"
+      },
+      {
+        "label": "ממשק כרטיס מסך",
+        "value": "PCIe 5.0 x16"
+      },
+      {
+        "label": "ספק כוח מומלץ",
+        "value": "750W with Power Connectors 1x16-Pin"
+      },
+      {
+        "label": "עיצוב תרמי",
+        "value": "WINDFORCE cooling system"
+      },
+      {
+        "label": "אריזה",
+        "value": "Retail - קופסה"
+      }
+    ]
+  },
+  {
+    "id": "N507TEAGLEOCICE16GD",
+    "category": "gpu",
+    "brand": "gigabyte",
+    "name": "Gigabyte GeForce RTX 5070 Ti EAGLE OC ICE SFF 16G",
+    "fullName": "Gigabyte GeForce RTX 5070 Ti EAGLE OC ICE SFF 16G GV-N507TEAGLEOC ICE-16GD",
+    "price": {
+      "current": 4487,
+      "eilat": 3802
+    },
+    "images": {
+      "card": "images/products/n507teagleocice16gd/card.webp",
+      "gallery": [
+        "images/products/n507teagleocice16gd/1.webp",
+        "images/products/n507teagleocice16gd/2.webp",
+        "images/products/n507teagleocice16gd/3.webp",
+        "images/products/n507teagleocice16gd/4.webp"
+      ]
+    },
+    "isRecommended": true,
+    "warranty": "3 שנים",
+    "manufacturerUrl": "https://www.gigabyte.com/Graphics-Card/GV-N507TEAGLEOC-ICE-16GD#kf",
+    "features": [
+      "Powered by the NVIDIA Blackwell architecture and DLSS 4",
+      "Powered by GeForce RTX™ 5070 Ti",
+      "Integrated with 16GB GDDR7 256bit memory interface",
+      "WINDFORCE cooling system - Hawk fan, Server-grade thermal conductive gel",
+      "RGB Lighting",
+      "Dual BIOS (Performance / Silent)",
+      "NVIDIA SFF-ready",
+      "Reinforced structure",
+      "Versatile VGA holder"
+    ],
+    "specs": [
+      {
+        "label": "מעבד גרפי",
+        "value": "NVIDIA RTX 5070 TI"
+      },
+      {
+        "label": "מהירות ליבה",
+        "value": "2542MHz"
+      },
+      {
+        "label": "מהירות זכרון",
+        "value": "28Gbps"
+      },
+      {
+        "label": "גודל זכרון כרטיס מסך",
+        "value": "16GB"
+      },
+      {
+        "label": "סוג זכרון גרפי",
+        "value": "GDDR7"
+      },
+      {
+        "label": "רוחב פס זכרון",
+        "value": "256bit"
+      },
+      {
+        "label": "כמות מסכים מקסימלית",
+        "value": "4"
+      },
+      {
+        "label": "רזולוציה דיגיטלית מקסימלית",
+        "value": "7680x4320"
+      },
+      {
+        "label": "מימדים",
+        "value": "L=304 W=126  H=50mm"
+      },
+      {
+        "label": "גרסת DirectX",
+        "value": "12 Ultimate"
+      },
+      {
+        "label": "גרסת OpenGL",
+        "value": "4.6"
+      },
+      {
+        "label": "חיבור גרפי",
+        "value": "HDMI | DisplayPort"
+      },
+      {
+        "label": "ממשק כרטיס מסך",
+        "value": "PCIe 5.0 x16"
+      },
+      {
+        "label": "ספק כוח מומלץ",
+        "value": "750W with Power Connectors 1x16-Pin"
+      },
+      {
+        "label": "עיצוב תרמי",
+        "value": "WINDFORCE cooling system"
+      }
+    ]
+  }
+]

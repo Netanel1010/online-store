@@ -1,7 +1,30 @@
 @import 'tailwindcss';
 
+/* Design tokens. Components use these names (bg-brand, text-muted, ...) instead of raw colors. */
+@theme {
+  --font-sans: system-ui, 'Segoe UI', Roboto, 'Noto Sans Hebrew', Arial, sans-serif;
+
+  --color-brand: #1d4ed8;
+  --color-brand-strong: #1e3a8a;
+  --color-brand-soft: #eff6ff;
+  --color-ink: #0f172a;
+  --color-muted: #475569;
+  --color-line: #e2e8f0;
+  --color-surface: #f8fafc;
+  --color-sale: #b91c1c;
+  --color-sale-soft: #fef2f2;
+}
+
 @layer base {
   body {
-    @apply bg-white text-slate-900 antialiased;
+    @apply bg-white font-sans text-ink antialiased;
   }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand;
+  }
+}
+
+@utility container-page {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6;
 }
