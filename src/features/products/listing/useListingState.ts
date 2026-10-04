@@ -1,5 +1,5 @@
-import { useCallback, useMemo } from 'react'
-import { useSearchParams } from 'react-router'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useLocation, useSearchParams } from 'react-router'
 import { parseListingState, serializeListingState, type ListingState } from './query'
 
 /**
@@ -21,18 +21,29 @@ export function useListingState({
   sanitize?: (state: ListingState) => ListingState
 }) {
   const [params, setParams] = useSearchParams()
+  const { key } = useLocation()
   const state = useMemo(
     () => sanitize(parseListingState(params, { search })),
     [params, search, sanitize],
   )
 
+  // The router applies a navigation a moment after it is requested (it is a low-priority
+  // update). If a second change arrives in that gap, for example a quick second click on a slow
+  // device, building it from the last rendered URL would silently drop the first change. So the
+  // URL we have just written is remembered until the router has rendered a new location.
+  const written = useRef<URLSearchParams | null>(null)
+  useEffect(() => {
+    written.current = null
+  }, [key])
+
   const update = useCallback(
     (change: (state: ListingState) => ListingState) => {
-      setParams((previous) =>
-        serializeListingState(change(sanitize(parseListingState(previous, { search }))), {
-          search,
-        }),
-      )
+      setParams((rendered) => {
+        const current = parseListingState(written.current ?? rendered, { search })
+        const next = serializeListingState(change(sanitize(current)), { search })
+        written.current = next
+        return next
+      })
     },
     [setParams, search, sanitize],
   )
