@@ -29,7 +29,8 @@ export function CategoryPage() {
         {(products) => (
           <ProductListing
             allProducts={products}
-            products={productsInCategory(products, category.id)}
+            scopeProducts={productsInCategory(products, category.id)}
+            mode="category"
             activeCategory={category.id}
           />
         )}
