@@ -1,0 +1,28 @@
+# Line endings: text files are stored as LF in the repository and checked out as LF on every
+# platform, regardless of core.autocrlf. This matches .editorconfig and Prettier (endOfLine: lf).
+* text=auto eol=lf
+
+# Text formats used by the project (explicit, so they are never guessed as binary)
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.svg text eol=lf
+*.txt text eol=lf
+
+# Binary assets: never converted
+*.webp binary
+*.avif binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
