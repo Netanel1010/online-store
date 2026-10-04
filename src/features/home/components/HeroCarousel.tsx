@@ -35,7 +35,7 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
                 alt={slide.alt}
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
-                className="aspect-[2/1] w-full object-cover sm:aspect-[1834/788]"
+                className="aspect-[2/1] w-full object-cover sm:aspect-[1834/788] sm:max-h-[33rem]"
               />
             </div>
           ))}

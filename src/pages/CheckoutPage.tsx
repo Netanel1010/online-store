@@ -96,7 +96,7 @@ export function CheckoutPage() {
 
           return (
             <div className="grid items-start gap-8 lg:grid-cols-[1fr_22rem]">
-              <div className="space-y-6">
+              <div className="max-w-4xl space-y-6">
                 <DemoNotice>
                   זו הזמנת הדגמה: לא מתבצע חיוב, לא נשלח מוצר, ולא נשמרים פרטים. אל תזינו פרטים
                   אמיתיים שאינכם רוצים להקליד.

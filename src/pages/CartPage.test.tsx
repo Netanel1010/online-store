@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useCartStore } from '@/features/cart/cartStore'
 import { makeProduct } from '@/test/fixtures'
@@ -148,6 +148,36 @@ describe('header cart badge', () => {
     await userEvent.click(within(firstCard!).getByRole('button', { name: /הוספה לעגלה/ }))
 
     expect(screen.getByRole('link', { name: 'עגלת קניות, 1 פריטים' })).toHaveTextContent('1')
+  })
+
+  it('counts every unit when the same product is added repeatedly, and follows quantity changes', async () => {
+    renderApp('/products', catalog)
+    await screen.findByRole('link', { name: 'עגלת קניות' })
+
+    const [firstCard] = screen.getAllByRole('article')
+    const add = within(firstCard!).getByRole('button', { name: /הוספה לעגלה/ })
+    await userEvent.click(add)
+    await userEvent.click(add)
+    await userEvent.click(add)
+
+    // One cart line with a quantity of 3: the badge shows 3, not 1.
+    expect(useCartStore.getState().items).toHaveLength(1)
+    expect(screen.getByRole('link', { name: 'עגלת קניות, 3 פריטים' })).toHaveTextContent('3')
+
+    act(() => {
+      useCartStore.getState().addItem('GPU-1', 2)
+    })
+    expect(screen.getByRole('link', { name: 'עגלת קניות, 5 פריטים' })).toHaveTextContent('5')
+
+    act(() => {
+      useCartStore.getState().setQuantity('GPU-1', 1)
+    })
+    expect(screen.getByRole('link', { name: 'עגלת קניות, 4 פריטים' })).toHaveTextContent('4')
+
+    act(() => {
+      useCartStore.getState().removeItem('GPU-1')
+    })
+    expect(screen.getByRole('link', { name: 'עגלת קניות, 3 פריטים' })).toHaveTextContent('3')
   })
 
   it('caps the displayed count at 99+', async () => {

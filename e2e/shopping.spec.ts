@@ -191,6 +191,7 @@ test.describe('cart', () => {
 
     await expect(page.getByRole('textbox', { name: `כמות ${PSU.name}` })).toHaveValue('4')
     await expect.poll(() => summaryTotal(page)).toBe(4 * PSU.price.current)
+    await expect(cartLink(page)).toHaveAccessibleName('עגלת קניות, 4 פריטים')
   })
 
   test('clamps the quantity to the allowed range', async ({ page }) => {
