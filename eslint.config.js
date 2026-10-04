@@ -9,6 +9,8 @@ export default tseslint.config(
   { ignores: ['dist', 'coverage', 'playwright-report', 'test-results'] },
   {
     files: ['**/*.{ts,tsx}'],
+    // The browser-test code is not React and has its own block below.
+    ignores: ['e2e/**', 'playwright.config.ts'],
     extends: [
       js.configs.recommended,
       ...tseslint.configs.recommended,
@@ -21,7 +23,12 @@ export default tseslint.config(
     },
   },
   {
-    files: ['*.config.{js,ts}', 'scripts/**/*.mjs'],
+    files: ['e2e/**/*.ts', 'playwright.config.ts'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    languageOptions: { ecmaVersion: 2023, globals: { ...globals.node, ...globals.browser } },
+  },
+  {
+    files: ['*.config.{js,ts}', 'scripts/**/*.mjs', 'e2e/**/*.mjs'],
     languageOptions: { globals: globals.node },
   },
   prettier,
