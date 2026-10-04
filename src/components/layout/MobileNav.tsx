@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import { paths } from '@/app/paths'
 import { CloseIcon, MenuIcon } from '@/components/icons'
+import { AccountMenu } from '@/features/auth/AccountMenu'
 import { CATEGORIES } from '@/features/products/categories'
 import { SearchForm } from '@/features/search/SearchForm'
 import { mainLinks, navLinkClass } from './navigation'
@@ -63,6 +64,10 @@ export function MobileNav() {
           </div>
 
           <SearchForm className="flex px-4 py-3" />
+
+          <div className="border-b border-line px-2 pb-2">
+            <AccountMenu variant="drawer" />
+          </div>
 
           <nav aria-label="ניווט ראשי" className="p-2">
             <ul>

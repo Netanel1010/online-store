@@ -9,4 +9,8 @@ export const paths = {
   searchFor: (q: string) => `/search?${new URLSearchParams({ q }).toString()}`,
   cart: '/cart',
   favorites: '/favorites',
+  login: '/login',
+  register: '/register',
+  checkout: '/checkout',
+  checkoutSuccess: '/checkout/success',
 } as const
