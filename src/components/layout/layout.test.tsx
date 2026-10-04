@@ -2,6 +2,7 @@ import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { CATEGORIES } from '@/features/products/categories'
+import { ToastProvider } from '@/features/notifications/ToastProvider'
 import { resetProductCatalog } from '@/features/products/useProductCatalog'
 import { RootLayout } from '@/layouts/RootLayout'
 import * as productService from '@/services/productService'
@@ -77,9 +78,11 @@ describe('MobileNav', () => {
   function renderNav() {
     return render(
       <MemoryRouter initialEntries={['/']}>
-        <Routes>
-          <Route path="*" element={<MobileNav />} />
-        </Routes>
+        <ToastProvider>
+          <Routes>
+            <Route path="*" element={<MobileNav />} />
+          </Routes>
+        </ToastProvider>
       </MemoryRouter>,
     )
   }
@@ -108,7 +111,8 @@ describe('MobileNav', () => {
       'href',
       '/products',
     )
-    expect(within(dialog).getAllByRole('link')).toHaveLength(2 + CATEGORIES.length)
+    // Main links, every category, and the sign-in and registration links (signed out).
+    expect(within(dialog).getAllByRole('link')).toHaveLength(2 + CATEGORIES.length + 2)
   })
 
   it('closes after navigating via a link', async () => {

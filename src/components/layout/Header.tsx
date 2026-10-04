@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router'
 import { paths } from '@/app/paths'
+import { AccountMenu } from '@/features/auth/AccountMenu'
 import { CATEGORIES } from '@/features/products/categories'
 import { SearchForm } from '@/features/search/SearchForm'
 import { HeaderShopLinks } from '@/features/shop/HeaderShopLinks'
@@ -41,6 +42,7 @@ export function Header() {
         <SearchForm className="hidden max-w-md flex-1 md:flex" />
 
         <HeaderShopLinks />
+        <AccountMenu variant="header" />
       </div>
 
       <nav aria-label="קטגוריות" className="hidden border-t border-line bg-surface md:block">

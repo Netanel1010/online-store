@@ -1,8 +1,16 @@
+import type { ReactNode } from 'react'
 import { formatPrice } from '@/lib/format'
 import type { CartSummary } from './summary'
 
 /** Totals are always derived from the cart lines and the catalog, never stored. */
-export function OrderSummary({ summary }: { summary: CartSummary }) {
+export function OrderSummary({
+  summary,
+  children,
+}: {
+  summary: CartSummary
+  /** Optional actions shown under the totals, such as the checkout button. */
+  children?: ReactNode
+}) {
   return (
     <aside
       aria-labelledby="order-summary-heading"
@@ -37,7 +45,10 @@ export function OrderSummary({ summary }: { summary: CartSummary }) {
         </div>
       </dl>
 
-      <p className="mt-4 text-xs text-muted">עלות המשלוח תחושב בהמשך. התשלום יהיה זמין בקרוב.</p>
+      <p className="mt-4 text-xs text-muted">
+        באתר ההדגמה לא מחושבים משלוח ומע&quot;מ, ולא מתבצע תשלום.
+      </p>
+      {children && <div className="mt-5">{children}</div>}
     </aside>
   )
 }

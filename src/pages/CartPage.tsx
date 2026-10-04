@@ -5,6 +5,7 @@ import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
 import { EmptyState } from '@/components/shared/StateMessages'
 import { Skeleton } from '@/components/shared/Skeleton'
 import { buttonStyles } from '@/components/ui/buttonStyles'
+import { useCurrentUser } from '@/features/auth/authStore'
 import { useCartStore } from '@/features/cart/cartStore'
 import { CartLineItem } from '@/features/cart/CartLineItem'
 import { OrderSummary } from '@/features/cart/OrderSummary'
@@ -27,6 +28,7 @@ function CartSkeleton() {
 }
 
 export function CartPage() {
+  const user = useCurrentUser()
   const items = useCartStore((state) => state.items)
   const removeItem = useCartStore((state) => state.removeItem)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -78,7 +80,16 @@ export function CartPage() {
                   />
                 ))}
               </ul>
-              <OrderSummary summary={summarizeCart(lines)} />
+              <OrderSummary summary={summarizeCart(lines)}>
+                <Link to={paths.checkout} className={`${buttonStyles()} w-full`}>
+                  מעבר לסיום ההזמנה
+                </Link>
+                {!user && (
+                  <p className="mt-2 text-center text-xs text-muted">
+                    כדי להמשיך תתבקשו להתחבר או להירשם.
+                  </p>
+                )}
+              </OrderSummary>
             </div>
           )
         }}
