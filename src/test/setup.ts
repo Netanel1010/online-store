@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
+import { afterEach, vi } from 'vitest'
 
 // Not every jsdom version implements the modal <dialog> API. Provide just enough of it for
 // components that open a modal dialog and react to its `close` event.
@@ -17,4 +17,5 @@ if (!HTMLDialogElement.prototype.showModal) {
 
 afterEach(() => {
   cleanup()
+  vi.restoreAllMocks()
 })
