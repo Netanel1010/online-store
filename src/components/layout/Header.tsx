@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router'
 import { paths } from '@/app/paths'
 import { CATEGORIES } from '@/features/products/categories'
+import { HeaderShopLinks } from '@/features/shop/HeaderShopLinks'
 import { MobileNav } from './MobileNav'
 import { mainLinks, navLinkClass } from './navigation'
 
@@ -35,6 +36,8 @@ export function Header() {
             ))}
           </ul>
         </nav>
+
+        <HeaderShopLinks />
       </div>
 
       <nav aria-label="קטגוריות" className="hidden border-t border-line bg-surface md:block">

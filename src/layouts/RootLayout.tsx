@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
+import { ShopStateReconciler } from '@/features/shop/ShopStateReconciler'
 
 export function RootLayout() {
   const mainRef = useRef<HTMLElement>(null)
@@ -34,6 +35,7 @@ export function RootLayout() {
         </div>
       </main>
       <Footer />
+      <ShopStateReconciler />
     </div>
   )
 }

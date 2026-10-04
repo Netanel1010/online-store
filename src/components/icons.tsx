@@ -58,3 +58,32 @@ export function ExternalLinkIcon(props: SVGProps<SVGSVGElement>) {
     </Icon>
   )
 }
+
+export function CartIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h8.7a1 1 0 0 0 1-.76L20 8H6.2" />
+      <circle cx="9.5" cy="20" r="1.2" />
+      <circle cx="17" cy="20" r="1.2" />
+    </Icon>
+  )
+}
+
+export function HeartIcon({
+  filled = false,
+  ...props
+}: SVGProps<SVGSVGElement> & { filled?: boolean }) {
+  return (
+    <Icon fill={filled ? 'currentColor' : 'none'} {...props}>
+      <path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z" />
+    </Icon>
+  )
+}
+
+export function TrashIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a1 1 0 0 0 1 .9h8a1 1 0 0 0 1-.9l1-12M9 7V4h6v3" />
+    </Icon>
+  )
+}

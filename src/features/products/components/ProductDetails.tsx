@@ -1,12 +1,14 @@
 import { Price } from '@/components/shared/Price'
 import { ExternalLinkIcon } from '@/components/icons'
+import { AddToCartButton } from '@/features/cart/AddToCartButton'
+import { FavoriteButton } from '@/features/favorites/FavoriteButton'
 import { assetUrl } from '@/lib/assets'
 import { formatPrice } from '@/lib/format'
 import { BRANDS } from '../brands'
 import type { Product } from '../schema'
 import { ProductGallery } from './ProductGallery'
 
-/** Product page content. Cart and favorite controls will go in the `actions` slot later. */
+/** Product page content. */
 export function ProductDetails({ product }: { product: Product }) {
   const brand = BRANDS[product.brand]
 
@@ -42,6 +44,11 @@ export function ProductDetails({ product }: { product: Product }) {
                 <span className="font-semibold text-ink">{formatPrice(product.price.eilat)}</span>
               </p>
             )}
+          </div>
+
+          <div className="flex items-start gap-3">
+            <AddToCartButton product={product} size="md" className="flex-1 sm:max-w-xs" />
+            <FavoriteButton product={product} showLabel />
           </div>
 
           <a

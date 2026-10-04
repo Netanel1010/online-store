@@ -20,7 +20,7 @@ describe('ProductsPage', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('טוען מוצרים')
     expect(await screen.findByRole('heading', { level: 2, name: 'מעבד אחד' })).toBeInTheDocument()
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByText('טוען מוצרים…')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'כל המוצרים' })).toBeInTheDocument()
     expect(screen.getAllByRole('article')).toHaveLength(3)
     expect(screen.getByText('3 מוצרים')).toBeInTheDocument()
