@@ -1,7 +1,8 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { makeProduct } from '@/test/fixtures'
 import { renderApp } from '@/test/renderApp'
+import { renderWithProviders } from '@/test/renderWithProviders'
 import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { MAX_QUANTITY, useCartStore } from '@/features/cart/cartStore'
 import { FavoriteButton } from '@/features/favorites/FavoriteButton'
@@ -11,30 +12,30 @@ const product = makeProduct({ id: 'GP-1', name: 'ספק כוח' })
 
 describe('AddToCartButton', () => {
   it('adds the product, shows the quantity and announces it', async () => {
-    render(<AddToCartButton product={product} />)
+    renderWithProviders(<AddToCartButton product={product} />)
     const button = screen.getByRole('button', { name: 'הוספה לעגלה: ספק כוח' })
     expect(screen.queryByText(/בעגלה:/)).not.toBeInTheDocument()
 
     await userEvent.click(button)
     expect(useCartStore.getState().items).toEqual([{ productId: 'GP-1', quantity: 1 }])
     expect(screen.getByText('בעגלה: 1')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('ספק כוח נוסף לעגלה. כמות בעגלה: 1')
+    expect(screen.getByRole('status')).toHaveTextContent('ספק כוח נוסף לעגלה (בעגלה: 1)')
 
     await userEvent.click(button)
     expect(useCartStore.getState().items).toEqual([{ productId: 'GP-1', quantity: 2 }])
-    expect(screen.getByRole('status')).toHaveTextContent('כמות בעגלה: 2')
+    expect(screen.getByRole('status')).toHaveTextContent('(בעגלה: 2)')
   })
 
   it('reflects what is already in the cart', () => {
     useCartStore.getState().addItem('GP-1', 3)
-    render(<AddToCartButton product={product} />)
+    renderWithProviders(<AddToCartButton product={product} />)
 
     expect(screen.getByText('בעגלה: 3')).toBeInTheDocument()
   })
 
   it('is disabled once the maximum quantity is reached', () => {
     useCartStore.getState().addItem('GP-1', MAX_QUANTITY)
-    render(<AddToCartButton product={product} />)
+    renderWithProviders(<AddToCartButton product={product} />)
 
     expect(screen.getByRole('button', { name: /הוספה לעגלה/ })).toBeDisabled()
     expect(screen.getByText(/כמות מקסימלית/)).toBeInTheDocument()
@@ -43,7 +44,7 @@ describe('AddToCartButton', () => {
 
 describe('FavoriteButton', () => {
   it('toggles the favorite and exposes the state through aria-pressed', async () => {
-    render(<FavoriteButton product={product} />)
+    renderWithProviders(<FavoriteButton product={product} />)
     const button = screen.getByRole('button', { name: 'מועדפים: ספק כוח' })
     expect(button).toHaveAttribute('aria-pressed', 'false')
 
@@ -57,7 +58,7 @@ describe('FavoriteButton', () => {
   })
 
   it('can show a visible label', () => {
-    render(<FavoriteButton product={product} showLabel />)
+    renderWithProviders(<FavoriteButton product={product} showLabel />)
 
     expect(screen.getByRole('button', { name: 'מועדפים: ספק כוח' })).toHaveTextContent('מועדפים')
   })
@@ -113,5 +114,55 @@ describe('controls in the app', () => {
     await screen.findByRole('alert')
 
     expect(useCartStore.getState().items).toEqual([{ productId: 'GP-1', quantity: 1 }])
+  })
+})
+
+describe('toast feedback in the app', () => {
+  const region = () => screen.getByRole('region', { name: 'התראות' })
+
+  it('confirms adding to the cart with a toast that links to the cart', async () => {
+    renderApp('/products', [product])
+
+    await userEvent.click(await screen.findByRole('button', { name: 'הוספה לעגלה: ספק כוח' }))
+
+    expect(within(region()).getByText('ספק כוח נוסף לעגלה (בעגלה: 1)')).toBeInTheDocument()
+    expect(within(region()).getByRole('link', { name: 'לעגלה' })).toHaveAttribute('href', '/cart')
+  })
+
+  it('follows the action link to the cart page, where the added product is listed', async () => {
+    renderApp('/products', [product])
+    await userEvent.click(await screen.findByRole('button', { name: 'הוספה לעגלה: ספק כוח' }))
+
+    await userEvent.click(within(region()).getByRole('link', { name: 'לעגלה' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'עגלת קניות' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'הסרת ספק כוח מהעגלה' })).toBeInTheDocument()
+  })
+
+  it('announces adding and removing a favorite', async () => {
+    renderApp('/products', [product])
+    const heart = await screen.findByRole('button', { name: 'מועדפים: ספק כוח' })
+
+    await userEvent.click(heart)
+    expect(within(region()).getByText('ספק כוח נוסף למועדפים')).toBeInTheDocument()
+    expect(within(region()).getByRole('link', { name: 'למועדפים' })).toHaveAttribute(
+      'href',
+      '/favorites',
+    )
+
+    await userEvent.click(heart)
+    expect(within(region()).getByText('ספק כוח הוסר מהמועדפים')).toBeInTheDocument()
+    // The listing's result count is also a status region; one of them carries the announcement.
+    expect(screen.getAllByRole('status').map((el) => el.textContent)).toContainEqual(
+      expect.stringContaining('ספק כוח הוסר מהמועדפים'),
+    )
+  })
+
+  it('shows a toast for the product page controls too', async () => {
+    renderApp('/products/GP-1', [product])
+
+    await userEvent.click(await screen.findByRole('button', { name: 'הוספה לעגלה: ספק כוח' }))
+
+    expect(within(region()).getByText(/ספק כוח נוסף לעגלה/)).toBeInTheDocument()
   })
 })

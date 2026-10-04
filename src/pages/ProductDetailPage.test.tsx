@@ -21,7 +21,7 @@ describe('ProductDetailPage', () => {
   it('shows a loading status, then the product details', async () => {
     renderApp('/products/GV-N406', [product])
 
-    expect(screen.getByRole('status')).toHaveTextContent('טוען מוצר')
+    expect(screen.getByText('טוען מוצר…')).toBeInTheDocument()
     expect(
       await screen.findByRole('heading', { level: 1, name: product.fullName }),
     ).toBeInTheDocument()

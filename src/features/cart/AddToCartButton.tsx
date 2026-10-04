@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { Link } from 'react-router'
+import { paths } from '@/app/paths'
 import { CartIcon } from '@/components/icons'
 import { Button } from '@/components/ui/Button'
+import { useToast } from '@/features/notifications/toastContext'
 import type { Product } from '@/features/products/schema'
 import { MAX_QUANTITY, selectQuantityOf, useCartStore } from './cartStore'
 
@@ -13,7 +15,7 @@ interface AddToCartButtonProps {
 export function AddToCartButton({ product, size = 'sm', className = '' }: AddToCartButtonProps) {
   const addItem = useCartStore((state) => state.addItem)
   const quantity = useCartStore(selectQuantityOf(product.id))
-  const [announcement, setAnnouncement] = useState('')
+  const toast = useToast()
   const atLimit = quantity >= MAX_QUANTITY
 
   return (
@@ -24,9 +26,10 @@ export function AddToCartButton({ product, size = 'sm', className = '' }: AddToC
         aria-label={`הוספה לעגלה: ${product.name}`}
         onClick={() => {
           addItem(product.id)
-          setAnnouncement(
-            `${product.name} נוסף לעגלה. כמות בעגלה: ${Math.min(quantity + 1, MAX_QUANTITY)}`,
-          )
+          toast.show({
+            message: `${product.name} נוסף לעגלה (בעגלה: ${Math.min(quantity + 1, MAX_QUANTITY)})`,
+            action: <Link to={paths.cart}>לעגלה</Link>,
+          })
         }}
       >
         <CartIcon className="size-4" />
@@ -37,9 +40,6 @@ export function AddToCartButton({ product, size = 'sm', className = '' }: AddToC
           {atLimit ? `כמות מקסימלית בעגלה (${quantity})` : `בעגלה: ${quantity}`}
         </span>
       )}
-      <span role="status" className="sr-only">
-        {announcement}
-      </span>
     </div>
   )
 }
