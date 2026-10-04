@@ -25,7 +25,7 @@ describe('ProductDetailPage', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: product.fullName }),
     ).toBeInTheDocument()
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByText('טוען מוצר…')).not.toBeInTheDocument()
     expect(screen.getByText('GV-N406')).toBeInTheDocument()
     expect(screen.getByText('3 שנים')).toBeInTheDocument()
   })

@@ -1,27 +1,35 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { CATEGORIES } from '@/features/products/categories'
+import { resetProductCatalog } from '@/features/products/useProductCatalog'
 import { RootLayout } from '@/layouts/RootLayout'
+import * as productService from '@/services/productService'
 import { MobileNav } from './MobileNav'
 
-function renderLayout(path = '/') {
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route element={<RootLayout />}>
-          <Route index element={<h1>דף הבית</h1>} />
-          <Route path="products" element={<h1>מוצרים</h1>} />
-          <Route path="category/:id" element={<h1>קטגוריה</h1>} />
-        </Route>
-      </Routes>
-    </MemoryRouter>,
-  )
+// The layout loads the catalog (to reconcile cart and favorites), so mock it and let the load
+// settle inside act().
+async function renderLayout(path = '/') {
+  resetProductCatalog()
+  vi.spyOn(productService, 'fetchProducts').mockResolvedValue([])
+  await act(async () => {
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route element={<RootLayout />}>
+            <Route index element={<h1>דף הבית</h1>} />
+            <Route path="products" element={<h1>מוצרים</h1>} />
+            <Route path="category/:id" element={<h1>קטגוריה</h1>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+  })
 }
 
 describe('RootLayout', () => {
   it('renders the landmarks and a skip link as the first focusable element', async () => {
-    renderLayout()
+    await renderLayout()
 
     expect(screen.getByRole('banner')).toBeInTheDocument()
     expect(screen.getByRole('main')).toBeInTheDocument()
@@ -33,8 +41,8 @@ describe('RootLayout', () => {
     expect(skipLink).toHaveAttribute('href', '#main-content')
   })
 
-  it('links every category in the category navigation', () => {
-    renderLayout()
+  it('links every category in the category navigation', async () => {
+    await renderLayout()
 
     // jsdom applies no CSS, so the (CSS-hidden) mobile dialog nav is also in the tree; the
     // desktop category bar comes first in document order.
@@ -47,8 +55,8 @@ describe('RootLayout', () => {
     }
   })
 
-  it('marks the current section in the main navigation', () => {
-    renderLayout('/products')
+  it('marks the current section in the main navigation', async () => {
+    await renderLayout('/products')
 
     const [mainNav] = screen.getAllByRole('navigation', { name: 'ניווט ראשי' })
     expect(within(mainNav!).getByRole('link', { name: 'מוצרים' })).toHaveAttribute(
@@ -58,8 +66,8 @@ describe('RootLayout', () => {
     expect(within(mainNav!).getByRole('link', { name: 'בית' })).not.toHaveAttribute('aria-current')
   })
 
-  it('renders the document in the main content region', () => {
-    renderLayout()
+  it('renders the document in the main content region', async () => {
+    await renderLayout()
 
     expect(within(screen.getByRole('main')).getByRole('heading', { name: 'דף הבית' })).toBeVisible()
   })

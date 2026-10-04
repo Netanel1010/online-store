@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Skeleton } from '@/components/shared/Skeleton'
+import { ProductCardActions } from '@/features/shop/ProductCardActions'
 import type { Product } from '../schema'
 import { ProductCard } from './ProductCard'
 
@@ -8,16 +9,22 @@ const gridClass = 'grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-3
 interface ProductGridProps {
   products: readonly Product[]
   headingAs?: 'h2' | 'h3'
-  /** Per-product controls, rendered in each card's actions slot. */
+  /** Per-product controls for each card's actions slot. Defaults to add-to-cart + favorite. */
   renderActions?: (product: Product) => ReactNode
 }
 
-export function ProductGrid({ products, headingAs, renderActions }: ProductGridProps) {
+const defaultActions = (product: Product) => <ProductCardActions product={product} />
+
+export function ProductGrid({
+  products,
+  headingAs,
+  renderActions = defaultActions,
+}: ProductGridProps) {
   return (
     <ul className={gridClass}>
       {products.map((product) => (
         <li key={product.id}>
-          <ProductCard product={product} headingAs={headingAs} actions={renderActions?.(product)} />
+          <ProductCard product={product} headingAs={headingAs} actions={renderActions(product)} />
         </li>
       ))}
     </ul>
