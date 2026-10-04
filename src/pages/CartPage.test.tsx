@@ -43,6 +43,19 @@ describe('CartPage', () => {
     expect(within(lines[1]!).getByRole('link', { name: 'ספק כוח' })).toBeInTheDocument()
   })
 
+  it('has one accessible link per line: the decorative image link is hidden from keyboards and screen readers', async () => {
+    useCartStore.getState().addItem('PSU-1')
+    renderApp('/cart', catalog)
+    const remove = await screen.findByRole('button', { name: 'הסרת ספק כוח מהעגלה' })
+    const line = remove.closest('li')!
+
+    expect(within(line).getAllByRole('link')).toHaveLength(1)
+    const imageLink = line.querySelector('a[aria-hidden="true"]')
+    expect(imageLink).not.toBeNull()
+    expect(imageLink).toHaveAttribute('tabindex', '-1')
+    expect(imageLink).toHaveAttribute('href', '/products/PSU-1')
+  })
+
   it('calculates the order summary from the cart instead of showing a fixed total', async () => {
     useCartStore.getState().addItem('PSU-1')
     useCartStore.getState().addItem('GPU-1', 2)

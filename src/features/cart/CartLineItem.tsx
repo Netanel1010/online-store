@@ -21,6 +21,11 @@ export function CartLineItem({ line, onRemove }: CartLineItemProps) {
     <li className="flex flex-wrap items-start gap-4 py-5 sm:flex-nowrap">
       <Link
         to={paths.product(product.id)}
+        // A second link to the same page whose only content is a decorative image: it has no
+        // accessible name, so it is kept out of the tab order and the accessibility tree. The
+        // product name link below is the link for keyboards and screen readers.
+        aria-hidden="true"
+        tabIndex={-1}
         className="shrink-0 rounded-lg border border-line bg-white p-2"
       >
         {/* Decorative: the product name next to it is the link that matters. */}
