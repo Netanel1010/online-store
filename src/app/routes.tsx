@@ -1,7 +1,10 @@
 import { Route, Routes } from 'react-router'
+import { RequireAuth } from '@/features/auth/RequireAuth'
 import { RootLayout } from '@/layouts/RootLayout'
 import { CartPage } from '@/pages/CartPage'
 import { CategoryPage } from '@/pages/CategoryPage'
+import { CheckoutPage } from '@/pages/CheckoutPage'
+import { CheckoutSuccessPage } from '@/pages/CheckoutSuccessPage'
 import { FavoritesPage } from '@/pages/FavoritesPage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
@@ -24,6 +27,10 @@ export function AppRoutes() {
         <Route path="favorites" element={<FavoritesPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route element={<RequireAuth />}>
+          <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="checkout/success" element={<CheckoutSuccessPage />} />
+        </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

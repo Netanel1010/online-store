@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { paths } from '@/app/paths'
 import { LogoutIcon, UserIcon } from '@/components/icons'
@@ -19,6 +20,22 @@ export function AccountMenu({ variant }: { variant: 'header' | 'drawer' }) {
   const { pathname } = useLocation()
   const toast = useToast()
   const labelClass = variant === 'header' ? 'hidden sm:inline' : ''
+  const signOutAfterLeaving = useRef(false)
+
+  const finishSignOut = useCallback(() => {
+    logout()
+    toast.show({ message: 'התנתקתם מהחשבון' })
+  }, [logout, toast])
+
+  // Signing out while on a protected page: the sign-out waits until the visitor has actually
+  // left it. Signing out first would make the page's guard redirect to the login page before the
+  // navigation to the home page lands (navigation updates are applied with lower priority).
+  useEffect(() => {
+    if (signOutAfterLeaving.current && !isProtectedPath(pathname)) {
+      signOutAfterLeaving.current = false
+      finishSignOut()
+    }
+  }, [pathname, finishSignOut])
 
   if (!user) {
     return (
@@ -37,11 +54,12 @@ export function AccountMenu({ variant }: { variant: 'header' | 'drawer' }) {
   }
 
   const signOut = () => {
-    // Leave pages that need a signed-in visitor first, so the visitor lands on the home page
-    // rather than on the login page.
-    if (isProtectedPath(pathname)) navigate(paths.home)
-    logout()
-    toast.show({ message: 'התנתקתם מהחשבון' })
+    if (isProtectedPath(pathname)) {
+      signOutAfterLeaving.current = true
+      navigate(paths.home)
+    } else {
+      finishSignOut()
+    }
   }
 
   return (
