@@ -5,11 +5,19 @@ import { expect, test } from './support/test'
 const searchBox = (page: import('@playwright/test').Page) =>
   header(page).getByRole('searchbox', { name: 'חיפוש מוצרים' })
 
-/** Submits a search and waits until the URL reflects it (navigation is applied asynchronously). */
+/**
+ * Submits a search and waits until the results page for it has rendered. The router applies a
+ * navigation a moment after it is requested, so ordinary tests wait for the new page before
+ * doing anything else, like a person would. (Typing the next search before that has happened is
+ * covered on purpose by the slow-device test below.)
+ */
 async function searchFor(page: import('@playwright/test').Page, text: string) {
   await searchBox(page).fill(text)
   await searchBox(page).press('Enter')
   await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(text.trim())
+  await expect(
+    page.getByRole('heading', { level: 1, name: `תוצאות חיפוש עבור “${text.trim()}”` }),
+  ).toBeVisible()
 }
 
 const corsair = catalog.filter((product) => product.brand === 'corsair')
