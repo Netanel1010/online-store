@@ -1,0 +1,48 @@
+import type { ReactNode } from 'react'
+import { Button } from '@/components/ui/Button'
+
+interface MessageProps {
+  title: string
+  /** Use "h1" when the message is the main content of a page. */
+  as?: 'h1' | 'h2'
+  children?: ReactNode
+  action?: ReactNode
+}
+
+export function EmptyState({ title, as: Heading = 'h2', children, action }: MessageProps) {
+  return (
+    <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-12 text-center">
+      <Heading className="text-lg font-semibold">{title}</Heading>
+      {children && <p className="mt-2 text-muted">{children}</p>}
+      {action && <div className="mt-6 flex justify-center">{action}</div>}
+    </div>
+  )
+}
+
+interface ErrorStateProps {
+  title?: string
+  children?: ReactNode
+  onRetry?: () => void
+}
+
+/** Announced to assistive technology as soon as it appears. */
+export function ErrorState({
+  title = 'משהו השתבש',
+  children = 'לא הצלחנו לטעון את המוצרים. נסו שוב בעוד רגע.',
+  onRetry,
+}: ErrorStateProps) {
+  return (
+    <div
+      role="alert"
+      className="rounded-xl border border-sale/30 bg-sale-soft px-6 py-12 text-center"
+    >
+      <h2 className="text-lg font-semibold text-sale">{title}</h2>
+      <p className="mt-2 text-muted">{children}</p>
+      {onRetry && (
+        <div className="mt-6 flex justify-center">
+          <Button onClick={onRetry}>נסו שוב</Button>
+        </div>
+      )}
+    </div>
+  )
+}

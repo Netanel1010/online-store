@@ -17,7 +17,7 @@ describe('AppRoutes', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'ברוכים הבאים לחנות' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Online Store' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'N.M.S - לדף הבית' })).toBeInTheDocument()
   })
 
   it('renders the not-found page for unknown routes', () => {

@@ -1,13 +1,23 @@
 import { Link } from 'react-router'
+import { paths } from '@/app/paths'
+import { buttonStyles } from '@/components/ui/buttonStyles'
+import { EmptyState } from '@/components/shared/StateMessages'
 
 export function NotFoundPage() {
   return (
-    <section>
-      <h1 className="text-3xl font-bold">הדף לא נמצא</h1>
-      <p className="mt-2 text-slate-600">הכתובת שביקשת אינה קיימת.</p>
-      <Link to="/" className="mt-4 inline-block text-blue-700 underline">
-        חזרה לדף הבית
-      </Link>
-    </section>
+    <>
+      <title>הדף לא נמצא | N.M.S</title>
+      <EmptyState
+        title="הדף לא נמצא"
+        as="h1"
+        action={
+          <Link to={paths.home} className={buttonStyles()}>
+            חזרה לדף הבית
+          </Link>
+        }
+      >
+        הכתובת שביקשת אינה קיימת.
+      </EmptyState>
+    </>
   )
 }
