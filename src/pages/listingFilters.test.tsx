@@ -145,8 +145,9 @@ describe('filtering through the URL', () => {
   })
 
   it('offers a way out when the filters leave no results', async () => {
+    // Both values are real, but AMD has no LGA 1851 CPU: a valid combination with no products.
     renderApp(
-      '/category/cpu?brand=amd&brand=intel&s.%D7%AA%D7%95%D7%A9%D7%91%D7%AA%20%D7%9E%D7%A2%D7%91%D7%93=Nope',
+      '/category/cpu?brand=amd&s.%D7%AA%D7%95%D7%A9%D7%91%D7%AA%20%D7%9E%D7%A2%D7%91%D7%93=LGA%201851',
       catalog,
     )
 

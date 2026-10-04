@@ -1,7 +1,7 @@
 import { BRANDS, type BrandId } from '../brands'
 import { findCategory } from '../categories'
 import type { Product } from '../schema'
-import type { ListingQuery, SortKey } from './query'
+import type { ListingQuery, ListingState, SortKey } from './query'
 
 /* ---------------------------------------------------------------------------------------------
  * Filter semantics
@@ -214,4 +214,42 @@ export function deriveFacets(
   }
 
   return facets
+}
+
+/**
+ * Drops specification selections that are not among the filters offered for this scope: an
+ * unknown label, a known label with an unknown value, or any specification filter at all where
+ * none are offered (`includeSpecs: false`). Without this, a hand-edited or outdated URL such as
+ * `?s.fake=value` would filter on something the visitor cannot see and return no products.
+ *
+ * What is offered is decided without the current selection (the same rules as `deriveFacets`),
+ * so valid selections are kept exactly as they are. Brand ids are already validated by the
+ * parser. Returns the same object when nothing had to be dropped.
+ */
+export function sanitizeSpecFilters(
+  scope: readonly Product[],
+  state: ListingState,
+  { includeSpecs }: { includeSpecs: boolean },
+): ListingState {
+  if (state.specs.size === 0) return state
+
+  const offered = new Map<string, ReadonlySet<string>>()
+  if (includeSpecs) {
+    const unfiltered = { ...state, brands: [], specs: new Map<string, readonly string[]>() }
+    for (const facet of deriveFacets(scope, unfiltered, { includeSpecs })) {
+      if (facet.key.kind === 'spec') {
+        offered.set(facet.key.label, new Set(facet.options.map((option) => option.value)))
+      }
+    }
+  }
+
+  const specs = new Map<string, readonly string[]>()
+  let changed = false
+  for (const [label, values] of state.specs) {
+    const allowed = offered.get(label)
+    const kept = allowed ? values.filter((value) => allowed.has(value)) : []
+    if (kept.length !== values.length) changed = true
+    if (kept.length > 0) specs.set(label, kept)
+  }
+  return changed ? { ...state, specs } : state
 }

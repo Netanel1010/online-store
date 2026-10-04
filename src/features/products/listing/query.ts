@@ -5,7 +5,10 @@ import { BRAND_IDS, type BrandId } from '../brands'
  * The URL is the source of truth: components parse it on every render and write changes back
  * with `serializeListingQuery`, so reload, sharing and back/forward all reproduce the same view.
  *
- * URL format (all parts optional, unknown or invalid parts are ignored):
+ * URL format (all parts optional). Parsing validates what it can without the catalog: the
+ * syntax, brand ids, sort keys and sizes. Whether a specification label and value actually exist
+ * is checked against the catalog by `sanitizeSpecFilters` (filtering.ts), so unknown ones never
+ * reach the filtering:
  *   ?q=intel                      free-text search
  *   &brand=amd&brand=intel        brand filter, repeated for multiple values
  *   &s.<label>=<value>            specification filter, repeated per value (e.g. s.תושבת מעבד=AM5)

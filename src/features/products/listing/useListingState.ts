@@ -8,18 +8,33 @@ import { parseListingState, serializeListingState, type ListingState } from './q
  * visitor's filter and sort changes and a copied URL reproduces the view.
  *
  * `search: false` is for pages without a search box: any `q` in the URL is ignored there.
+ *
+ * `sanitize` removes parts of the URL that do not exist in the catalog (see
+ * `sanitizeSpecFilters`). It is applied to what the page shows and to what is written back, so
+ * an invalid parameter never filters anything and disappears from the URL on the next change.
  */
-export function useListingState({ search }: { search: boolean }) {
+export function useListingState({
+  search,
+  sanitize = (state) => state,
+}: {
+  search: boolean
+  sanitize?: (state: ListingState) => ListingState
+}) {
   const [params, setParams] = useSearchParams()
-  const state = useMemo(() => parseListingState(params, { search }), [params, search])
+  const state = useMemo(
+    () => sanitize(parseListingState(params, { search })),
+    [params, search, sanitize],
+  )
 
   const update = useCallback(
     (change: (state: ListingState) => ListingState) => {
       setParams((previous) =>
-        serializeListingState(change(parseListingState(previous, { search })), { search }),
+        serializeListingState(change(sanitize(parseListingState(previous, { search }))), {
+          search,
+        }),
       )
     },
-    [setParams, search],
+    [setParams, search, sanitize],
   )
 
   return { state, update }

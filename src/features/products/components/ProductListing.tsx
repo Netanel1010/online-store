@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { paths } from '@/app/paths'
 import { EmptyState } from '@/components/shared/StateMessages'
@@ -6,13 +6,20 @@ import { Button } from '@/components/ui/Button'
 import { buttonStyles } from '@/components/ui/buttonStyles'
 import type { BrandId } from '../brands'
 import type { CategoryId } from '../categories'
-import { deriveFacets, filterProducts, sortProducts, type Facet } from '../listing/filtering'
+import {
+  deriveFacets,
+  filterProducts,
+  sanitizeSpecFilters,
+  sortProducts,
+  type Facet,
+} from '../listing/filtering'
 import {
   clearFilters,
   countActiveFilters,
   setSort,
   toggleBrand,
   toggleSpecValue,
+  type ListingState,
 } from '../listing/query'
 import { useListingState } from '../listing/useListingState'
 import type { Product } from '../schema'
@@ -49,12 +56,18 @@ export function ProductListing({
   activeCategory,
 }: ProductListingProps) {
   const search = mode === 'search'
-  const { state, update } = useListingState({ search })
+  const includeSpecs = mode === 'category'
+  // URL selections that do not exist in this scope's filters are dropped before anything uses them.
+  const sanitize = useCallback(
+    (candidate: ListingState) => sanitizeSpecFilters(scopeProducts, candidate, { includeSpecs }),
+    [scopeProducts, includeSpecs],
+  )
+  const { state, update } = useListingState({ search, sanitize })
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   const facets = useMemo(
-    () => deriveFacets(scopeProducts, state, { includeSpecs: mode === 'category' }),
-    [scopeProducts, state, mode],
+    () => deriveFacets(scopeProducts, state, { includeSpecs }),
+    [scopeProducts, state, includeSpecs],
   )
   const results = useMemo(
     () => sortProducts(filterProducts(scopeProducts, state), state.sort),
