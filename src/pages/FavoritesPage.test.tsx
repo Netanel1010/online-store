@@ -106,6 +106,17 @@ describe('header favorites badge', () => {
 describe('FavoritesPage: cart connection and layout', () => {
   const cartItems = () => useCartStore.getState().items
 
+  // A message is shown twice on purpose: as a visible toast, and (once) in the live region that
+  // screen readers listen to. Check each of them, instead of asking for "the" text.
+  async function expectToastAndAnnouncement(message: string) {
+    const toasts = await screen.findByRole('region', { name: 'התראות' })
+    expect(await within(toasts).findByText(message)).toBeInTheDocument()
+    const announced = screen
+      .getAllByRole('status')
+      .filter((status) => status.textContent?.trim() === message)
+    expect(announced).toHaveLength(1)
+  }
+
   it('adds every favorite to the cart with one button and tells how many were added', async () => {
     useFavoritesStore.getState().toggle('PSU-1')
     useFavoritesStore.getState().toggle('GPU-1')
@@ -117,7 +128,7 @@ describe('FavoritesPage: cart connection and layout', () => {
       { productId: 'PSU-1', quantity: 1 },
       { productId: 'GPU-1', quantity: 1 },
     ])
-    expect(await screen.findByText('2 מוצרים נוספו לעגלה')).toBeInTheDocument()
+    await expectToastAndAnnouncement('2 מוצרים נוספו לעגלה')
     expect(useFavoritesStore.getState().ids).toEqual(['PSU-1', 'GPU-1'])
   })
 
@@ -133,7 +144,7 @@ describe('FavoritesPage: cart connection and layout', () => {
       { productId: 'PSU-1', quantity: 3 },
       { productId: 'GPU-1', quantity: 1 },
     ])
-    expect(await screen.findByText('מוצר אחד נוסף לעגלה')).toBeInTheDocument()
+    await expectToastAndAnnouncement('מוצר אחד נוסף לעגלה')
   })
 
   it('offers the cart instead once everything is already in it', async () => {
