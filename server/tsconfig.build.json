@@ -2,15 +2,21 @@
   // The production build: the same rules as tsconfig.json, but it writes the JavaScript to dist/.
   // Imports are written with their .ts extension (as Node's type stripping and tsx expect) and the
   // compiler rewrites them to .js in the output.
+  //
+  // rootDir is the repository root because the API uses the storefront's product schema
+  // (src/features/products). The output is therefore dist/server/src/server.js, with the few
+  // storefront files it needs next to it under dist/src/. Nothing is read from the repository
+  // at run time.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "tsBuildInfoFile": null,
     "noEmit": false,
     "rewriteRelativeImportExtensions": true,
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "..",
     "sourceMap": true
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts", "src/testing"]
+  // The seed script runs from a checkout (npm run seed:products), it is not part of the server.
+  "exclude": ["src/**/*.test.ts", "src/testing", "src/scripts"]
 }
