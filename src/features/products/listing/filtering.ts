@@ -1,13 +1,15 @@
 import { BRANDS, type BrandId } from '../brands'
-import { findCategory } from '../categories'
 import type { Product } from '../schema'
 import type { ListingQuery, ListingState, SortKey } from './query'
+import { matchesSearch, searchMatches } from './search'
+
+export { matchesSearch }
 
 /* ---------------------------------------------------------------------------------------------
  * Filter semantics
  *
- *  - Search: every whitespace-separated word must appear (case-insensitively) in the product's
- *    name, full name, SKU, brand name or category name (AND across words).
+ *  - Search: every word of the query must match the product (AND across words), see search.ts for
+ *    what counts as a match and where it looks.
  *  - Within one filter group (brand, or one specification label) selected values are OR-ed:
  *    a product has a single value per group, so "AMD or Intel" is the useful meaning.
  *  - Across groups everything is AND-ed: brand AND each specification group AND search.
@@ -15,25 +17,6 @@ import type { ListingQuery, ListingState, SortKey } from './query'
  * ------------------------------------------------------------------------------------------- */
 
 export type GroupKey = { kind: 'brand' } | { kind: 'spec'; label: string }
-
-export function normalizeText(text: string): string {
-  return text.toLocaleLowerCase('he').normalize('NFKC')
-}
-
-export function matchesSearch(product: Product, q: string): boolean {
-  const words = normalizeText(q).split(/\s+/).filter(Boolean)
-  if (words.length === 0) return true
-  const haystack = normalizeText(
-    [
-      product.name,
-      product.fullName,
-      product.id,
-      BRANDS[product.brand].name,
-      findCategory(product.category)?.label ?? '',
-    ].join(' '),
-  )
-  return words.every((word) => haystack.includes(word))
-}
 
 function matchesBrandGroup(product: Product, brands: readonly BrandId[]) {
   return brands.length === 0 || brands.includes(product.brand)
@@ -55,8 +38,9 @@ function passesGroups(product: Product, query: ListingQuery, skip?: GroupKey) {
 }
 
 export function filterProducts(products: readonly Product[], query: ListingQuery): Product[] {
+  const found = searchMatches(products, query.q)
   return products.filter(
-    (product) => matchesSearch(product, query.q) && passesGroups(product, query),
+    (product) => (found === null || found.has(product)) && passesGroups(product, query),
   )
 }
 
@@ -167,7 +151,8 @@ export function deriveFacets(
   query: ListingQuery,
   { includeSpecs }: { includeSpecs: boolean },
 ): Facet[] {
-  const base = scope.filter((product) => matchesSearch(product, query.q))
+  const found = searchMatches(scope, query.q)
+  const base = found === null ? [...scope] : scope.filter((product) => found.has(product))
   const facets: Facet[] = []
 
   const brandKey: GroupKey = { kind: 'brand' }

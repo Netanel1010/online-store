@@ -238,3 +238,99 @@ describe('search in the mobile menu', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
+
+describe('search matching and ranking', () => {
+  const rtx4070 = makeProduct({
+    id: 'GV-N4070GAMING',
+    name: 'Gigabyte RTX 4070 Gaming',
+    brand: 'gigabyte',
+    category: 'gpu',
+    price: { current: 2600 },
+  })
+  const skuOnly = makeProduct({
+    id: 'X-4070-1',
+    name: 'Graphics Card',
+    fullName: 'Graphics Card 8GB',
+    brand: 'gigabyte',
+    category: 'gpu',
+    price: { current: 900 },
+  })
+  const board = makeProduct({
+    id: 'MB-1',
+    name: 'Prime Board',
+    brand: 'asus',
+    category: 'motherboard',
+    price: { current: 700 },
+    specs: [{ label: 'תמיכה בזכרון', value: 'DDR5' }],
+  })
+  const shop = [skuOnly, rtx4070, board]
+  const sortBox = () => screen.getByRole('combobox', { name: 'מיון' })
+
+  it('finds a model by its number and lists the best match first', async () => {
+    renderApp('/search?q=4070', shop)
+
+    await screen.findAllByRole('article')
+    // The name match comes before the SKU match, although the SKU match is first in the catalog.
+    expect(cardNames()).toEqual(['Gigabyte RTX 4070 Gaming', 'Graphics Card'])
+  })
+
+  it('calls the default order "best match" and lets the visitor sort by price instead', async () => {
+    renderApp('/search?q=4070', shop)
+    await screen.findAllByRole('article')
+
+    expect(within(sortBox()).getByRole('option', { name: 'התאמה לחיפוש' })).toBeInTheDocument()
+    expect(sortBox()).toHaveValue('default')
+
+    await userEvent.selectOptions(sortBox(), 'price-asc')
+    expect(cardNames()).toEqual(['Graphics Card', 'Gigabyte RTX 4070 Gaming'])
+  })
+
+  it('does not rename the default order outside of a search', async () => {
+    renderApp('/products', shop)
+    await screen.findAllByRole('article')
+
+    expect(within(sortBox()).getByRole('option', { name: 'ברירת מחדל' })).toBeInTheDocument()
+  })
+
+  it('ignores hyphens, spaces and case in the query', async () => {
+    for (const query of ['rtx-4070', 'RTX%204070', 'Rtx++++4070', 'rtx4070']) {
+      const { unmount } = renderApp(`/search?q=${query}`, shop)
+      await screen.findAllByRole('article')
+      expect(cardNames(), query).toEqual(['Gigabyte RTX 4070 Gaming'])
+      unmount()
+    }
+  })
+
+  it('falls back to specification values when no name, SKU, brand or category matches', async () => {
+    renderApp('/search?q=ddr5', shop)
+
+    await screen.findAllByRole('article')
+    expect(cardNames()).toEqual(['Prime Board'])
+  })
+
+  it('searches from the header with a model number', async () => {
+    renderApp('/', shop)
+
+    await userEvent.type(headerSearchbox(), 'RTX 4070{Enter}')
+
+    expect(await screen.findAllByRole('article')).toHaveLength(1)
+    expect(cardNames()).toEqual(['Gigabyte RTX 4070 Gaming'])
+  })
+
+  it('helps when nothing is found: what was searched and what to try', async () => {
+    renderApp('/search?q=banana', shop)
+
+    expect(await screen.findByRole('heading', { name: 'לא נמצאו מוצרים' })).toBeInTheDocument()
+    expect(screen.getByText('לא נמצאו מוצרים עבור “banana”.')).toBeInTheDocument()
+    expect(screen.getByText(/בדקו את האיות/)).toBeInTheDocument()
+    expect(screen.getByText(/חלק ממספר הדגם/)).toBeInTheDocument()
+    expect(screen.queryByText(/להסיר את הסינון/)).not.toBeInTheDocument()
+  })
+
+  it('also suggests removing the filter when one is active', async () => {
+    renderApp('/search?q=4070&brand=asus', shop)
+
+    expect(await screen.findByRole('heading', { name: 'לא נמצאו מוצרים' })).toBeInTheDocument()
+    expect(screen.getByText(/להסיר את הסינון/)).toBeInTheDocument()
+  })
+})

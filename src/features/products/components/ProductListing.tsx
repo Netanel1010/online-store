@@ -21,6 +21,7 @@ import {
   toggleSpecValue,
   type ListingState,
 } from '../listing/query'
+import { rankBySearch } from '../listing/search'
 import { useListingState } from '../listing/useListingState'
 import type { Product } from '../schema'
 import { ActiveFilters } from './ActiveFilters'
@@ -69,10 +70,13 @@ export function ProductListing({
     () => deriveFacets(scopeProducts, state, { includeSpecs }),
     [scopeProducts, state, includeSpecs],
   )
-  const results = useMemo(
-    () => sortProducts(filterProducts(scopeProducts, state), state.sort),
-    [scopeProducts, state],
-  )
+  const results = useMemo(() => {
+    const matching = filterProducts(scopeProducts, state)
+    // Without an explicit sort a search lists the best matches first.
+    return search && state.q !== '' && state.sort === 'default'
+      ? rankBySearch(matching, state.q)
+      : sortProducts(matching, state.sort)
+  }, [scopeProducts, state, search])
   const activeCount = countActiveFilters(state)
 
   const toggleFacet = (facet: Facet, value: string) =>
@@ -138,7 +142,11 @@ export function ProductListing({
             <p role="status" className="text-sm text-muted">
               {countText(results.length)}
             </p>
-            <SortSelect value={state.sort} onChange={(sort) => update((s) => setSort(s, sort))} />
+            <SortSelect
+              value={state.sort}
+              defaultLabel={search && state.q !== '' ? 'התאמה לחיפוש' : undefined}
+              onChange={(sort) => update((s) => setSort(s, sort))}
+            />
           </div>
 
           <ActiveFilters
@@ -151,6 +159,17 @@ export function ProductListing({
           {results.length === 0 ? (
             <EmptyState
               title="לא נמצאו מוצרים"
+              details={
+                state.q ? (
+                  <ul className="list-inside list-disc space-y-1 text-start">
+                    <li>בדקו את האיות, או נסו מילה אחת בלבד.</li>
+                    <li>
+                      אפשר לחפש לפי שם, מותג, קטגוריה, מק&quot;ט או חלק ממספר הדגם (למשל 4070).
+                    </li>
+                    {activeCount > 0 && <li>נסו להסיר את הסינון שנבחר.</li>}
+                  </ul>
+                ) : undefined
+              }
               action={
                 <div className="flex flex-wrap justify-center gap-3">
                   {activeCount > 0 && <Button onClick={clear}>ניקוי סינון</Button>}
