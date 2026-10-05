@@ -1,13 +1,19 @@
 name: CI
 
+# One workflow checks and deploys, so the deployment can wait for the checks of the same commit:
+# push to main -> verify + e2e -> deploy (only if both succeeded). Pull requests only run the
+# checks. A manual run (workflow_dispatch) on main redeploys after the same checks.
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
+# A newer push to a pull request cancels the older run. Runs on main are never cancelled, so a
+# deployment that is already in progress is not interrupted.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -15,6 +21,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,6 +34,13 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # On main only: keep the production build as the Pages artifact. It is published by the
+      # `deploy` job below, and only if `e2e` passes as well.
+      - name: Upload the site for GitHub Pages
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
 
   # Browser tests of the production build, served like GitHub Pages serves it. Runs in parallel
   # with `verify`. `npm run test:e2e` builds the site first (see playwright.config.ts), so the
@@ -57,3 +71,23 @@ jobs:
             test-results/
           if-no-files-found: ignore
           retention-days: 7
+
+  # Publishes the site that `verify` built, for the same commit. `needs` means this job runs
+  # only if both jobs succeeded: if either fails or is cancelled, it is skipped.
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [verify, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
