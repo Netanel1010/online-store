@@ -1,9 +1,10 @@
 # Online Store API
 
 The backend of the online store: **Node.js**, **Express 5** and **TypeScript**. This is the
-foundation only. It has a health check, JSON parsing, CORS, validated configuration and central
-error handling. The storefront does not call it yet; products, accounts and orders still live in
-the frontend. The database, authentication and orders are added in later steps.
+foundation only. It has health checks, JSON parsing, CORS, validated configuration, central error
+handling and a **MongoDB** connection (the official driver) with a managed life cycle. There are no
+collections or data routes yet. The storefront does not call the API: products, accounts and orders
+still live in the frontend. Products, authentication and orders are added in later steps.
 
 It is an npm workspace of this repository, so one `npm install` at the root installs everything and
 the root ESLint, Prettier and TypeScript settings apply to it.
@@ -26,7 +27,58 @@ Run the storefront next to it with `npm run dev`. Its origin (`http://localhost:
 allowed by CORS.
 
 Node prints `.env not found. Continuing without it.` when there is no `.env` file. That is fine:
-every setting has a development default.
+every setting has a development default. Without `MONGODB_URI` the API starts without a database
+(see below).
+
+## MongoDB
+
+The database is optional in development and test, and **required in production**.
+
+- **No `MONGODB_URI`:** the API logs `MONGODB_URI is not set: running without a database` and
+  starts. Working on the storefront or on routes that need no data takes no MongoDB.
+- **`MONGODB_URI` set:** the API connects **before it starts listening**. If the database cannot be
+  reached within `MONGODB_CONNECT_TIMEOUT_MS`, it stops with exit code 1 and the reason, instead of
+  accepting requests it cannot answer. Credentials are never printed.
+
+The same code and the same variables are used for a local MongoDB and for Atlas; only the
+connection string differs. Put it in `server/.env` (git-ignored), never in a committed file.
+
+### Local MongoDB
+
+Install MongoDB Community Server (or start any MongoDB instance) and keep it on its default port:
+
+```ini
+# server/.env
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DB_NAME=online-store-dev
+```
+
+### MongoDB Atlas
+
+1. Create a cluster (the free tier is enough) and a database user.
+2. Under Network Access, allow your IP address.
+3. Copy the connection string for drivers (`mongodb+srv://...`) into `server/.env`:
+
+```ini
+# server/.env
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/
+MONGODB_DB_NAME=online-store-dev
+```
+
+Special characters in the password must be URL-encoded. `MONGODB_DB_NAME` decides which database is
+used; a database name in the connection string is ignored.
+
+### Check the connection
+
+```bash
+curl http://localhost:3001/api/health/ready
+# {"status":"ok","database":"up"}
+```
+
+| Endpoint                | Question                | Answer                                                                                                         |
+| ----------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `GET /api/health`       | Is the process up?      | Always `200`. Never touches the database, so a database outage cannot make a host restart a healthy server.    |
+| `GET /api/health/ready` | Can it do its work?     | `200` with `database` `up` or `not_configured`, or `503` with `database: "down"`. No details about the cause.  |
 
 ### Scripts
 
@@ -35,7 +87,7 @@ Run from the repository root (or without `:server`, inside `server/`):
 | Command                | Purpose                                              |
 | ---------------------- | ---------------------------------------------------- |
 | `npm run dev:server`   | Start with auto-reload (`tsx watch`)                 |
-| `npm run test:server`  | Run the tests (Vitest, Node environment)             |
+| `npm run test:server`  | Run the tests (Vitest, Node environment, no MongoDB needed) |
 | `npm run build:server` | Compile to `server/dist`                             |
 | `npm run start:server` | Run the compiled build (`node dist/server.js`)       |
 | `npm run typecheck`    | Type-check the site, the tests and the API together  |
@@ -52,15 +104,19 @@ to change them; `.env` is git-ignored.
 | `NODE_ENV`     | `development`                                    | `development`, `test` or `production`                                                                     |
 | `PORT`         | `3001`                                           | Port to listen on                                                                                         |
 | `CORS_ORIGINS` | `http://localhost:5173,http://localhost:4173`    | Browser origins allowed to call the API, comma separated, with no path. **Required in production.**       |
+| `MONGODB_URI`  | not set                                          | MongoDB connection string (`mongodb://` or `mongodb+srv://`). It holds the password. **Required in production.** Not set: the API runs without a database. |
+| `MONGODB_DB_NAME` | `online-store`                                | Database to use: 1 to 38 letters, digits, `_` or `-`. Use a different one per environment.               |
+| `MONGODB_CONNECT_TIMEOUT_MS` | `5000`                             | How long to look for a reachable MongoDB at startup before giving up (100 to 60000).                     |
 
 ## Structure
 
 ```text
 server/
 ├── src/
-│   ├── server.ts        Entry point: reads the config, listens, shuts down on SIGTERM
+│   ├── server.ts        Entry point: config, database connection, listen, shutdown on SIGTERM
 │   ├── app.ts           createApp(): CORS, JSON parsing, routes, 404, error handler
 │   ├── config.ts        Environment variables, validated with Zod
+│   ├── db/              database.ts (MongoClient, connect, ping, close) and errors.ts
 │   ├── routes/          One router per feature, mounted under /api in routes/index.ts
 │   ├── middleware/      notFound and the central errorHandler
 │   ├── lib/             HttpError, the error a route throws on purpose
@@ -70,7 +126,28 @@ server/
 ```
 
 `app.ts` builds the app and `server.ts` listens, so the tests run the real app on a free port
-without starting the real server.
+without starting the real server. `server.ts` also creates and connects the database and hands it
+to `createApp`: the app never opens a connection of its own, and routes receive the database they
+need instead of importing a global.
+
+## Tests
+
+`npm run test:server` needs **no MongoDB and no credentials**, so it is what CI runs. The driver is
+replaced by a stand-in for the life-cycle tests, a real driver is pointed at an address nothing
+listens on to check the failure path, and the entry point is started as a real process to check
+that a bad configuration or an unreachable database stops it with exit code 1.
+
+An **optional integration test** talks to a real MongoDB. It is skipped unless `MONGODB_TEST_URI`
+is set (a local instance or an Atlas cluster you can write to):
+
+```bash
+MONGODB_TEST_URI=mongodb://localhost:27017 npm run test:server
+```
+
+On PowerShell: `$env:MONGODB_TEST_URI="mongodb://localhost:27017"; npm run test:server`.
+
+It works in a database of its own named `online_store_test_<random>` and drops it at the end. It
+never uses `MONGODB_URI` and never touches your development data.
 
 ## Behaviour worth knowing
 
@@ -82,5 +159,9 @@ without starting the real server.
   blocks it. Requests without an `Origin` (curl, server to server) are not affected. Credentials
   are not enabled yet; they are added together with authentication.
 - **Request bodies** are limited to 100 kB.
-- **Graceful shutdown**: on `SIGTERM` or `SIGINT` the server finishes the requests in progress and
-  exits.
+- **One client**: the process has a single `MongoClient`, which owns the connection pool. It is
+  never created per request.
+- **Graceful shutdown**: on `SIGTERM` or `SIGINT` the server finishes the requests in progress,
+  closes the database connection and exits.
+- **After startup**, if the database becomes unavailable the driver reconnects by itself. The API
+  keeps running and `/api/health/ready` reports `503` until it is back.

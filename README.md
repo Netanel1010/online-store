@@ -80,7 +80,7 @@ This project is intentionally designed as a **frontend-only portfolio applicatio
 
 | Limitation                 | Details                                                        |
 | -------------------------- | -------------------------------------------------------------- |
-| 🚫 **No Backend in use**   | The site does not call the API yet: product data is static. [`server/`](server/README.md) holds the API foundation (health check only) |
+| 🚫 **No Backend in use**   | The site does not call the API yet: product data is static. [`server/`](server/README.md) holds the API foundation (health checks and a MongoDB connection, no data routes yet) |
 | 🔐 **Demo Authentication** | Accounts exist only in browser `localStorage`                  |
 | 💳 **No Real Payments**    | Checkout does not charge money or send payment information     |
 | 📦 **No Inventory System** | Stock and availability are not managed                         |
@@ -239,7 +239,7 @@ to work correctly after deployment.
 * 🧪 [`docs/testing.md`](docs/testing.md) — testing strategy, isolation, accessibility and CI
 * 💾 [`docs/state-persistence.md`](docs/state-persistence.md) — cart and favorites persistence
 * 🗃️ [`docs/product-data-migration.md`](docs/product-data-migration.md) — product data migration and cleanup
-* 🖥️ [`server/README.md`](server/README.md) — the API: running it, configuration and structure
+* 🖥️ [`server/README.md`](server/README.md) — the API: running it, MongoDB, configuration and structure
 
 ---
 
