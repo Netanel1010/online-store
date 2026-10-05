@@ -2,13 +2,25 @@ export interface HeroSlide {
   /** Path relative to `public/`. */
   image: string
   alt: string
+  /**
+   * How the image fills the banner. Banners are 1834x788, which is the shape of the frame, so
+   * they fill it ("cover"). An image of another shape would be cropped and enlarged to fill the
+   * frame, so it is shown whole ("contain") on the banner's black background instead.
+   */
+  fit?: 'contain'
 }
 
 /** How long a banner stays before the carousel moves on by itself. */
 export const HERO_AUTOPLAY_DELAY_MS = 4000
 
 export const HERO_SLIDES: readonly HeroSlide[] = [
-  { image: 'images/hero/slide-1.avif', alt: 'לוחות אם Gigabyte AORUS מסדרת Z890' },
+  {
+    // 1154x368, a much wider shape than the other banners: cropped to the frame it loses the
+    // AORUS logo and the Intel badges at its edges and is enlarged past its resolution.
+    image: 'images/hero/slide-1.avif',
+    alt: 'לוחות אם Gigabyte AORUS מסדרת Z890',
+    fit: 'contain',
+  },
   { image: 'images/hero/slide-2.avif', alt: 'מחשב גיימינג עם מעבדי Intel Core Ultra במארז לבן' },
   { image: 'images/hero/slide-3.avif', alt: 'מחשב גיימינג עם מסך במארז לבן' },
   { image: 'images/hero/slide-4.avif', alt: 'יצירת תוכן עם כרטיסי מסך GeForce RTX' },

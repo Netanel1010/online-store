@@ -43,3 +43,11 @@ describe('HERO_SLIDES', () => {
     )
   })
 })
+
+describe('HERO_SLIDES fit', () => {
+  it('shows only the first banner whole: it is the one that is not 1834x788', () => {
+    expect(HERO_SLIDES[0]?.image).toBe('images/hero/slide-1.avif')
+    expect(HERO_SLIDES[0]?.fit).toBe('contain')
+    expect(HERO_SLIDES.slice(1).filter((slide) => slide.fit !== undefined)).toEqual([])
+  })
+})

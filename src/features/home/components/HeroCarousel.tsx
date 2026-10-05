@@ -117,7 +117,9 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
                 loading={index === 0 ? 'eager' : 'lazy'}
                 fetchPriority={index === 0 ? 'high' : undefined}
                 decoding="async"
-                className="aspect-[2/1] w-full object-cover sm:aspect-[1834/788] sm:max-h-[33rem]"
+                className={`aspect-[2/1] w-full sm:aspect-[1834/788] sm:max-h-[33rem] ${
+                  slide.fit === 'contain' ? 'object-contain' : 'object-cover'
+                }`}
               />
             </div>
           ))}
