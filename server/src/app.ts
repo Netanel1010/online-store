@@ -1,15 +1,21 @@
 import cors from 'cors'
 import express from 'express'
 import type { Config } from './config.ts'
+import type { Database } from './db/database.ts'
 import { errorHandler, type Logger } from './middleware/errorHandler.ts'
 import { notFound } from './middleware/notFound.ts'
-import { apiRouter } from './routes/index.ts'
+import { createApiRouter } from './routes/index.ts'
 
 /**
  * Builds the Express app without starting it, so tests can run it on any port and `server.ts`
- * stays the only place that listens.
+ * stays the only place that listens. The database, when there is one, is created and connected by
+ * `server.ts` and handed in: the app never opens a connection of its own.
  */
-export function createApp(config: Pick<Config, 'corsOrigins'>, logger: Logger = console) {
+export function createApp(
+  config: Pick<Config, 'corsOrigins'>,
+  logger: Logger = console,
+  database: Database | null = null,
+) {
   const app = express()
 
   app.disable('x-powered-by')
@@ -25,7 +31,7 @@ export function createApp(config: Pick<Config, 'corsOrigins'>, logger: Logger = 
   )
   app.use(express.json({ limit: '100kb' }))
 
-  app.use('/api', apiRouter)
+  app.use('/api', createApiRouter(database))
 
   app.use(notFound)
   app.use(errorHandler(logger))

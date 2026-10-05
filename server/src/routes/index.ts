@@ -1,7 +1,12 @@
 import { Router } from 'express'
-import { healthRouter } from './health.ts'
+import type { Database } from '../db/database.ts'
+import { createHealthRouter } from './health.ts'
 
 /** Everything under /api. New feature routers (products, auth, orders) are mounted here. */
-export const apiRouter = Router()
+export function createApiRouter(database: Database | null) {
+  const router = Router()
 
-apiRouter.use(healthRouter)
+  router.use(createHealthRouter(database))
+
+  return router
+}
