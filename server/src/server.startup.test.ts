@@ -1,26 +1,7 @@
-import { execFile } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
-import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
+import { runTypeScript } from './testing/runNode.ts'
 
-const run = promisify(execFile)
-const serverDir = fileURLToPath(new URL('..', import.meta.url))
-
-/** Starts the real entry point (`src/server.ts`) and returns how it ended. */
-async function startServer(env: Record<string, string>) {
-  try {
-    const { stdout, stderr } = await run(
-      process.execPath,
-      ['--import', 'tsx', 'src/server.ts'],
-      // A clean environment: nothing from the developer's shell or `.env` reaches the server.
-      { cwd: serverDir, env: { PATH: process.env.PATH ?? '', ...env }, timeout: 20_000 },
-    )
-    return { code: 0, stdout, stderr }
-  } catch (error) {
-    const failed = error as { code: number; stdout: string; stderr: string }
-    return { code: failed.code, stdout: failed.stdout, stderr: failed.stderr }
-  }
-}
+const startServer = (env: Record<string, string>) => runTypeScript('src/server.ts', env)
 
 // Each test starts a Node process, which takes a few seconds on a busy machine.
 describe('starting the server', { timeout: 30_000 }, () => {

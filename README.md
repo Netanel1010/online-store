@@ -80,7 +80,7 @@ This project is intentionally designed as a **frontend-only portfolio applicatio
 
 | Limitation                 | Details                                                        |
 | -------------------------- | -------------------------------------------------------------- |
-| 🚫 **No Backend in use**   | The site does not call the API yet: product data is static. [`server/`](server/README.md) holds the API foundation (health checks and a MongoDB connection, no data routes yet) |
+| 🚫 **No Backend in use**   | The site does not call the API yet: product data is static. [`server/`](server/README.md) holds the API: health checks, a MongoDB connection and a read-only products API, which the site does not use yet |
 | 🔐 **Demo Authentication** | Accounts exist only in browser `localStorage`                  |
 | 💳 **No Real Payments**    | Checkout does not charge money or send payment information     |
 | 📦 **No Inventory System** | Stock and availability are not managed                         |
@@ -127,6 +127,7 @@ Then open the local Vite URL shown in the terminal.
 | `npm run test:e2e`     | Build and run Playwright E2E tests       |
 | `npm run dev:server`   | Start the API with auto-reload ([details](server/README.md)) |
 | `npm run test:server`  | Run the API tests                        |
+| `npm run seed:products` | Copy the product catalog to MongoDB     |
 | `npm run build:server` | Compile the API to `server/dist`         |
 
 For the first E2E run:

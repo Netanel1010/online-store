@@ -1,10 +1,11 @@
 # Online Store API
 
 The backend of the online store: **Node.js**, **Express 5** and **TypeScript**. This is the
-foundation only. It has health checks, JSON parsing, CORS, validated configuration, central error
-handling and a **MongoDB** connection (the official driver) with a managed life cycle. There are no
-collections or data routes yet. The storefront does not call the API: products, accounts and orders
-still live in the frontend. Products, authentication and orders are added in later steps.
+foundation with a first feature. It has health checks, JSON parsing, CORS, validated
+configuration, central error handling, a **MongoDB** connection (the official driver) with a managed
+life cycle, and a read-only **Products API** that serves the catalog from MongoDB. The storefront
+does not call the API: it still reads `products.json` itself, and accounts, cart and orders live in
+the frontend. Authentication, orders and moving the storefront to the API are later steps.
 
 It is an npm workspace of this repository, so one `npm install` at the root installs everything and
 the root ESLint, Prettier and TypeScript settings apply to it.
@@ -65,8 +66,9 @@ MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/
 MONGODB_DB_NAME=online-store-dev
 ```
 
-Special characters in the password must be URL-encoded. `MONGODB_DB_NAME` decides which database is
-used; a database name in the connection string is ignored.
+Special characters in the password must be URL-encoded (`@` is `%40`, `:` is `%3A`, `/` is `%2F`):
+a raw `@` makes the driver refuse the string with `Invalid connection string`. `MONGODB_DB_NAME`
+decides which database is used; a database name in the connection string is ignored.
 
 ### Check the connection
 
@@ -80,7 +82,79 @@ curl http://localhost:3001/api/health/ready
 | `GET /api/health`       | Is the process up?      | Always `200`. Never touches the database, so a database outage cannot make a host restart a healthy server.    |
 | `GET /api/health/ready` | Can it do its work?     | `200` with `database` `up` or `not_configured`, or `503` with `database: "down"`. No details about the cause.  |
 
-### Scripts
+## Products API
+
+A read-only API over the products stored in MongoDB. It never reads `products.json`: that file is
+only the source of the [seed](#seed-the-products). Without a configured database both endpoints
+answer `503 database_not_configured`.
+
+| Endpoint                            | Returns                                                         |
+| ----------------------------------- | --------------------------------------------------------------- |
+| `GET /api/products?page=1&limit=20` | One page of products, with the numbers to build a pager         |
+| `GET /api/products/:id`             | One product, by its id (the manufacturer SKU, e.g. `CC-9011240-WW`) |
+
+```json
+{
+  "items": [{ "id": "100-000000593", "category": "cpu", "brand": "amd", "name": "...", "...": "..." }],
+  "page": 1,
+  "limit": 20,
+  "total": 31,
+  "totalPages": 2
+}
+```
+
+- **Paging:** `page` is 1 or more (default 1) and `limit` is 1 to 100 (default 20), both plain
+  digits. Anything else is `400 invalid_pagination`. A page past the end is `200` with an empty
+  `items` and the real `total`. Products are ordered by `id`, so paging is stable. Unknown query
+  parameters are ignored.
+- **One product:** `:id` may contain letters, digits, `.`, `_` and `-`, up to 64 characters.
+  Anything else is `400 invalid_product_id`, and an id that does not exist is
+  `404 product_not_found`.
+- **The product** has exactly the fields of the storefront's Zod schema
+  (`src/features/products/schema.ts`), which is used to validate the seed and every stored document
+  that is read. That schema trims text, so a value with a leading space in `products.json` is served
+  trimmed. MongoDB's own `_id` is never part of a response.
+- **Errors** use the usual `{ "error": { "code", "message" } }` shape. A database failure is a
+  generic `500 internal_error`: the details stay in the server log.
+- **The storefront does not use this API yet.** It still loads `products.json`; moving it to the API
+  is a separate step.
+
+Three layers, each with one job: `routes.ts` reads the request and sends the answer, `service.ts`
+holds the paging rules and what a missing product means, and `repository.ts` is the only code that
+knows MongoDB (the `products` collection, its queries and its index).
+
+## Seed the products
+
+`npm run seed:products` copies `public/data/products.json` to the `products` collection of the
+configured database. It needs `MONGODB_URI`, and is meant to be run from a checkout.
+
+```text
+Products seed completed
+Inserted: 31
+Updated: 0
+Unchanged: 0
+Total source products: 31
+Not in source (left untouched): 0
+Database: online-store
+```
+
+- **Validated first.** The whole file is checked with the storefront's schema (plus the API's id
+  rule) before the database is contacted. One bad product stops the run with exit code 1, a list of
+  the problems and nothing written.
+- **Upsert by `id`.** A new product is inserted, a product that exists is updated, and one that has
+  not changed is left as it is. Running it again changes and adds nothing, and the unique index
+  `id_unique` on `id` (created first, if missing) makes a duplicate impossible, even from two runs
+  at once. Change a product in `products.json`, run it again, and the same document is updated.
+- **It never deletes.** A product that is in the database but no longer in the file is left exactly
+  as it is, and counted as `Not in source`. Other documents in the collection are never touched.
+  Removing products from MongoDB is a deliberate manual step.
+- **A different file:** `npm run seed:products -- path/to/products.json`.
+
+`id` is the stable identifier of a product (the manufacturer SKU, as in the storefront's URLs).
+MongoDB's `_id` stays internal. The API also creates the index when it starts, which does nothing
+when it exists.
+
+## Scripts
 
 Run from the repository root (or without `:server`, inside `server/`):
 
@@ -88,8 +162,9 @@ Run from the repository root (or without `:server`, inside `server/`):
 | ---------------------- | ---------------------------------------------------- |
 | `npm run dev:server`   | Start with auto-reload (`tsx watch`)                 |
 | `npm run test:server`  | Run the tests (Vitest, Node environment, no MongoDB needed) |
-| `npm run build:server` | Compile to `server/dist`                             |
-| `npm run start:server` | Run the compiled build (`node dist/server.js`)       |
+| `npm run seed:products` | Copy `public/data/products.json` to MongoDB (see above) |
+| `npm run build:server` | Compile to `server/dist` (the server is `dist/server/src/server.js`, next to the three storefront schema files it shares in `dist/src/`) |
+| `npm run start:server` | Run the compiled build                               |
 | `npm run typecheck`    | Type-check the site, the tests and the API together  |
 | `npm run lint`         | ESLint for the whole repository, API included        |
 
@@ -117,10 +192,12 @@ server/
 │   ├── app.ts           createApp(): CORS, JSON parsing, routes, 404, error handler
 │   ├── config.ts        Environment variables, validated with Zod
 │   ├── db/              database.ts (MongoClient, connect, ping, close) and errors.ts
+│   ├── products/        The products feature: routes, service, repository, schemas, seed
 │   ├── routes/          One router per feature, mounted under /api in routes/index.ts
+│   ├── scripts/         Commands run from a checkout (seedProducts.ts)
 │   ├── middleware/      notFound and the central errorHandler
 │   ├── lib/             HttpError, the error a route throws on purpose
-│   └── testing/         Test helper that starts an app on a free port
+│   └── testing/         Test helpers: a free-port server, fixtures, an in-memory repository
 ├── tsconfig.json        Type-checking, tests included
 └── tsconfig.build.json  Production build to dist/
 ```
@@ -135,7 +212,10 @@ need instead of importing a global.
 `npm run test:server` needs **no MongoDB and no credentials**, so it is what CI runs. The driver is
 replaced by a stand-in for the life-cycle tests, a real driver is pointed at an address nothing
 listens on to check the failure path, and the entry point is started as a real process to check
-that a bad configuration or an unreachable database stops it with exit code 1.
+that a bad configuration or an unreachable database stops it with exit code 1. The products
+service, routes and seed are tested over an in-memory repository, and the real repository is
+checked for the exact queries it sends. The seed command is started as a real process too, to
+check that invalid data stops it before the database is contacted.
 
 An **optional integration test** talks to a real MongoDB. It is skipped unless `MONGODB_TEST_URI`
 is set (a local instance or an Atlas cluster you can write to):
@@ -146,8 +226,10 @@ MONGODB_TEST_URI=mongodb://localhost:27017 npm run test:server
 
 On PowerShell: `$env:MONGODB_TEST_URI="mongodb://localhost:27017"; npm run test:server`.
 
-It works in a database of its own named `online_store_test_<random>` and drops it at the end. It
-never uses `MONGODB_URI` and never touches your development data.
+It covers what mocks cannot: the unique index, upserts that insert, update and leave unchanged,
+that nothing is deleted, paging and counts, and the API over HTTP, against the real server. It works
+in a database of its own named `online_store_test_<random>` and drops it at the end. It never uses
+`MONGODB_URI` and never touches your development data.
 
 ## Behaviour worth knowing
 

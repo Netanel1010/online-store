@@ -1,6 +1,8 @@
 import { z } from 'zod'
-import { BRAND_IDS } from './brands'
-import { CATEGORY_IDS } from './categories'
+// The extensions are required because the API (server/) imports this file as well: it runs as Node
+// ES modules, which do not resolve extensionless imports. The app and its tests are not affected.
+import { BRAND_IDS } from './brands.ts'
+import { CATEGORY_IDS } from './categories.ts'
 
 const nonEmpty = z.string().trim().min(1)
 

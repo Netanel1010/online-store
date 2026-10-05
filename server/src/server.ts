@@ -1,6 +1,7 @@
 import { createApp } from './app.ts'
 import { loadConfig } from './config.ts'
 import { createDatabase, type Database } from './db/database.ts'
+import { createProductRepository } from './products/repository.ts'
 
 async function start() {
   const config = loadConfig()
@@ -13,6 +14,8 @@ async function start() {
     database = createDatabase(config.mongodb)
     await database.connect()
     console.log(`MongoDB connected (database "${config.mongodb.dbName}")`)
+    // Once at startup, never per request. It does nothing when the index already exists.
+    await createProductRepository(database).ensureIndexes()
   } else {
     console.log('MONGODB_URI is not set: running without a database')
   }
