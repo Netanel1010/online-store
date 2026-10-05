@@ -2,12 +2,11 @@ import { Link, useParams } from 'react-router'
 import { paths } from '@/app/paths'
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
 import { Skeleton } from '@/components/shared/Skeleton'
-import { EmptyState } from '@/components/shared/StateMessages'
+import { EmptyState, ErrorState } from '@/components/shared/StateMessages'
 import { buttonStyles } from '@/components/ui/buttonStyles'
 import { findCategory } from '@/features/products/categories'
-import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
 import { ProductDetails } from '@/features/products/components/ProductDetails'
-import { findProduct } from '@/features/products/selectors'
+import { useProduct } from '@/features/products/useProduct'
 import { PageMeta } from '@/components/shared/PageMeta'
 import { noindexMeta, productMeta } from '@/lib/seo'
 
@@ -30,47 +29,44 @@ function ProductDetailSkeleton() {
 
 export function ProductDetailPage() {
   const { productId } = useParams()
+  const state = useProduct(productId)
 
+  if (state.status === 'loading') return <ProductDetailSkeleton />
+  if (state.status === 'error') return <ErrorState onRetry={state.retry} />
+
+  if (state.status === 'not-found') {
+    return (
+      <>
+        <PageMeta meta={noindexMeta('המוצר לא נמצא')} />
+        <EmptyState
+          title="המוצר לא נמצא"
+          as="h1"
+          action={
+            <Link to={paths.products} className={buttonStyles()}>
+              לכל המוצרים
+            </Link>
+          }
+        >
+          ייתכן שהמוצר הוסר או שהכתובת שגויה.
+        </EmptyState>
+      </>
+    )
+  }
+
+  const { product } = state
+  const category = findCategory(product.category)
   return (
-    <CatalogBoundary loading={<ProductDetailSkeleton />}>
-      {(products) => {
-        const product = findProduct(products, productId)
-
-        if (!product) {
-          return (
-            <>
-              <PageMeta meta={noindexMeta('המוצר לא נמצא')} />
-              <EmptyState
-                title="המוצר לא נמצא"
-                as="h1"
-                action={
-                  <Link to={paths.products} className={buttonStyles()}>
-                    לכל המוצרים
-                  </Link>
-                }
-              >
-                ייתכן שהמוצר הוסר או שהכתובת שגויה.
-              </EmptyState>
-            </>
-          )
-        }
-
-        const category = findCategory(product.category)
-        return (
-          <>
-            <PageMeta meta={productMeta(product, category)} />
-            <Breadcrumbs
-              items={[
-                { label: 'בית', to: paths.home },
-                { label: 'מוצרים', to: paths.products },
-                ...(category ? [{ label: category.label, to: paths.category(category.id) }] : []),
-                { label: product.name },
-              ]}
-            />
-            <ProductDetails product={product} />
-          </>
-        )
-      }}
-    </CatalogBoundary>
+    <>
+      <PageMeta meta={productMeta(product, category)} />
+      <Breadcrumbs
+        items={[
+          { label: 'בית', to: paths.home },
+          { label: 'מוצרים', to: paths.products },
+          ...(category ? [{ label: category.label, to: paths.category(category.id) }] : []),
+          { label: product.name },
+        ]}
+      />
+      <ProductDetails product={product} />
+    </>
   )
 }

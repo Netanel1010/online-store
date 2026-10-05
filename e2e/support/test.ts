@@ -6,8 +6,10 @@ import { expect, test as base } from '@playwright/test'
  *
  * One thing is deliberately tolerated: a deep link such as /online-store/products is answered
  * by 404.html with a 404 status when served the way GitHub Pages serves it, and the browser
- * echoes that document 404 to the console. Only that echo is ignored; a 404 for any asset or
- * data file still fails the test.
+ * echoes that document 404 to the console. The same goes for the API answering 404 for a product
+ * that does not exist (`GET /api/products/NO-SUCH-SKU`), which the product page turns into its
+ * "not found" message. Only those echoes are ignored; a 404 for any asset, any other API request
+ * or any other data file still fails the test.
  *
  * Playwright gives every test its own browser context, so the accounts, cart, favorites and
  * session of one test are never visible to another.
@@ -16,7 +18,7 @@ export const test = base.extend<{ problems: string[] }>({
   problems: [
     async ({ page }, use) => {
       const problems: string[] = []
-      const documentNotFound = new Set<string>()
+      const expectedNotFound = new Set<string>()
       const failedResourceEchoes: { text: string; url: string }[] = []
 
       page.on('pageerror', (error) => problems.push(`uncaught error: ${error.message}`))
@@ -33,8 +35,11 @@ export const test = base.extend<{ problems: string[] }>({
       )
       page.on('response', (response) => {
         if (response.status() < 400) return
-        if (response.request().resourceType() === 'document' && response.status() === 404) {
-          documentNotFound.add(response.url())
+        const type = response.request().resourceType()
+        const missingProduct =
+          type === 'fetch' && /\/api\/products\/[^/?]+$/.test(new URL(response.url()).pathname)
+        if ((type === 'document' || missingProduct) && response.status() === 404) {
+          expectedNotFound.add(response.url())
         } else {
           problems.push(`HTTP ${response.status()}: ${response.url()}`)
         }
@@ -43,7 +48,7 @@ export const test = base.extend<{ problems: string[] }>({
       await use(problems)
 
       for (const { text, url } of failedResourceEchoes) {
-        if (!documentNotFound.has(url)) problems.push(`console error: ${text} (${url})`)
+        if (!expectedNotFound.has(url)) problems.push(`console error: ${text} (${url})`)
       }
       expect(problems, 'the page reported errors').toEqual([])
     },

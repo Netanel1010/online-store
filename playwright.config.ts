@@ -1,12 +1,15 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const port = Number(process.env.E2E_PORT ?? 4173)
+const apiPort = Number(process.env.E2E_API_PORT ?? 4174)
 const isCI = Boolean(process.env.CI)
 
 /**
  * End-to-end tests run against the production build, served the way GitHub Pages serves it
  * (under /online-store/, with 404.html as the fallback), so they exercise the real base path,
- * bundled assets and deep links. Every test gets a fresh browser context, so no test sees the
+ * bundled assets and deep links. The site reads its products from an API, which here is a stub
+ * (e2e/support/api-server.mjs) running the real API code over in-memory data, so no database is
+ * needed. Every test gets a fresh browser context, so no test sees the
  * accounts, cart, favorites or session of another.
  */
 export default defineConfig({
@@ -30,12 +33,22 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  webServer: {
-    // Build first so the tests never run against a stale dist/.
-    command: 'npm run build && node e2e/support/pages-server.mjs',
-    url: `http://localhost:${port}/online-store/`,
-    reuseExistingServer: !isCI,
-    timeout: 180_000,
-    env: { E2E_PORT: String(port) },
-  },
+  webServer: [
+    {
+      // Build first so the tests never run against a stale dist/. The build gets the address of
+      // the API below, because the site reads it when it is built.
+      command: 'npm run build && node e2e/support/pages-server.mjs',
+      url: `http://localhost:${port}/online-store/`,
+      reuseExistingServer: !isCI,
+      timeout: 180_000,
+      env: { E2E_PORT: String(port), VITE_API_URL: `http://localhost:${apiPort}` },
+    },
+    {
+      command: 'node e2e/support/api-server.mjs',
+      url: `http://localhost:${apiPort}/api/products?limit=1`,
+      reuseExistingServer: !isCI,
+      timeout: 60_000,
+      env: { E2E_API_PORT: String(apiPort), E2E_PORT: String(port) },
+    },
+  ],
 })

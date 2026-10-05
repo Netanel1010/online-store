@@ -114,11 +114,32 @@ describe('ProductDetailPage', () => {
     expect(screen.getByRole('link', { name: 'לכל המוצרים' })).toHaveAttribute('href', '/products')
   })
 
-  it('shows an error with retry when the catalog cannot be loaded', async () => {
+  it('loads the product by its id from the API', async () => {
+    const { fetchProduct } = renderApp('/products/GV-N406', [product])
+
+    await screen.findByRole('heading', { level: 1, name: product.fullName })
+
+    expect(fetchProduct).toHaveBeenCalledWith('GV-N406', expect.any(AbortSignal))
+  })
+
+  it('shows an error with retry when the product cannot be loaded', async () => {
     renderApp('/products/GV-N406', new Error('down'))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('משהו השתבש')
     expect(screen.getByRole('button', { name: 'נסו שוב' })).toBeInTheDocument()
+  })
+
+  it('recovers when the retry succeeds', async () => {
+    const { fetchProduct } = renderApp('/products/GV-N406', new Error('down'))
+    const alert = await screen.findByRole('alert')
+
+    fetchProduct.mockResolvedValue(product)
+    await userEvent.click(within(alert).getByRole('button', { name: 'נסו שוב' }))
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: product.fullName }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('links to the detail page from a product card', async () => {
