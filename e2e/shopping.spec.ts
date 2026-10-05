@@ -307,3 +307,72 @@ test.describe('favorites', () => {
     expect(catalog.length).toBeGreaterThan(2)
   })
 })
+
+test.describe('product page layout', () => {
+  test('the gallery buttons and the counter work together with the thumbnails', async ({
+    page,
+  }) => {
+    await page.goto(`products/${SALE_GPU.id}`)
+    const total = SALE_GPU.images.gallery.length
+    const counter = page.getByText(`1 / ${total}`, { exact: true })
+    await expect(counter).toBeVisible()
+    await expect(counter).toHaveAttribute('dir', 'ltr')
+
+    await page.getByRole('button', { name: 'תמונה הבאה' }).click()
+
+    await expect(page.getByRole('img', { name: /תמונה 2 מתוך/ })).toHaveAttribute(
+      'src',
+      `/online-store/${SALE_GPU.images.gallery[1]}`,
+    )
+    await expect(page.getByText(`2 / ${total}`, { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: /הצגת תמונה 2 מתוך/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+
+    await page.getByRole('button', { name: 'תמונה קודמת' }).click()
+    await page.getByRole('button', { name: 'תמונה קודמת' }).click()
+    await expect(page.getByRole('img', { name: new RegExp(`תמונה ${total} מתוך`) })).toBeVisible()
+  })
+
+  test('the gallery can be used from the keyboard', async ({ page }) => {
+    await page.goto(`products/${SALE_GPU.id}`)
+
+    await page.getByRole('button', { name: 'תמונה הבאה' }).focus()
+    await page.keyboard.press('Enter')
+
+    await expect(page.getByRole('img', { name: /תמונה 2 מתוך/ })).toBeVisible()
+  })
+
+  test('a product on sale shows what it saves, next to the price and the buy buttons', async ({
+    page,
+  }) => {
+    await page.goto(`products/${SALE_GPU.id}`)
+
+    const saving = SALE_GPU.price.original! - SALE_GPU.price.current
+    const box = page.locator('.rounded-xl', {
+      has: page.getByRole('button', { name: /הוספה לעגלה/ }),
+    })
+    await expect(box.getByText(/חיסכון של/)).toContainText(saving.toLocaleString('en-US'))
+    await expect(box.getByRole('button', { name: /הוספה לעגלה/ })).toBeVisible()
+  })
+
+  test.describe('on a phone', () => {
+    test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true })
+
+    test('has no horizontal scrolling, and the thumbnails scroll inside their own row', async ({
+      page,
+    }) => {
+      await page.goto(`products/${SALE_GPU.id}`)
+      await expect(page.getByRole('heading', { level: 1, name: SALE_GPU.fullName })).toBeVisible()
+
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+      await expect(
+        page.getByRole('button', { name: 'הוספה לעגלה: ' + SALE_GPU.name }),
+      ).toBeVisible()
+    })
+  })
+})
