@@ -20,6 +20,7 @@
     "build:server": "npm run build --workspace server",
     "start:server": "npm run start --workspace server",
     "seed:products": "npm run seed:products --workspace server --",
+    "check:api": "node scripts/check-api.mjs",
     "test:server": "npm test --workspace server",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
