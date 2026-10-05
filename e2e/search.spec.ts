@@ -1,4 +1,4 @@
-import { BRAND_NAMES, catalog, CATEGORY_LABELS } from './support/catalog'
+import { BRAND_NAMES, catalog, CATEGORY_LABELS, productById } from './support/catalog'
 import { cardNames, header } from './support/helpers'
 import { expect, test } from './support/test'
 
@@ -70,7 +70,8 @@ test.describe('header search', () => {
   test('requires every word to match', async ({ page }) => {
     await page.goto('')
 
-    await searchFor(page, 'intel corsair')
+    // No ASUS product is an RTX 4070, in its title or anywhere in its specifications.
+    await searchFor(page, 'asus 4070')
 
     await expect(page.getByRole('heading', { name: 'לא נמצאו מוצרים' })).toBeVisible()
   })
@@ -186,5 +187,57 @@ test.describe('header search', () => {
     await expect(page).toHaveURL(/q=.+&brand=amd$/)
     expect(await cardNames(page)).toEqual(expect.arrayContaining(amd.map((p) => p.name)))
     expect(BRAND_NAMES.amd).toBe('AMD')
+  })
+})
+
+test.describe('model number search', () => {
+  const rtx4070 = productById('N4070GAMINGOCV212GD')
+
+  for (const query of ['4070', 'RTX 4070', 'rtx-4070', 'rtx4070', 'GeForce RTX 4070']) {
+    test(`"${query}" finds the RTX 4070`, async ({ page }) => {
+      await page.goto('')
+
+      await searchFor(page, query)
+
+      expect(await cardNames(page)).toEqual([rtx4070.name])
+    })
+  }
+
+  test('finds a model by a part of its number and by its SKU', async ({ page }) => {
+    await page.goto('')
+
+    await searchFor(page, '7800')
+    expect(await cardNames(page)).toEqual([productById('100-000000910').name])
+
+    await searchFor(page, 'gp p650g')
+    expect(await cardNames(page)).toEqual([productById('GP-P650G').name])
+  })
+
+  test('finds products by a specification when the title does not say it', async ({ page }) => {
+    await page.goto('')
+
+    await searchFor(page, 'ddr5')
+
+    const names = await cardNames(page)
+    expect(names.length).toBeGreaterThan(0)
+    expect(names).not.toContain(rtx4070.name)
+  })
+
+  test('calls the default order "best match" in a search', async ({ page }) => {
+    await page.goto('')
+    await searchFor(page, 'intel')
+
+    await expect(page.getByRole('option', { name: 'התאמה לחיפוש' })).toHaveCount(1)
+  })
+
+  test('explains what to try when nothing is found', async ({ page }) => {
+    await page.goto('')
+
+    await searchFor(page, 'sn8100')
+
+    await expect(page.getByRole('heading', { level: 2, name: 'לא נמצאו מוצרים' })).toBeVisible()
+    await expect(page.getByText('לא נמצאו מוצרים עבור “sn8100”.')).toBeVisible()
+    await expect(page.getByText(/חלק ממספר הדגם/)).toBeVisible()
+    await expect(page.getByRole('article')).toHaveCount(0)
   })
 })

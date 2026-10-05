@@ -12,9 +12,12 @@ const LABELS: Record<SortKey, string> = {
 export function SortSelect({
   value,
   onChange,
+  defaultLabel,
 }: {
   value: SortKey
   onChange: (sort: SortKey) => void
+  /** Name of the default order when it means something more specific (best match for a search). */
+  defaultLabel?: string
 }) {
   const id = useId()
 
@@ -31,7 +34,7 @@ export function SortSelect({
       >
         {SORT_KEYS.map((key) => (
           <option key={key} value={key}>
-            {LABELS[key]}
+            {key === 'default' && defaultLabel ? defaultLabel : LABELS[key]}
           </option>
         ))}
       </select>

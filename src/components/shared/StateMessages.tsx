@@ -6,14 +6,17 @@ interface MessageProps {
   /** Use "h1" when the message is the main content of a page. */
   as?: 'h1' | 'h2'
   children?: ReactNode
+  /** Extra help below the message, such as suggestions for what to try next. */
+  details?: ReactNode
   action?: ReactNode
 }
 
-export function EmptyState({ title, as: Heading = 'h2', children, action }: MessageProps) {
+export function EmptyState({ title, as: Heading = 'h2', children, details, action }: MessageProps) {
   return (
     <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-12 text-center">
       <Heading className="text-lg font-semibold">{title}</Heading>
       {children && <p className="mt-2 text-muted">{children}</p>}
+      {details && <div className="mx-auto mt-4 max-w-md text-sm text-muted">{details}</div>}
       {action && <div className="mt-6 flex justify-center">{action}</div>}
     </div>
   )
