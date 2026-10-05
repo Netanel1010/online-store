@@ -376,15 +376,23 @@ test.describe('keyboard', () => {
       await page.keyboard.press('Tab')
       const style = await page.evaluate(() => {
         const element = document.activeElement as HTMLElement
-        const computed = getComputedStyle(element)
+        const indicator = (el: Element) => {
+          const computed = getComputedStyle(el)
+          return (
+            (computed.outlineStyle !== 'none' && computed.outlineWidth !== '0px') ||
+            computed.boxShadow !== 'none'
+          )
+        }
+        // The search box is one control: its outline is drawn around the whole box, so for a
+        // focused part of it the indicator is on a box inside the search form.
+        const search = element.closest('form[role="search"]')
+        const candidates = [element, ...(search ? search.querySelectorAll('div') : [])]
         return {
-          outline: computed.outlineStyle,
-          width: computed.outlineWidth,
-          shadow: computed.boxShadow,
+          visible: candidates.some(indicator),
           name: element.getAttribute('aria-label') ?? element.textContent?.trim().slice(0, 30),
         }
       })
-      const visible = (style.outline !== 'none' && style.width !== '0px') || style.shadow !== 'none'
+      const visible = style.visible
       expect(visible, `focus indicator on "${style.name}"`).toBe(true)
     }
   })
