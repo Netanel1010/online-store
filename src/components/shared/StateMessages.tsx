@@ -8,12 +8,29 @@ interface MessageProps {
   children?: ReactNode
   /** Extra help below the message, such as suggestions for what to try next. */
   details?: ReactNode
+  /** A decorative icon above the title. */
+  icon?: ReactNode
   action?: ReactNode
 }
 
-export function EmptyState({ title, as: Heading = 'h2', children, details, action }: MessageProps) {
+export function EmptyState({
+  title,
+  as: Heading = 'h2',
+  children,
+  details,
+  icon,
+  action,
+}: MessageProps) {
   return (
     <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-12 text-center">
+      {icon && (
+        <div
+          aria-hidden="true"
+          className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-white text-muted shadow-sm"
+        >
+          {icon}
+        </div>
+      )}
       <Heading className="text-lg font-semibold">{title}</Heading>
       {children && <p className="mt-2 text-muted">{children}</p>}
       {details && <div className="mx-auto mt-4 max-w-md text-sm text-muted">{details}</div>}
