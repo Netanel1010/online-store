@@ -1,18 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
-import { NavLink, useLocation } from 'react-router'
-import { paths } from '@/app/paths'
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react'
+import { useLocation } from 'react-router'
 import { CloseIcon, MenuIcon } from '@/components/icons'
 import { AccountMenu } from '@/features/auth/AccountMenu'
 import { CATEGORIES } from '@/features/products/categories'
 import { SearchForm } from '@/features/search/SearchForm'
+import { CategoryNavLink, MainNavLink } from './NavItems'
 import { mainLinks, navLinkClass } from './navigation'
+
+export interface MobileNavHandle {
+  /** Opens the menu. With `focusSearch` the search box gets the focus, ready to type. */
+  open: (options?: { focusSearch?: boolean }) => void
+}
 
 /**
  * Slide-in menu for small screens, built on the native <dialog> element: showModal() gives us
  * a focus trap, Escape-to-close, an inert page behind it and a backdrop without a dependency.
  * It docks to the inline-start edge, which is the right edge in RTL.
  */
-export function MobileNav() {
+export function MobileNav({ handleRef }: { handleRef?: Ref<MobileNavHandle> }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [open, setOpen] = useState(false)
   const { key: locationKey } = useLocation()
@@ -23,6 +28,24 @@ export function MobileNav() {
     dialogRef.current?.close()
   }, [locationKey])
 
+  const openMenu = ({ focusSearch = false }: { focusSearch?: boolean } = {}) => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    dialog.showModal()
+    setOpen(true)
+    if (focusSearch) {
+      dialog.querySelector<HTMLInputElement>('input[type="search"]')?.focus()
+    } else {
+      // The list is long: show the current page's link instead of the top of the list.
+      const current =
+        dialog.querySelector('#mobile-categories-heading + ul [aria-current]') ??
+        dialog.querySelector('nav [aria-current]')
+      current?.scrollIntoView?.({ block: 'nearest' })
+    }
+  }
+
+  useImperativeHandle(handleRef, () => ({ open: openMenu }))
+
   return (
     <>
       <button
@@ -30,10 +53,7 @@ export function MobileNav() {
         aria-label="פתיחת תפריט"
         aria-expanded={open}
         aria-controls="mobile-nav"
-        onClick={() => {
-          dialogRef.current?.showModal()
-          setOpen(true)
-        }}
+        onClick={() => openMenu()}
         className="inline-flex size-11 items-center justify-center rounded-lg text-ink hover:bg-surface md:hidden"
       >
         <MenuIcon className="size-6" />
@@ -51,7 +71,7 @@ export function MobileNav() {
         className="m-0 me-auto h-dvh max-h-none w-80 max-w-[85vw] bg-white p-0 text-ink shadow-xl backdrop:bg-black/50"
       >
         <div className="flex h-full flex-col overflow-y-auto">
-          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-white px-4 py-3">
             <span className="text-lg font-bold">תפריט</span>
             <button
               type="button"
@@ -73,9 +93,9 @@ export function MobileNav() {
             <ul>
               {mainLinks.map((link) => (
                 <li key={link.to}>
-                  <NavLink to={link.to} end={link.end} className={mobileLinkClass}>
+                  <MainNavLink link={link} className={mobileLinkClass}>
                     {link.label}
-                  </NavLink>
+                  </MainNavLink>
                 </li>
               ))}
             </ul>
@@ -91,9 +111,9 @@ export function MobileNav() {
             <ul>
               {CATEGORIES.map((category) => (
                 <li key={category.id}>
-                  <NavLink to={paths.category(category.id)} className={mobileLinkClass}>
+                  <CategoryNavLink categoryId={category.id} className={mobileLinkClass}>
                     {category.label}
-                  </NavLink>
+                  </CategoryNavLink>
                 </li>
               ))}
             </ul>
@@ -104,5 +124,5 @@ export function MobileNav() {
   )
 }
 
-const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `block rounded-lg px-3 py-3 text-base ${navLinkClass(isActive)}`
+const mobileLinkClass = (active: boolean) =>
+  `block rounded-lg px-3 py-3 text-base ${navLinkClass(active)}`

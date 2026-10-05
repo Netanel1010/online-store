@@ -53,6 +53,12 @@ export function resetProductCatalog() {
   inFlight = false
 }
 
+/** The products if the catalog has loaded, otherwise null. Reads only: it never starts a load. */
+export function useLoadedCatalog(): readonly Product[] | null {
+  const current = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  return current.status === 'ready' ? current.products : null
+}
+
 export function useProductCatalog(): CatalogState & { retry: () => void } {
   const current = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 

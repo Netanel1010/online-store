@@ -1,7 +1,7 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useRef, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { paths } from '@/app/paths'
-import { SearchIcon } from '@/components/icons'
+import { CloseIcon, SearchIcon } from '@/components/icons'
 
 /**
  * Product search box. It submits to the search results page, and while that page is open the box
@@ -10,6 +10,7 @@ import { SearchIcon } from '@/components/icons'
  */
 export function SearchForm({ className = 'flex' }: { className?: string }) {
   const inputId = useId()
+  const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [params] = useSearchParams()
@@ -41,17 +42,34 @@ export function SearchForm({ className = 'flex' }: { className?: string }) {
       <label htmlFor={inputId} className="sr-only">
         חיפוש מוצרים
       </label>
-      <input
-        id={inputId}
-        type="search"
-        name="q"
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        placeholder="חיפוש מוצר, מותג או מק״ט"
-        autoComplete="off"
-        maxLength={100}
-        className="min-h-11 min-w-0 flex-1 rounded-s-lg border border-e-0 border-line bg-surface px-3 text-base transition-colors placeholder:text-muted focus:bg-white"
-      />
+      <div className="relative min-w-0 flex-1">
+        <input
+          ref={inputRef}
+          id={inputId}
+          type="search"
+          name="q"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="חיפוש מוצר, מותג או מק״ט"
+          autoComplete="off"
+          enterKeyHint="search"
+          maxLength={100}
+          className="min-h-11 w-full rounded-s-lg border border-e-0 border-line bg-surface ps-3 pe-10 text-base transition-colors placeholder:text-muted focus:bg-white [&::-webkit-search-cancel-button]:appearance-none"
+        />
+        {draft !== '' && (
+          <button
+            type="button"
+            aria-label="מחיקת הטקסט"
+            onClick={() => {
+              setDraft('')
+              inputRef.current?.focus()
+            }}
+            className="absolute inset-y-0 end-0 inline-flex w-10 items-center justify-center rounded-md text-muted hover:text-ink"
+          >
+            <CloseIcon className="size-4" />
+          </button>
+        )}
+      </div>
       <button
         type="submit"
         aria-label="חיפוש"
