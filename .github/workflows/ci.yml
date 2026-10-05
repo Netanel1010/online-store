@@ -33,7 +33,9 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - run: npm run test:server
       - run: npm run build
+      - run: npm run build:server
       # On main only: keep the production build as the Pages artifact. It is published by the
       # `deploy` job below, and only if `e2e` passes as well.
       - name: Upload the site for GitHub Pages

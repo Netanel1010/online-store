@@ -1,0 +1,16 @@
+{
+  // The production build: the same rules as tsconfig.json, but it writes the JavaScript to dist/.
+  // Imports are written with their .ts extension (as Node's type stripping and tsx expect) and the
+  // compiler rewrites them to .js in the output.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": null,
+    "noEmit": false,
+    "rewriteRelativeImportExtensions": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "sourceMap": true
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/testing"]
+}

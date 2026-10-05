@@ -1,0 +1,34 @@
+import cors from 'cors'
+import express from 'express'
+import type { Config } from './config.ts'
+import { errorHandler, type Logger } from './middleware/errorHandler.ts'
+import { notFound } from './middleware/notFound.ts'
+import { apiRouter } from './routes/index.ts'
+
+/**
+ * Builds the Express app without starting it, so tests can run it on any port and `server.ts`
+ * stays the only place that listens.
+ */
+export function createApp(config: Pick<Config, 'corsOrigins'>, logger: Logger = console) {
+  const app = express()
+
+  app.disable('x-powered-by')
+
+  app.use(
+    cors({
+      // A request without an Origin (curl, server to server) is not a browser cross-origin call
+      // and is let through. A browser origin that is not listed gets no CORS headers, so the
+      // browser blocks the response.
+      origin: (origin, callback) =>
+        callback(null, origin === undefined || config.corsOrigins.includes(origin)),
+    }),
+  )
+  app.use(express.json({ limit: '100kb' }))
+
+  app.use('/api', apiRouter)
+
+  app.use(notFound)
+  app.use(errorHandler(logger))
+
+  return app
+}

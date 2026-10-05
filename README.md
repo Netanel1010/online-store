@@ -80,7 +80,7 @@ This project is intentionally designed as a **frontend-only portfolio applicatio
 
 | Limitation                 | Details                                                        |
 | -------------------------- | -------------------------------------------------------------- |
-| 🚫 **No Backend**          | Product data is static and there is no server-side application |
+| 🚫 **No Backend in use**   | The site does not call the API yet: product data is static. [`server/`](server/README.md) holds the API foundation (health check only) |
 | 🔐 **Demo Authentication** | Accounts exist only in browser `localStorage`                  |
 | 💳 **No Real Payments**    | Checkout does not charge money or send payment information     |
 | 📦 **No Inventory System** | Stock and availability are not managed                         |
@@ -125,6 +125,9 @@ Then open the local Vite URL shown in the terminal.
 | `npm test`             | Run Vitest unit/component tests          |
 | `npm run test:watch`   | Run Vitest in watch mode                 |
 | `npm run test:e2e`     | Build and run Playwright E2E tests       |
+| `npm run dev:server`   | Start the API with auto-reload ([details](server/README.md)) |
+| `npm run test:server`  | Run the API tests                        |
+| `npm run build:server` | Compile the API to `server/dist`         |
 
 For the first E2E run:
 
@@ -182,6 +185,7 @@ src/
 ├── services/     Product loading and validation
 └── test/         Test setup and helpers
 
+server/           Express + TypeScript API (workspace, see server/README.md)
 e2e/              Playwright specs and support code
 public/            Static assets and product data
 docs/              Design and testing documentation
@@ -208,7 +212,8 @@ The pipeline verifies:
 * linting
 * TypeScript
 * unit/component tests
-* production build
+* API tests
+* production build (site and API)
 * Playwright E2E tests
 
 ### Deployment
@@ -234,6 +239,7 @@ to work correctly after deployment.
 * 🧪 [`docs/testing.md`](docs/testing.md) — testing strategy, isolation, accessibility and CI
 * 💾 [`docs/state-persistence.md`](docs/state-persistence.md) — cart and favorites persistence
 * 🗃️ [`docs/product-data-migration.md`](docs/product-data-migration.md) — product data migration and cleanup
+* 🖥️ [`server/README.md`](server/README.md) — the API: running it, configuration and structure
 
 ---
 
