@@ -11,6 +11,8 @@ import { CartLineItem } from '@/features/cart/CartLineItem'
 import { OrderSummary } from '@/features/cart/OrderSummary'
 import { buildCartLines, summarizeCart } from '@/features/cart/summary'
 import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
+import { PageMeta } from '@/components/shared/PageMeta'
+import { noindexMeta } from '@/lib/seo'
 
 function CartSkeleton() {
   return (
@@ -36,7 +38,7 @@ export function CartPage() {
 
   return (
     <>
-      <title>עגלת קניות | N.M.S</title>
+      <PageMeta meta={noindexMeta('עגלת קניות')} />
       <Breadcrumbs items={[{ label: 'בית', to: paths.home }, { label: 'עגלת קניות' }]} />
       {/* Focus lands here after a line is removed, so keyboard users do not lose their place. */}
       <h1 ref={headingRef} tabIndex={-1} className="mb-6 text-3xl font-bold focus:outline-none">

@@ -19,6 +19,8 @@ import {
 import type { CheckoutValues } from '@/features/checkout/schema'
 import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
 import type { Product } from '@/features/products/schema'
+import { PageMeta } from '@/components/shared/PageMeta'
+import { noindexMeta } from '@/lib/seo'
 
 function CheckoutSkeleton() {
   return (
@@ -65,7 +67,7 @@ export function CheckoutPage() {
 
   return (
     <>
-      <title>סיום הזמנה | N.M.S</title>
+      <PageMeta meta={noindexMeta('סיום הזמנה')} />
       <Breadcrumbs
         items={[
           { label: 'בית', to: paths.home },

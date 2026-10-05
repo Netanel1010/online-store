@@ -126,12 +126,15 @@ test.describe('automated WCAG A/AA scan (axe-core)', () => {
 
   test('login and registration, with and without validation errors', async ({ page }) => {
     await page.goto('login')
+    // The page loads on demand: scan it once it has appeared.
+    await expect(page.getByRole('heading', { level: 1, name: 'התחברות' })).toBeVisible()
     await expectNoAxeViolations(page)
     await page.getByRole('button', { name: 'התחברות' }).click()
     await expect(page.getByText('יש להזין סיסמה')).toBeVisible()
     await expectNoAxeViolations(page)
 
     await page.goto('register')
+    await expect(page.getByRole('heading', { level: 1, name: 'הרשמה' })).toBeVisible()
     await expectNoAxeViolations(page)
     await page.getByRole('button', { name: 'יצירת חשבון' }).click()
     await expect(page.getByText('יש לאשר את הסיסמה')).toBeVisible()
@@ -647,5 +650,75 @@ test.describe('mobile menu (dialog)', () => {
     )
     expect(overflow).toBeLessThanOrEqual(0)
     expect(catalog.length).toBeGreaterThan(0)
+  })
+})
+
+/* ------------------------------------------------------------------------------------------ */
+
+test.describe('landmarks, heading order and focus on the dark footer', () => {
+  const routes = [
+    '',
+    'products',
+    'category/gpu',
+    `products/${PSU.id}`,
+    'search?q=intel',
+    'cart',
+    'favorites',
+    'login',
+    'register',
+    'no/such/page',
+  ]
+
+  for (const path of routes) {
+    test(`/${path}: navigation landmarks have different names and headings do not skip a level`, async ({
+      page,
+    }) => {
+      await page.goto(path)
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+
+      const names = await page.evaluate(() =>
+        [...document.querySelectorAll('nav')]
+          .filter((nav) => nav.getClientRects().length > 0)
+          .map((nav) => {
+            const label = nav.getAttribute('aria-label')
+            const labelledBy = nav.getAttribute('aria-labelledby')
+            return label ?? (labelledBy ? document.getElementById(labelledBy)?.textContent : null)
+          }),
+      )
+      expect(names.every(Boolean), `every navigation has a name: ${names}`).toBe(true)
+      expect(new Set(names).size, `names must be unique: ${names}`).toBe(names.length)
+
+      const levels = await page.evaluate(() =>
+        [...document.querySelectorAll('main h1, main h2, main h3, main h4')]
+          .filter((heading) => heading.getClientRects().length > 0)
+          .map((heading) => Number(heading.tagName[1])),
+      )
+      expect(levels[0]).toBe(1)
+      levels.forEach((level, index) => {
+        if (index > 0)
+          expect(level, `heading order ${levels}`).toBeLessThanOrEqual(levels[index - 1]! + 1)
+      })
+    })
+  }
+
+  test('a footer link shows a light focus outline that can be seen on the dark background', async ({
+    page,
+  }) => {
+    await page.goto('')
+    const link = page.getByRole('contentinfo').getByRole('link', { name: 'מעבדים' })
+
+    await page.keyboard.press('Tab')
+    await link.focus()
+
+    // The outline colour is animated by the link's colour transition, so wait for it to settle.
+    await expect
+      .poll(() => link.evaluate((element) => getComputedStyle(element).outlineColor))
+      .toBe('rgb(255, 255, 255)')
+    const outline = await link.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return { width: style.outlineWidth, style: style.outlineStyle }
+    })
+    expect(outline.style).not.toBe('none')
+    expect(parseFloat(outline.width)).toBeGreaterThanOrEqual(2)
   })
 })

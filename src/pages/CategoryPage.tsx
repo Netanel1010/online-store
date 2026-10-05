@@ -7,6 +7,8 @@ import { ProductGridSkeleton } from '@/features/products/components/ProductGrid'
 import { ProductListing } from '@/features/products/components/ProductListing'
 import { productsInCategory } from '@/features/products/selectors'
 import { NotFoundPage } from './NotFoundPage'
+import { PageMeta } from '@/components/shared/PageMeta'
+import { categoryMeta } from '@/lib/seo'
 
 export function CategoryPage() {
   const { categoryId } = useParams()
@@ -16,7 +18,7 @@ export function CategoryPage() {
 
   return (
     <>
-      <title>{`${category.label} | N.M.S`}</title>
+      <PageMeta meta={categoryMeta(category)} />
       <Breadcrumbs
         items={[
           { label: 'בית', to: paths.home },

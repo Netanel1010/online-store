@@ -9,6 +9,8 @@ import { OrderSummary } from '@/features/cart/OrderSummary'
 import { buildCartLines, summarizeCart } from '@/features/cart/summary'
 import { checkoutSuccessStateSchema } from '@/features/checkout/placeOrder'
 import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
+import { PageMeta } from '@/components/shared/PageMeta'
+import { noindexMeta } from '@/lib/seo'
 
 function ConfirmationSkeleton() {
   return (
@@ -30,7 +32,7 @@ export function CheckoutSuccessPage() {
   if (!parsed.success) {
     return (
       <>
-        <title>אין הזמנה להצגה | N.M.S</title>
+        <PageMeta meta={noindexMeta('אין הזמנה להצגה')} />
         <EmptyState
           as="h1"
           title="אין הזמנה להצגה"
@@ -50,7 +52,7 @@ export function CheckoutSuccessPage() {
 
   return (
     <>
-      <title>ההזמנה התקבלה | N.M.S</title>
+      <PageMeta meta={noindexMeta('ההזמנה התקבלה')} />
       <h1 className="mb-2 text-3xl font-bold">ההזמנה התקבלה</h1>
       <p role="status" className="mb-6 text-muted">
         מספר הזמנת הדגמה:{' '}

@@ -10,6 +10,8 @@ import { favoriteProducts } from '@/features/favorites/favoriteProducts'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
 import { ProductGrid, ProductGridSkeleton } from '@/features/products/components/ProductGrid'
+import { PageMeta } from '@/components/shared/PageMeta'
+import { noindexMeta } from '@/lib/seo'
 
 export function FavoritesPage() {
   const ids = useFavoritesStore((state) => state.ids)
@@ -19,7 +21,7 @@ export function FavoritesPage() {
 
   return (
     <>
-      <title>מועדפים | N.M.S</title>
+      <PageMeta meta={noindexMeta('מועדפים')} />
       <Breadcrumbs items={[{ label: 'בית', to: paths.home }, { label: 'מועדפים' }]} />
       {/* Focus lands here after a removal, so keyboard users do not lose their place. */}
       <h1 ref={headingRef} tabIndex={-1} className="mb-6 text-3xl font-bold focus:outline-none">

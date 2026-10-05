@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "postbuild": "node scripts/spa-fallback.mjs",
+    "postbuild": "node scripts/spa-fallback.mjs && node scripts/static-routes.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc -b",

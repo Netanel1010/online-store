@@ -23,7 +23,10 @@ export function Footer() {
           <ul className="mt-3 space-y-2 text-sm">
             {mainLinks.map((link) => (
               <li key={link.to}>
-                <Link to={link.to} className="transition-colors hover:text-white hover:underline">
+                <Link
+                  to={link.to}
+                  className="rounded transition-colors hover:text-white hover:underline focus-visible:outline-white"
+                >
                   {link.label}
                 </Link>
               </li>
@@ -31,16 +34,14 @@ export function Footer() {
           </ul>
         </nav>
 
-        <nav aria-labelledby="footer-categories-heading">
-          <h2 id="footer-categories-heading" className="font-semibold text-white">
-            קטגוריות
-          </h2>
+        <nav aria-label="קטגוריות בתחתית העמוד">
+          <h2 className="font-semibold text-white">קטגוריות</h2>
           <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             {CATEGORIES.map((category) => (
               <li key={category.id}>
                 <Link
                   to={paths.category(category.id)}
-                  className="transition-colors hover:text-white hover:underline"
+                  className="rounded transition-colors hover:text-white hover:underline focus-visible:outline-white"
                 >
                   {category.label}
                 </Link>

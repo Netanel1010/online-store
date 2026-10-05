@@ -6,6 +6,8 @@ import { buttonStyles } from '@/components/ui/buttonStyles'
 import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
 import { ProductGridSkeleton } from '@/features/products/components/ProductGrid'
 import { ProductListing } from '@/features/products/components/ProductListing'
+import { PageMeta } from '@/components/shared/PageMeta'
+import { searchMeta } from '@/lib/seo'
 
 export function SearchPage() {
   const [params] = useSearchParams()
@@ -13,7 +15,7 @@ export function SearchPage() {
 
   return (
     <>
-      <title>{q ? `חיפוש: ${q} | N.M.S` : 'חיפוש | N.M.S'}</title>
+      <PageMeta meta={searchMeta(q)} />
       <Breadcrumbs items={[{ label: 'בית', to: paths.home }, { label: 'חיפוש' }]} />
       {/* The text is rendered as plain text by React, never as HTML. */}
       <h1 className="mb-6 text-3xl font-bold">{q ? `תוצאות חיפוש עבור “${q}”` : 'חיפוש'}</h1>

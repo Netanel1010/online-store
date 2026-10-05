@@ -26,7 +26,7 @@ test.describe('filters', () => {
     const intel = cpus.filter((product) => product.brand === 'intel')
     await expect(page.getByRole('article')).toHaveCount(intel.length)
     await expect(count(page)).toHaveText(`${intel.length} מוצרים`)
-    await expect(page).toHaveURL(/\/category\/cpu\?brand=intel$/)
+    await expect(page).toHaveURL(/\/category\/cpu\/?\?brand=intel$/)
   })
 
   test('offers specification filters derived from the category products, with counts', async ({
@@ -85,7 +85,7 @@ test.describe('filters', () => {
 
     await page.getByRole('button', { name: 'ניקוי סינון' }).click()
 
-    await expect(page).toHaveURL(/\/online-store\/category\/cpu$/)
+    await expect(page).toHaveURL(/\/online-store\/category\/cpu\/?$/)
     await expect(page.getByRole('article')).toHaveCount(cpus.length)
     await expect(brandGroup(page).getByRole('checkbox', { name: /Intel/ })).not.toBeChecked()
   })
@@ -95,7 +95,7 @@ test.describe('filters', () => {
 
     await page.getByRole('button', { name: 'הסרת מסנן מותג: AMD' }).click()
 
-    await expect(page).toHaveURL(/\/category\/cpu\?brand=intel$/)
+    await expect(page).toHaveURL(/\/category\/cpu\/?\?brand=intel$/)
   })
 
   test('filters the whole catalog by brand on the products page', async ({ page }) => {
@@ -154,7 +154,7 @@ test.describe('sorting', () => {
     await expect(page).toHaveURL(/\?sort=price-asc$/) // the sort is not a filter, so it stays
 
     await sortSelect(page).selectOption({ label: 'ברירת מחדל' })
-    await expect(page).toHaveURL(/\/online-store\/category\/cpu$/)
+    await expect(page).toHaveURL(/\/online-store\/category\/cpu\/?$/)
   })
 })
 
@@ -214,7 +214,7 @@ test.describe('URL-driven state', () => {
     await expect(socketGroup(page).getByRole('checkbox', { name: /LGA 1851/ })).not.toBeChecked()
 
     await page.goBack()
-    await expect(page).toHaveURL(/\/online-store\/category\/cpu$/)
+    await expect(page).toHaveURL(/\/online-store\/category\/cpu\/?$/)
     await expect(page.getByRole('article')).toHaveCount(cpus.length)
 
     await page.goForward()

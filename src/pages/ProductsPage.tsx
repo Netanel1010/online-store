@@ -3,11 +3,13 @@ import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
 import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
 import { ProductGridSkeleton } from '@/features/products/components/ProductGrid'
 import { ProductListing } from '@/features/products/components/ProductListing'
+import { PageMeta } from '@/components/shared/PageMeta'
+import { productsMeta } from '@/lib/seo'
 
 export function ProductsPage() {
   return (
     <>
-      <title>כל המוצרים | N.M.S</title>
+      <PageMeta meta={productsMeta()} />
       <Breadcrumbs items={[{ label: 'בית', to: paths.home }, { label: 'מוצרים' }]} />
       <h1 className="mb-6 text-3xl font-bold">כל המוצרים</h1>
       <CatalogBoundary loading={<ProductGridSkeleton />}>

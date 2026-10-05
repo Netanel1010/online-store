@@ -393,7 +393,7 @@ test.describe('sign-out regression', () => {
     await signOut(page)
 
     await expectSignedOut(page)
-    await expect(page).toHaveURL(new RegExp(`/online-store/products/${PSU.id}$`))
+    await expect(page).toHaveURL(new RegExp(`/online-store/products/${PSU.id}/?$`))
     await expect(page.getByRole('heading', { level: 1, name: PSU.fullName })).toBeVisible()
   })
 

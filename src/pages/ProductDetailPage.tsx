@@ -8,6 +8,8 @@ import { findCategory } from '@/features/products/categories'
 import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
 import { ProductDetails } from '@/features/products/components/ProductDetails'
 import { findProduct } from '@/features/products/selectors'
+import { PageMeta } from '@/components/shared/PageMeta'
+import { noindexMeta, productMeta } from '@/lib/seo'
 
 function ProductDetailSkeleton() {
   return (
@@ -37,7 +39,7 @@ export function ProductDetailPage() {
         if (!product) {
           return (
             <>
-              <title>המוצר לא נמצא | N.M.S</title>
+              <PageMeta meta={noindexMeta('המוצר לא נמצא')} />
               <EmptyState
                 title="המוצר לא נמצא"
                 as="h1"
@@ -56,7 +58,7 @@ export function ProductDetailPage() {
         const category = findCategory(product.category)
         return (
           <>
-            <title>{`${product.name} | N.M.S`}</title>
+            <PageMeta meta={productMeta(product, category)} />
             <Breadcrumbs
               items={[
                 { label: 'בית', to: paths.home },

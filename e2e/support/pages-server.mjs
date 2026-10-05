@@ -1,8 +1,10 @@
 // A tiny static server that behaves like GitHub Pages for this project, used by the E2E tests:
 //
 //  - the built site (dist/) is served under /online-store/
+//  - a folder is served through its index.html, and the address without the closing slash is
+//    redirected to the one with it
 //  - a path that matches no file answers with dist/404.html and a 404 status, which is what
-//    GitHub Pages does and what lets deep links such as /online-store/products/x reach the app
+//    GitHub Pages does and what lets deep links such as /online-store/cart reach the app
 //
 // `vite preview` would hide both behaviours (it falls back to index.html with a 200), so it
 // could not catch a broken base path or a broken 404.html fallback.
@@ -25,6 +27,8 @@ const types = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.ico': 'image/x-icon',
+  '.xml': 'application/xml; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
 }
 
 function resolveFile(pathname) {
@@ -35,6 +39,13 @@ function resolveFile(pathname) {
   if (file !== root && !file.startsWith(root + sep)) return null
   if (existsSync(file) && statSync(file).isDirectory()) return join(file, 'index.html')
   return existsSync(file) ? file : null
+}
+
+// GitHub Pages sends a request for a folder without the closing slash to the address with it.
+function isFolderWithoutSlash(pathname) {
+  if (pathname.endsWith('/') || !pathname.startsWith(base)) return false
+  const file = join(root, normalize(decodeURIComponent(pathname.slice(base.length))))
+  return file.startsWith(root + sep) && existsSync(file) && statSync(file).isDirectory()
 }
 
 function send(response, status, file) {
@@ -51,7 +62,12 @@ if (!existsSync(join(root, 'index.html'))) {
 }
 
 createServer((request, response) => {
-  const { pathname } = new URL(request.url ?? '/', 'http://localhost')
+  const { pathname, search } = new URL(request.url ?? '/', 'http://localhost')
+  if (isFolderWithoutSlash(pathname)) {
+    response.writeHead(301, { location: `${pathname}/${search}` })
+    response.end()
+    return
+  }
   const file = resolveFile(pathname)
   if (file) send(response, 200, file)
   else send(response, 404, join(root, '404.html'))
