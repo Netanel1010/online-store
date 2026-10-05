@@ -13,6 +13,17 @@
   --color-surface: #f8fafc;
   --color-sale: #b91c1c;
   --color-sale-soft: #fef2f2;
+
+  /* Short fade for the incoming hero slide. Used as `motion-safe:animate-hero-fade`. */
+  --animate-hero-fade: hero-fade 400ms ease-out;
+  @keyframes hero-fade {
+    from {
+      opacity: 0.35;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 @layer base {

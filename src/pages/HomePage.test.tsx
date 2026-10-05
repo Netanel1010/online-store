@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { HERO_SLIDES } from '@/features/home/heroSlides'
 import { makeProduct } from '@/test/fixtures'
 import { renderApp } from '@/test/renderApp'
+import { stubReducedMotion } from '@/test/reducedMotion'
 
 const onSale = makeProduct({
   id: 'SALE-1',
@@ -65,6 +66,15 @@ describe('HomePage', () => {
 describe('HeroCarousel', () => {
   const total = HERO_SLIDES.length
 
+  // Rotation has its own tests (HeroCarousel.test.tsx). Here the slides must stay where the
+  // test left them, however slowly the test runs.
+  beforeEach(() => {
+    stubReducedMotion(true)
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   async function renderCarousel() {
     renderApp('/', [])
     const carousel = await screen.findByRole('region', { name: 'באנרים' })
@@ -110,14 +120,10 @@ describe('HeroCarousel', () => {
     expect(dot).toHaveAttribute('aria-current', 'true')
   })
 
-  it('does not rotate on its own', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true })
-    try {
-      const { currentSlide } = await renderCarousel()
-      await vi.advanceTimersByTimeAsync(30_000)
-      expect(currentSlide()).toBe(0)
-    } finally {
-      vi.useRealTimers()
-    }
+  it('has a dot for each of the eight slides', async () => {
+    const { carousel } = await renderCarousel()
+
+    expect(total).toBe(8)
+    expect(within(carousel).getAllByRole('button', { name: /^באנר \d+ מתוך 8$/ })).toHaveLength(8)
   })
 })
