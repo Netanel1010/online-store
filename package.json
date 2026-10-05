@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "workspaces": [
+    "server"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -13,6 +16,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "dev:server": "npm run dev --workspace server",
+    "build:server": "npm run build --workspace server",
+    "start:server": "npm run start --workspace server",
+    "test:server": "npm test --workspace server",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
