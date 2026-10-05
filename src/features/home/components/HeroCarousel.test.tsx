@@ -233,3 +233,23 @@ describe('HeroCarousel with a single slide', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 })
+
+describe('HeroCarousel image fit', () => {
+  it('fills the frame with an image by default and shows a slide marked "contain" whole', () => {
+    stubReducedMotion(true)
+    render(
+      <HeroCarousel
+        slides={[
+          { image: 'images/hero/wide.avif', alt: 'רחב', fit: 'contain' },
+          { image: 'images/hero/normal.avif', alt: 'רגיל' },
+        ]}
+      />,
+    )
+    const images = within(carousel()).getAllByRole('img', { hidden: true })
+
+    expect(images[0]).toHaveClass('object-contain')
+    expect(images[0]).not.toHaveClass('object-cover')
+    expect(images[1]).toHaveClass('object-cover')
+    expect(images[1]).not.toHaveClass('object-contain')
+  })
+})

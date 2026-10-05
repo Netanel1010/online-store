@@ -93,6 +93,54 @@ test.describe('home page carousel autoplay', () => {
   })
 })
 
+test.describe('hero banners fit the frame', () => {
+  test('no banner is cropped or enlarged: each one fills the frame in its own shape or is shown whole', async ({
+    page,
+  }) => {
+    await page.goto('')
+    const carousel = page.getByRole('region', { name: 'באנרים' })
+    const total = await carousel.getByRole('button', { name: /^באנר \d+ מתוך \d+$/ }).count()
+
+    for (let index = 0; index < total; index += 1) {
+      await carousel.getByRole('button', { name: `באנר ${index + 1} מתוך ${total}` }).click()
+      const image = carousel.getByRole('img').first()
+      await expect(image).toHaveJSProperty('complete', true)
+      const shape = await image.evaluate((img: HTMLImageElement) => {
+        const box = img.getBoundingClientRect()
+        return {
+          natural: img.naturalWidth / img.naturalHeight,
+          frame: box.width / box.height,
+          fit: getComputedStyle(img).objectFit,
+          shownWidth: box.width,
+          naturalWidth: img.naturalWidth,
+        }
+      })
+      // "cover" crops whatever does not fit the frame: that is only fine for an image that has the
+      // frame's own shape. Anything else must be shown whole.
+      const sameShape = Math.abs(shape.natural / shape.frame - 1) < 0.03
+      expect(
+        sameShape || shape.fit === 'contain',
+        `banner ${index + 1}: ${JSON.stringify(shape)}`,
+      ).toBe(true)
+    }
+  })
+
+  test('the first banner is shown whole, like a picture, with the same frame, arrows and dots', async ({
+    page,
+  }) => {
+    await page.goto('')
+    const carousel = page.getByRole('region', { name: 'באנרים' })
+    const first = carousel.getByRole('img').first()
+
+    await expect(first).toHaveCSS('object-fit', 'contain')
+    const frame = (await first.boundingBox())!
+    await carousel.getByRole('button', { name: 'הבא' }).click()
+    const second = (await carousel.getByRole('img').first().boundingBox())!
+    expect(Math.round(frame.width)).toBe(Math.round(second.width))
+    expect(Math.round(frame.height)).toBe(Math.round(second.height))
+  })
+})
+
 test.describe('product listing', () => {
   test('lists every product of the catalog', async ({ page }) => {
     await page.goto('products')
