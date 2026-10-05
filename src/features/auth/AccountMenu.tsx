@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { NavLink, useLocation, useNavigate } from 'react-router'
 import { paths } from '@/app/paths'
 import { LogoutIcon, UserIcon } from '@/components/icons'
 import { useToast } from '@/features/notifications/toastContext'
@@ -8,6 +8,12 @@ import { isProtectedPath } from './routing'
 
 const buttonClass =
   'inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-ink hover:bg-surface hover:text-brand'
+
+/** A link that looks like the buttons, highlighted while its own page is open. */
+const accountLinkClass = ({ isActive }: { isActive: boolean }) =>
+  isActive
+    ? 'inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-soft px-3 text-sm font-semibold text-brand'
+    : buttonClass
 
 /**
  * Sign-in link, or the signed-in visitor's name with a sign-out button.
@@ -40,14 +46,14 @@ export function AccountMenu({ variant }: { variant: 'header' | 'drawer' }) {
   if (!user) {
     return (
       <div className={variant === 'drawer' ? 'flex flex-col' : undefined}>
-        <Link to={paths.login} aria-label="התחברות" className={buttonClass}>
+        <NavLink to={paths.login} aria-label="התחברות" className={accountLinkClass}>
           <UserIcon />
           <span className={labelClass}>התחברות</span>
-        </Link>
+        </NavLink>
         {variant === 'drawer' && (
-          <Link to={paths.register} className={buttonClass}>
+          <NavLink to={paths.register} className={accountLinkClass}>
             <span className="ps-7">הרשמה</span>
-          </Link>
+          </NavLink>
         )}
       </div>
     )
@@ -63,7 +69,9 @@ export function AccountMenu({ variant }: { variant: 'header' | 'drawer' }) {
   }
 
   return (
-    <div className={variant === 'drawer' ? 'flex flex-col' : 'flex items-center'}>
+    // In the header the signed-in controls start from the sm breakpoint: on a phone, a lone
+    // sign-out icon next to the cart is too easy to hit by mistake. The menu has them instead.
+    <div className={variant === 'drawer' ? 'flex flex-col' : 'hidden items-center sm:flex'}>
       <p className={`px-3 text-sm text-muted ${variant === 'header' ? 'hidden lg:block' : 'py-2'}`}>
         שלום, <bdi className="font-semibold text-ink">{user.name}</bdi>
       </p>

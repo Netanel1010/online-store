@@ -334,3 +334,31 @@ describe('search matching and ranking', () => {
     expect(screen.getByText(/להסיר את הסינון/)).toBeInTheDocument()
   })
 })
+
+describe('clearing the search box', () => {
+  const clearButton = () => screen.queryByRole('button', { name: 'מחיקת הטקסט' })
+
+  it('shows a clear button only while there is text, and clearing keeps focus in the box', async () => {
+    renderApp('/', catalog)
+    expect(clearButton()).not.toBeInTheDocument()
+
+    await userEvent.type(headerSearchbox(), 'intel')
+    expect(clearButton()).toBeInTheDocument()
+
+    await userEvent.click(clearButton()!)
+    expect(headerSearchbox()).toHaveValue('')
+    expect(headerSearchbox()).toHaveFocus()
+    expect(clearButton()).not.toBeInTheDocument()
+    expect(url()).toBe('/')
+  })
+
+  it('also clears the text of the current search without changing the results', async () => {
+    renderApp('/search?q=intel', catalog)
+    await screen.findAllByRole('article')
+
+    await userEvent.click(clearButton()!)
+
+    expect(headerSearchbox()).toHaveValue('')
+    expect(cardNames()).toEqual(['Intel Core Ultra 7 265', 'Intel Cooler'])
+  })
+})

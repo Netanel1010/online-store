@@ -16,6 +16,19 @@
 
   /* Short fade for the incoming hero slide. Used as `motion-safe:animate-hero-fade`. */
   --animate-hero-fade: hero-fade 400ms ease-out;
+  /* Brief pop of the cart and favorites count when it changes. Used as `motion-safe:animate-badge-pop`. */
+  --animate-badge-pop: badge-pop 300ms ease-out;
+  @keyframes badge-pop {
+    0% {
+      transform: scale(0.6);
+    }
+    60% {
+      transform: scale(1.25);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
   @keyframes hero-fade {
     from {
       opacity: 0.35;
