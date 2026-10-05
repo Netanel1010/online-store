@@ -9,11 +9,13 @@ import { HERO_SLIDES } from '@/features/home/heroSlides'
 import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
 import { ProductGridSkeleton } from '@/features/products/components/ProductGrid'
 import { recommendedProducts, saleProducts } from '@/features/products/selectors'
+import { PageMeta } from '@/components/shared/PageMeta'
+import { homeMeta } from '@/lib/seo'
 
 export function HomePage() {
   return (
     <>
-      <title>N.M.S | חנות רכיבי מחשב</title>
+      <PageMeta meta={homeMeta()} />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>

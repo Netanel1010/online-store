@@ -110,7 +110,7 @@ test.describe('header search', () => {
 
     await page.getByRole('link', { name: 'לכל המוצרים' }).click()
 
-    await expect(page).toHaveURL(/\/online-store\/products$/)
+    await expect(page).toHaveURL(/\/online-store\/products\/?$/)
     await expect(page.getByRole('article')).toHaveCount(catalog.length)
   })
 
@@ -121,7 +121,7 @@ test.describe('header search', () => {
 
     await searchBox(page).fill('   ')
     await searchBox(page).press('Enter')
-    await expect(page).toHaveURL(/\/online-store\/products$/)
+    await expect(page).toHaveURL(/\/online-store\/products\/?$/)
 
     await page.goto('search')
     await expect(page.getByText('מה מחפשים?')).toBeVisible()

@@ -4,8 +4,27 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="חנות מקוונת לרכיבי מחשב" />
-    <title>Online Store</title>
+    <meta name="theme-color" content="#1d4ed8" />
+    <!-- The page's own tags are written here at build time (scripts/static-routes.mjs) and kept up
+         to date by the app. The ones below are the home page's, for the dev server. -->
+    <!-- seo:start -->
+    <title>N.M.S | חנות רכיבי מחשב</title>
+    <meta
+      name="description"
+      content="חנות רכיבי מחשב: מעבדים, כרטיסי מסך, לוחות אם, מסכים ועוד. פרויקט הדגמה ללא רכישה אמיתית."
+    />
+    <link rel="canonical" href="https://netanel1010.github.io/online-store/" />
+    <meta property="og:url" content="https://netanel1010.github.io/online-store/" />
+    <meta property="og:site_name" content="N.M.S" />
+    <meta property="og:locale" content="he_IL" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="N.M.S | חנות רכיבי מחשב" />
+    <meta
+      property="og:description"
+      content="חנות רכיבי מחשב: מעבדים, כרטיסי מסך, לוחות אם, מסכים ועוד. פרויקט הדגמה ללא רכישה אמיתית."
+    />
+    <meta name="twitter:card" content="summary" />
+    <!-- seo:end -->
     <!-- The catalog is needed by almost every page: request it now instead of after the script has run. -->
     <link rel="preload" href="%BASE_URL%data/products.json" as="fetch" crossorigin="anonymous" />
   </head>

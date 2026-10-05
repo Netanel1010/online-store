@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test'
 import { expect } from './test'
 
 /**
- * Runs axe-core (WCAG 2.0/2.1 level A and AA rules) on the page as it currently is, in a real
+ * Runs axe-core (WCAG 2.0, 2.1 and 2.2 level A and AA rules plus its best-practice rules) on the page as it currently is, in a real
  * browser, so rules that need rendering such as colour contrast are evaluated for real.
  *
  * Automated checks find a useful subset of problems (roughly a third to a half of WCAG issues).
@@ -11,7 +11,14 @@ import { expect } from './test'
  * reader behaviour, content quality and many criteria still need manual review.
  */
 export async function expectNoAxeViolations(page: Page, { exclude = [] as string[] } = {}) {
-  let builder = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+  let builder = new AxeBuilder({ page }).withTags([
+    'wcag2a',
+    'wcag2aa',
+    'wcag21a',
+    'wcag21aa',
+    'wcag22aa',
+    'best-practice',
+  ])
   for (const selector of exclude) builder = builder.exclude(selector)
   const { violations } = await builder.analyze()
 

@@ -4,6 +4,8 @@ import { AuthCard } from '@/features/auth/AuthCard'
 import { useCurrentUser } from '@/features/auth/authStore'
 import { LoginForm } from '@/features/auth/LoginForm'
 import { getRedirectTarget } from '@/features/auth/routing'
+import { PageMeta } from '@/components/shared/PageMeta'
+import { noindexMeta } from '@/lib/seo'
 
 export function LoginPage() {
   const user = useCurrentUser()
@@ -14,7 +16,7 @@ export function LoginPage() {
 
   return (
     <>
-      <title>התחברות | N.M.S</title>
+      <PageMeta meta={noindexMeta('התחברות')} />
       <AuthCard
         title="התחברות"
         footer={

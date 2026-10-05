@@ -147,16 +147,26 @@ test.describe('direct and deep routes under /online-store/', () => {
       await page.goto(path)
 
       await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible()
-      await expect(page).toHaveURL(new RegExp(`/online-store/${path.replace('?', '\\?')}$`))
+      // Pages that have their own HTML file are served from a folder, so the address may end
+      // with a slash.
+      const end = path.includes('?') ? '' : '/?'
+      await expect(page).toHaveURL(new RegExp(`/online-store/${path.replace('?', '\\?')}${end}$`))
     })
   }
 
   test('serves deep links through the 404.html fallback, like GitHub Pages', async ({ page }) => {
+    const response = await page.goto('cart')
+
+    // The static host has no file for the cart, so it answers with 404.html (and a 404 status);
+    // the app inside it reads the URL and renders the right page anyway.
+    expect(response?.status()).toBe(404)
+    await expect(page.getByRole('heading', { level: 1, name: 'עגלת קניות' })).toBeVisible()
+  })
+
+  test('serves a product page from its own file, so it can be indexed', async ({ page }) => {
     const response = await page.goto(`products/${PSU.id}`)
 
-    // The static host has no such file, so it answers with 404.html (and a 404 status); the app
-    // inside it reads the URL and renders the right page anyway.
-    expect(response?.status()).toBe(404)
+    expect(response?.status()).toBe(200)
     await expect(page.getByRole('heading', { level: 1, name: PSU.fullName })).toBeVisible()
   })
 

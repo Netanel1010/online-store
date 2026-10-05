@@ -23,7 +23,7 @@ test.describe('product details', () => {
 
     await page.getByRole('link', { name: PSU.name, exact: true }).click()
 
-    await expect(page).toHaveURL(new RegExp(`/online-store/products/${PSU.id}$`))
+    await expect(page).toHaveURL(new RegExp(`/online-store/products/${PSU.id}/?$`))
     await expect(page.getByRole('heading', { level: 1, name: PSU.fullName })).toBeVisible()
     await expect(page.getByText(PSU.id, { exact: true })).toBeVisible()
     await expect(page.getByText(PSU.warranty)).toBeVisible()

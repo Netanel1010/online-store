@@ -4,6 +4,8 @@ import { AuthCard } from '@/features/auth/AuthCard'
 import { useCurrentUser } from '@/features/auth/authStore'
 import { RegisterForm } from '@/features/auth/RegisterForm'
 import { getRedirectTarget } from '@/features/auth/routing'
+import { PageMeta } from '@/components/shared/PageMeta'
+import { noindexMeta } from '@/lib/seo'
 
 export function RegisterPage() {
   const user = useCurrentUser()
@@ -13,7 +15,7 @@ export function RegisterPage() {
 
   return (
     <>
-      <title>הרשמה | N.M.S</title>
+      <PageMeta meta={noindexMeta('הרשמה')} />
       <AuthCard
         title="הרשמה"
         footer={
