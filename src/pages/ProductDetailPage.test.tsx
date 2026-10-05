@@ -128,3 +128,86 @@ describe('ProductDetailPage', () => {
     expect(link).toHaveAttribute('href', '/products/GV-N406')
   })
 })
+
+describe('ProductDetailPage: gallery buttons and saving', () => {
+  const mainImage = () => screen.getByRole('img', { name: /Gigabyte RTX 4060 Ti - תמונה/ })
+
+  it('moves through the images with the previous and next buttons, and wraps around', async () => {
+    renderApp('/products/GV-N406', [product])
+    await screen.findByRole('heading', { level: 1 })
+
+    expect(mainImage()).toHaveAccessibleName(/תמונה 1 מתוך 2/)
+    await userEvent.click(screen.getByRole('button', { name: 'תמונה הבאה' }))
+    expect(mainImage()).toHaveAccessibleName(/תמונה 2 מתוך 2/)
+    await userEvent.click(screen.getByRole('button', { name: 'תמונה הבאה' }))
+    expect(mainImage()).toHaveAccessibleName(/תמונה 1 מתוך 2/)
+    await userEvent.click(screen.getByRole('button', { name: 'תמונה קודמת' }))
+    expect(mainImage()).toHaveAccessibleName(/תמונה 2 מתוך 2/)
+  })
+
+  it('keeps the thumbnails in sync with the buttons', async () => {
+    renderApp('/products/GV-N406', [product])
+    await screen.findByRole('heading', { level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'תמונה הבאה' }))
+
+    expect(screen.getByRole('button', { name: 'הצגת תמונה 2 מתוך 2' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByRole('button', { name: 'הצגת תמונה 1 מתוך 2' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+  })
+
+  it('shows "1 / 2" left to right (and hides it from screen readers: the image says it already)', async () => {
+    renderApp('/products/GV-N406', [product])
+    await screen.findByRole('heading', { level: 1 })
+
+    const counter = screen.getByText('1 / 2')
+    expect(counter).toHaveAttribute('dir', 'ltr')
+    expect(counter).toHaveAttribute('aria-hidden', 'true')
+    await userEvent.click(screen.getByRole('button', { name: 'תמונה הבאה' }))
+    expect(screen.getByText('2 / 2')).toBeInTheDocument()
+  })
+
+  it('has no buttons and no counter for a single image', async () => {
+    renderApp('/products/GV-N406', [
+      makeProduct({
+        ...product,
+        images: { card: 'x.webp', gallery: ['images/products/test/1.webp'] },
+      }),
+    ])
+    await screen.findByRole('heading', { level: 1 })
+
+    expect(screen.queryByRole('button', { name: 'תמונה הבאה' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'תמונה קודמת' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/\d \/ \d/)).not.toBeInTheDocument()
+  })
+
+  it('tells how much a product on sale saves, worked out from its two prices', async () => {
+    renderApp('/products/GV-N406', [
+      makeProduct({ ...product, price: { current: 2678, original: 3176 } }),
+    ])
+    await screen.findByRole('heading', { level: 1 })
+
+    expect(screen.getByText(/חיסכון של/)).toHaveTextContent(/498/)
+  })
+
+  it('does not mention a saving for a product that is not on sale', async () => {
+    renderApp('/products/GV-N406', [product])
+    await screen.findByRole('heading', { level: 1 })
+
+    expect(screen.queryByText(/חיסכון/)).not.toBeInTheDocument()
+  })
+
+  it('puts the price and the buy buttons in the same box', async () => {
+    renderApp('/products/GV-N406', [product])
+    await screen.findByRole('heading', { level: 1 })
+
+    const box = screen.getByRole('button', { name: /הוספה לעגלה/ }).closest('.rounded-xl')!
+    expect(box).toHaveTextContent(/2,138/)
+    expect(within(box as HTMLElement).getByRole('button', { name: /מועדפים/ })).toBeInTheDocument()
+  })
+})

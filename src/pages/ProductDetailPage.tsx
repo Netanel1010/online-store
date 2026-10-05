@@ -15,8 +15,8 @@ function ProductDetailSkeleton() {
   return (
     <div role="status" aria-live="polite">
       <span className="sr-only">טוען מוצר…</span>
-      <div aria-hidden="true" className="grid gap-8 lg:grid-cols-2">
-        <Skeleton className="aspect-square w-full" />
+      <div aria-hidden="true" className="grid gap-6 lg:grid-cols-2 lg:gap-10">
+        <Skeleton className="aspect-[4/3] w-full sm:aspect-square" />
         <div className="space-y-4">
           <Skeleton className="h-8 w-24" />
           <Skeleton className="h-9 w-full" />
