@@ -19,6 +19,15 @@ export function EmptyState({ title, as: Heading = 'h2', children, action }: Mess
   )
 }
 
+/** Shown while a page that loads on demand is being fetched. */
+export function PageLoading() {
+  return (
+    <div role="status" className="py-24 text-center text-muted">
+      טוען…
+    </div>
+  )
+}
+
 interface ErrorStateProps {
   title?: string
   children?: ReactNode

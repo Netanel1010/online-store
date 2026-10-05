@@ -21,6 +21,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
             src={assetUrl(mainImage)}
             alt={`${productName} - תמונה ${selected + 1} מתוך ${total}`}
             decoding="async"
+            fetchPriority="high"
             className="size-full object-contain"
           />
         )}

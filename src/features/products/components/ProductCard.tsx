@@ -13,6 +13,8 @@ interface ProductCardProps {
   headingAs?: 'h2' | 'h3'
   /** Slot for per-product controls (add to cart, favorite, ...). Rendered outside the card link. */
   actions?: ReactNode
+  /** Load the product image right away. For cards that are visible without scrolling. */
+  eager?: boolean
 }
 
 /**
@@ -20,7 +22,12 @@ interface ProductCardProps {
  * on the product name, so assistive technology hears a single link per product and `actions`
  * can hold real buttons without nesting interactive elements inside an anchor.
  */
-export function ProductCard({ product, headingAs: Heading = 'h3', actions }: ProductCardProps) {
+export function ProductCard({
+  product,
+  headingAs: Heading = 'h3',
+  actions,
+  eager = false,
+}: ProductCardProps) {
   const brand = BRANDS[product.brand]
   const discount = discountPercent(product.price)
 
@@ -31,7 +38,7 @@ export function ProductCard({ product, headingAs: Heading = 'h3', actions }: Pro
         <img
           src={assetUrl(product.images.card)}
           alt=""
-          loading="lazy"
+          loading={eager ? 'eager' : 'lazy'}
           decoding="async"
           className="size-full object-contain transition-transform duration-300 motion-safe:group-hover:scale-105"
         />

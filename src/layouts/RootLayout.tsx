@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
+import { PageLoading } from '@/components/shared/StateMessages'
 import { ToastProvider } from '@/features/notifications/ToastProvider'
 import { ShopStateReconciler } from '@/features/shop/ShopStateReconciler'
 
@@ -33,7 +34,9 @@ export function RootLayout() {
         <Header />
         <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 focus:outline-none">
           <div className="container-page py-8">
-            <Outlet />
+            <Suspense fallback={<PageLoading />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
         <Footer />

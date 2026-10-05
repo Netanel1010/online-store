@@ -168,7 +168,7 @@ export function ProductListing({
                 : 'אין מוצרים שמתאימים לסינון שנבחר.'}
             </EmptyState>
           ) : (
-            <ProductGrid products={results} headingAs="h2" />
+            <ProductGrid products={results} headingAs="h2" eagerCount={4} />
           )}
         </div>
       </div>

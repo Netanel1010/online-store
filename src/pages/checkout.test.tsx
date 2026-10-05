@@ -42,11 +42,14 @@ describe('checkout is protected', () => {
     await waitFor(() => expect(url()).toBe('/login'))
     expect(screen.queryByRole('heading', { name: 'סיום הזמנה' })).not.toBeInTheDocument()
 
-    await userEvent.type(screen.getByRole('textbox', { name: 'אימייל' }), 'someone@example.com')
+    await userEvent.type(
+      await screen.findByRole('textbox', { name: 'אימייל' }),
+      'someone@example.com',
+    )
     await userEvent.type(screen.getByLabelText(/^סיסמה/), 'whatever1')
     // No such account yet: register one through the link, which keeps the destination.
     await userEvent.click(screen.getByRole('link', { name: 'הרשמה' }))
-    await userEvent.type(screen.getByRole('textbox', { name: 'שם' }), GOOD.name)
+    await userEvent.type(await screen.findByRole('textbox', { name: 'שם' }), GOOD.name)
     await userEvent.type(screen.getByRole('textbox', { name: 'אימייל' }), GOOD.email)
     await userEvent.type(screen.getByLabelText(/^סיסמה/), GOOD.password)
     await userEvent.type(screen.getByLabelText(/^אימות סיסמה/), GOOD.password)

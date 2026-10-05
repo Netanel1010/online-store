@@ -1,18 +1,28 @@
+import { lazy } from 'react'
 import { Route, Routes } from 'react-router'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { RootLayout } from '@/layouts/RootLayout'
 import { CartPage } from '@/pages/CartPage'
 import { CategoryPage } from '@/pages/CategoryPage'
-import { CheckoutPage } from '@/pages/CheckoutPage'
-import { CheckoutSuccessPage } from '@/pages/CheckoutSuccessPage'
 import { FavoritesPage } from '@/pages/FavoritesPage'
 import { HomePage } from '@/pages/HomePage'
-import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProductDetailPage } from '@/pages/ProductDetailPage'
 import { ProductsPage } from '@/pages/ProductsPage'
-import { RegisterPage } from '@/pages/RegisterPage'
 import { SearchPage } from '@/pages/SearchPage'
+
+// The sign-in, registration and checkout pages are the only ones that use the form libraries, and
+// most visits never reach them, so they load on demand instead of with the first page.
+const LoginPage = lazy(() => import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })))
+const RegisterPage = lazy(() =>
+  import('@/pages/RegisterPage').then((m) => ({ default: m.RegisterPage })),
+)
+const CheckoutPage = lazy(() =>
+  import('@/pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })),
+)
+const CheckoutSuccessPage = lazy(() =>
+  import('@/pages/CheckoutSuccessPage').then((m) => ({ default: m.CheckoutSuccessPage })),
+)
 
 export function AppRoutes() {
   return (
