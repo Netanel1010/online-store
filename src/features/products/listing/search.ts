@@ -178,3 +178,21 @@ export function rankBySearch(products: readonly Product[], query: string): Produ
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map(({ product }) => product)
 }
+
+/** Suggestions are not offered for a single character: it would match nearly everything. */
+export const MIN_SUGGESTION_LENGTH = 2
+
+/**
+ * The best matches for what is being typed, for a list of suggestions. It is the same search as
+ * the results page (`searchMatches` and `rankBySearch`), cut short, so a suggestion is always a
+ * product the results page would list too, in the same order.
+ */
+export function suggestProducts(products: readonly Product[], query: string, limit = 5): Product[] {
+  if (searchWords(query).join('').length < MIN_SUGGESTION_LENGTH) return []
+  const found = searchMatches(products, query)
+  if (found === null) return []
+  return rankBySearch(
+    products.filter((product) => found.has(product)),
+    query,
+  ).slice(0, limit)
+}
