@@ -1,3 +1,4 @@
+import { SectionHeading } from '@/components/shared/SectionHeading'
 import { assetUrl } from '@/lib/assets'
 import { BRAND_IDS, BRANDS } from '@/features/products/brands'
 
@@ -5,10 +6,8 @@ import { BRAND_IDS, BRANDS } from '@/features/products/brands'
 export function BrandStrip() {
   return (
     <section aria-labelledby="home-brands-heading" className="mt-12">
-      <h2 id="home-brands-heading" className="mb-4 text-2xl font-bold">
-        מותגים
-      </h2>
-      <ul className="flex flex-wrap items-center gap-x-10 gap-y-6 rounded-xl border border-line bg-white px-6 py-6">
+      <SectionHeading id="home-brands-heading">מותגים</SectionHeading>
+      <ul className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6 rounded-xl border border-line bg-white px-6 py-8 md:justify-between">
         {BRAND_IDS.map((id) => (
           <li key={id}>
             <img
@@ -16,7 +15,7 @@ export function BrandStrip() {
               alt={BRANDS[id].name}
               loading="lazy"
               decoding="async"
-              className="h-10 w-auto"
+              className="h-10 w-auto opacity-70 grayscale transition duration-300 hover:opacity-100 hover:grayscale-0"
             />
           </li>
         ))}

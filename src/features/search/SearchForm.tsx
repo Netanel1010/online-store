@@ -50,7 +50,7 @@ export function SearchForm({ className = 'flex' }: { className?: string }) {
         placeholder="חיפוש מוצר, מותג או מק״ט"
         autoComplete="off"
         maxLength={100}
-        className="min-h-11 min-w-0 flex-1 rounded-s-lg border border-e-0 border-line bg-white px-3 text-base placeholder:text-muted/70"
+        className="min-h-11 min-w-0 flex-1 rounded-s-lg border border-e-0 border-line bg-surface px-3 text-base transition-colors placeholder:text-muted/70 focus:bg-white"
       />
       <button
         type="submit"

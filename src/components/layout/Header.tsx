@@ -9,14 +9,14 @@ import { mainLinks, navLinkClass } from './navigation'
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white">
+    <header className="sticky top-0 z-40 border-b border-line bg-white/95 shadow-sm backdrop-blur">
       <div className="container-page flex h-16 items-center gap-4">
         <MobileNav />
 
         <Link
           to={paths.home}
           aria-label="N.M.S - לדף הבית"
-          className="rounded-lg text-2xl font-extrabold tracking-wide text-brand"
+          className="rounded-lg text-2xl font-extrabold tracking-wide text-brand transition-colors hover:text-brand-strong"
         >
           <span dir="ltr">N.M.S</span>
         </Link>

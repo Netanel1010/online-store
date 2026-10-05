@@ -2,10 +2,10 @@ type Variant = 'primary' | 'secondary'
 type Size = 'md' | 'sm'
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition motion-safe:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand text-white hover:bg-brand-strong',
+  primary: 'bg-brand text-white shadow-sm hover:bg-brand-strong hover:shadow',
   secondary: 'border border-line bg-white text-ink hover:bg-surface',
 }
 

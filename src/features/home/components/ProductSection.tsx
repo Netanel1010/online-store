@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { SectionHeading } from '@/components/shared/SectionHeading'
 import { ProductGrid } from '@/features/products/components/ProductGrid'
 import type { Product } from '@/features/products/schema'
 
@@ -14,10 +15,8 @@ export function ProductSection({ title, products }: ProductSectionProps) {
 
   return (
     <section aria-labelledby={headingId} className="mt-12">
-      <h2 id={headingId} className="mb-4 text-2xl font-bold">
-        {title}
-      </h2>
-      <ProductGrid products={products} headingAs="h3" />
+      <SectionHeading id={headingId}>{title}</SectionHeading>
+      <ProductGrid products={products} headingAs="h3" wide />
     </section>
   )
 }
