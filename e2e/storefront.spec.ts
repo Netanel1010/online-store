@@ -35,18 +35,61 @@ test.describe('home page', () => {
     await expect(hero).toHaveAttribute('src', /^\/online-store\/images\/hero\//)
   })
 
-  test('carousel moves with its buttons and never rotates on its own', async ({ page }) => {
+  test('carousel moves with its buttons and stays on the chosen slide', async ({ page }) => {
     await page.goto('')
     const carousel = page.getByRole('region', { name: 'באנרים' })
     const firstAlt = await carousel.getByRole('img').first().getAttribute('alt')
 
-    await page.waitForTimeout(1500)
-    await expect(carousel.getByRole('img').first()).toHaveAttribute('alt', firstAlt ?? '')
-
+    await expect(carousel.getByRole('button', { name: /^באנר \d+ מתוך 8$/ })).toHaveCount(8)
     await carousel.getByRole('button', { name: 'הבא' }).click()
     await expect(carousel.getByRole('img').first()).not.toHaveAttribute('alt', firstAlt ?? '')
     await carousel.getByRole('button', { name: 'הקודם' }).click()
     await expect(carousel.getByRole('img').first()).toHaveAttribute('alt', firstAlt ?? '')
+  })
+
+  test('with reduced motion the carousel does not rotate and has no pause button', async ({
+    page,
+  }) => {
+    await page.goto('')
+    const carousel = page.getByRole('region', { name: 'באנרים' })
+    const firstAlt = await carousel.getByRole('img').first().getAttribute('alt')
+
+    await page.waitForTimeout(5000)
+
+    await expect(carousel.getByRole('img').first()).toHaveAttribute('alt', firstAlt ?? '')
+    await expect(carousel.getByRole('button', { name: /מעבר אוטומטי/ })).toHaveCount(0)
+  })
+})
+
+test.describe('home page carousel autoplay', () => {
+  test.use({ reducedMotion: 'no-preference' })
+
+  test('rotates by itself, pauses on hover and from the pause button', async ({ page }) => {
+    await page.goto('')
+    const carousel = page.getByRole('region', { name: 'באנרים' })
+    const currentAlt = () => carousel.getByRole('img').first().getAttribute('alt')
+    const firstAlt = await currentAlt()
+
+    await expect(carousel.getByRole('img').first()).not.toHaveAttribute('alt', firstAlt ?? '', {
+      timeout: 8000,
+    })
+
+    // Hovering holds the slide still.
+    await carousel.hover()
+    const held = await currentAlt()
+    await page.waitForTimeout(5000)
+    expect(await currentAlt()).toBe(held)
+
+    // The pause button stops it for good, also once the pointer has left.
+    await page.mouse.move(0, 0)
+    await carousel.getByRole('button', { name: 'השהיית מעבר אוטומטי בין הבאנרים' }).click()
+    await page.mouse.move(0, 0)
+    const paused = await currentAlt()
+    await page.waitForTimeout(5000)
+    expect(await currentAlt()).toBe(paused)
+    await expect(
+      carousel.getByRole('button', { name: 'הפעלת מעבר אוטומטי בין הבאנרים' }),
+    ).toBeVisible()
   })
 })
 

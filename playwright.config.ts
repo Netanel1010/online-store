@@ -23,6 +23,9 @@ export default defineConfig({
     baseURL: `http://localhost:${port}/online-store/`,
     locale: 'he-IL',
     timezoneId: 'Asia/Jerusalem',
+    // The hero carousel rotates by itself unless the visitor prefers reduced motion. Tests run
+    // with that preference so pages do not change under them; the autoplay test turns it off.
+    reducedMotion: 'reduce',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

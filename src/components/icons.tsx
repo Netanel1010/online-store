@@ -51,6 +51,23 @@ export function ChevronStartIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function PauseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon className="size-4" {...props}>
+      <path d="M8 5v14M16 5v14" />
+    </Icon>
+  )
+}
+
+/** A right-pointing triangle: play buttons keep their direction in RTL, like on a video player. */
+export function PlayIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon className="size-4" {...props}>
+      <path d="M8 5l11 7-11 7z" />
+    </Icon>
+  )
+}
+
 export function ExternalLinkIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon className="size-4" {...props}>
