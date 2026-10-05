@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="חנות מקוונת לרכיבי מחשב" />
     <title>Online Store</title>
+    <!-- The catalog is needed by almost every page: request it now instead of after the script has run. -->
+    <link rel="preload" href="%BASE_URL%data/products.json" as="fetch" crossorigin="anonymous" />
   </head>
   <body>
     <div id="root"></div>

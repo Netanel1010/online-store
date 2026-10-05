@@ -15,6 +15,8 @@ interface ProductGridProps {
   renderActions?: (product: Product) => ReactNode
   /** Use the extra column on wide screens. For grids that do not share the row with a panel. */
   wide?: boolean
+  /** How many of the first cards load their image right away (the ones above the fold). */
+  eagerCount?: number
 }
 
 const defaultActions = (product: Product) => <ProductCardActions product={product} />
@@ -24,12 +26,18 @@ export function ProductGrid({
   headingAs,
   renderActions = defaultActions,
   wide = false,
+  eagerCount = 0,
 }: ProductGridProps) {
   return (
     <ul className={wide ? wideGridClass : gridClass}>
-      {products.map((product) => (
+      {products.map((product, index) => (
         <li key={product.id}>
-          <ProductCard product={product} headingAs={headingAs} actions={renderActions(product)} />
+          <ProductCard
+            product={product}
+            headingAs={headingAs}
+            actions={renderActions(product)}
+            eager={index < eagerCount}
+          />
         </li>
       ))}
     </ul>

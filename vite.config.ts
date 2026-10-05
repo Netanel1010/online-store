@@ -8,6 +8,22 @@ import { defineConfig } from 'vite'
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? '/online-store/' : '/',
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        // Libraries change much less often than the app. Keeping them in their own files means a
+        // returning visitor only downloads the app code again after a deployment. The form
+        // libraries are left out on purpose: they belong to the lazily loaded pages.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react'
+          if (id.includes('react-router') || id.includes('zustand')) return 'router'
+          if (id.includes('node_modules/zod')) return 'zod'
+          return undefined
+        },
+      },
+    },
+  },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

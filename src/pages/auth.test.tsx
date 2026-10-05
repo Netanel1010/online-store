@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { useAuthStore } from '@/features/auth/authStore'
 import { useCartStore } from '@/features/cart/cartStore'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
+import type { Product } from '@/features/products/schema'
 import { makeProduct } from '@/test/fixtures'
 import { renderApp } from '@/test/renderApp'
 
@@ -16,6 +17,13 @@ const confirmBox = () => screen.getByLabelText(/^אימות סיסמה/)
 const nameBox = () => screen.getByRole('textbox', { name: 'שם' })
 const submit = (name: string) => userEvent.click(screen.getByRole('button', { name }))
 
+/** The sign-in and registration pages load on demand, so wait until the page has appeared. */
+async function openPage(path: '/login' | '/register', catalog?: Product[]) {
+  const view = renderApp(path, catalog)
+  await screen.findByRole('heading', { level: 1 })
+  return view
+}
+
 /** An existing account, signed out, as if the visitor registered earlier. */
 async function seedAccount() {
   await auth().register(GOOD)
@@ -23,15 +31,15 @@ async function seedAccount() {
 }
 
 describe('login form', () => {
-  it('explains that this is a demo without real security', () => {
-    renderApp('/login')
+  it('explains that this is a demo without real security', async () => {
+    await openPage('/login')
 
     expect(screen.getByRole('complementary', { name: 'הערה' })).toHaveTextContent('אתר הדגמה')
     expect(screen.getByRole('complementary', { name: 'הערה' })).toHaveTextContent('אינה מאובטחת')
   })
 
   it('validates required fields and focuses the first invalid one', async () => {
-    renderApp('/login')
+    await openPage('/login')
 
     await submit('התחברות')
 
@@ -44,7 +52,7 @@ describe('login form', () => {
   })
 
   it('rejects a malformed email', async () => {
-    renderApp('/login')
+    await openPage('/login')
 
     await userEvent.type(emailBox(), 'not-an-email')
     await userEvent.type(passwordBox(), 'whatever1')
@@ -54,7 +62,7 @@ describe('login form', () => {
   })
 
   it('clears an error once the field is fixed', async () => {
-    renderApp('/login')
+    await openPage('/login')
     await submit('התחברות')
     expect(await screen.findByText('יש להזין כתובת אימייל')).toBeInTheDocument()
 
@@ -66,7 +74,7 @@ describe('login form', () => {
 
   it('shows one vague error for a wrong password and for an unknown email', async () => {
     await seedAccount()
-    renderApp('/login')
+    await openPage('/login')
 
     await userEvent.type(emailBox(), GOOD.email)
     await userEvent.type(passwordBox(), 'WrongPass1')
@@ -84,7 +92,7 @@ describe('login form', () => {
 
   it('signs in with the right credentials and goes to the home page', async () => {
     await seedAccount()
-    renderApp('/login')
+    await openPage('/login')
 
     await userEvent.type(emailBox(), GOOD.email)
     await userEvent.type(passwordBox(), GOOD.password)
@@ -95,8 +103,8 @@ describe('login form', () => {
     expect(screen.getByText('התחברתם בהצלחה', { selector: 'p' })).toBeInTheDocument()
   })
 
-  it('links to registration', () => {
-    renderApp('/login')
+  it('links to registration', async () => {
+    await openPage('/login')
 
     expect(screen.getByRole('link', { name: 'הרשמה' })).toHaveAttribute('href', '/register')
   })
@@ -104,7 +112,7 @@ describe('login form', () => {
 
 describe('registration form', () => {
   it('validates every field', async () => {
-    renderApp('/register')
+    await openPage('/register')
 
     await submit('יצירת חשבון')
 
@@ -117,7 +125,7 @@ describe('registration form', () => {
   })
 
   it('rejects a weak password and a mismatched confirmation', async () => {
-    renderApp('/register')
+    await openPage('/register')
 
     await userEvent.type(nameBox(), GOOD.name)
     await userEvent.type(emailBox(), GOOD.email)
@@ -130,14 +138,14 @@ describe('registration form', () => {
     expect(auth().users).toEqual([])
   })
 
-  it('tells the visitor about the password rules up front', () => {
-    renderApp('/register')
+  it('tells the visitor about the password rules up front', async () => {
+    await openPage('/register')
 
     expect(passwordBox()).toHaveAccessibleDescription('לפחות 8 תווים, כולל אות וספרה.')
   })
 
   it('creates the account, signs in and goes to the home page', async () => {
-    renderApp('/register')
+    await openPage('/register')
 
     await userEvent.type(nameBox(), GOOD.name)
     await userEvent.type(emailBox(), GOOD.email)
@@ -153,7 +161,7 @@ describe('registration form', () => {
 
   it('reports an email that is already registered on the email field', async () => {
     await seedAccount()
-    renderApp('/register')
+    await openPage('/register')
 
     await userEvent.type(nameBox(), 'מישהו אחר')
     await userEvent.type(emailBox(), GOOD.email.toUpperCase())
@@ -207,11 +215,11 @@ describe('signed-in state and logout', () => {
   it('redirects a signed-in visitor away from the login and registration pages', async () => {
     await auth().register(GOOD)
 
-    const { unmount } = renderApp('/login')
+    const { unmount } = await openPage('/login')
     await waitFor(() => expect(url()).toBe('/'))
     unmount()
 
-    renderApp('/register')
+    await openPage('/register')
     await waitFor(() => expect(url()).toBe('/'))
   })
 
@@ -238,7 +246,7 @@ describe('cart and favorites are unaffected by signing in and out', () => {
     useCartStore.getState().addItem('P-1', 2)
     useFavoritesStore.getState().toggle('P-1')
     await seedAccount()
-    renderApp('/login', [product])
+    await openPage('/login', [product])
 
     await userEvent.type(emailBox(), GOOD.email)
     await userEvent.type(passwordBox(), GOOD.password)

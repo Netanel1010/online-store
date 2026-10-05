@@ -115,6 +115,7 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
                 src={assetUrl(slide.image)}
                 alt={slide.alt}
                 loading={index === 0 ? 'eager' : 'lazy'}
+                fetchPriority={index === 0 ? 'high' : undefined}
                 decoding="async"
                 className="aspect-[2/1] w-full object-cover sm:aspect-[1834/788] sm:max-h-[33rem]"
               />
