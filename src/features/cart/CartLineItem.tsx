@@ -18,7 +18,9 @@ export function CartLineItem({ line, onRemove }: CartLineItemProps) {
   const setQuantity = useCartStore((state) => state.setQuantity)
 
   return (
-    <li className="flex flex-wrap items-start gap-4 py-5 sm:flex-nowrap">
+    // A grid, so on a phone the controls and the total get the whole width under the picture and the
+    // name, and from the sm breakpoint they line up under the name.
+    <li className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 py-5">
       <Link
         to={paths.product(product.id)}
         // A second link to the same page whose only content is a decorative image: it has no
@@ -26,7 +28,7 @@ export function CartLineItem({ line, onRemove }: CartLineItemProps) {
         // product name link below is the link for keyboards and screen readers.
         aria-hidden="true"
         tabIndex={-1}
-        className="shrink-0 rounded-lg border border-line bg-white p-2"
+        className="h-fit shrink-0 rounded-lg border border-line bg-white p-2 sm:row-span-2"
       >
         {/* Decorative: the product name next to it is the link that matters. */}
         <img
@@ -34,7 +36,7 @@ export function CartLineItem({ line, onRemove }: CartLineItemProps) {
           alt=""
           loading="lazy"
           decoding="async"
-          className="size-20 object-contain sm:size-24"
+          className="size-16 object-contain sm:size-24"
         />
       </Link>
 
@@ -50,8 +52,12 @@ export function CartLineItem({ line, onRemove }: CartLineItemProps) {
         <div className="mt-2">
           <Price price={product.price} />
         </div>
+      </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-3">
+      {/* What to change on one side, what it comes to on the other: the total of the line sits
+          right next to the quantity that makes it. */}
+      <div className="col-span-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 sm:col-span-1 sm:col-start-2">
+        <div className="flex flex-wrap items-center gap-2">
           <QuantityStepper
             value={quantity}
             max={MAX_QUANTITY}
@@ -62,18 +68,18 @@ export function CartLineItem({ line, onRemove }: CartLineItemProps) {
             type="button"
             aria-label={`הסרת ${product.name} מהעגלה`}
             onClick={() => onRemove(product.id)}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm text-muted hover:bg-surface hover:text-sale"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm text-muted transition-colors hover:bg-sale-soft hover:text-sale"
           >
             <TrashIcon className="size-4" />
             הסרה
           </button>
         </div>
-      </div>
 
-      <p className="w-full text-end text-lg font-bold sm:w-auto sm:min-w-24">
-        <span className="sr-only">סה&quot;כ לשורה: </span>
-        {formatPrice(product.price.current * quantity)}
-      </p>
+        <p className="text-lg font-bold">
+          <span className="sr-only">סה&quot;כ לשורה: </span>
+          {formatPrice(product.price.current * quantity)}
+        </p>
+      </div>
     </li>
   )
 }

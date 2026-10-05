@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 import { FormAlert } from '@/components/shared/Notices'
 import { Button } from '@/components/ui/Button'
@@ -11,9 +12,11 @@ interface CheckoutFormProps {
   defaultValues: Pick<CheckoutValues, 'fullName' | 'email'>
   /** Returns an error message to show at the top of the form when the order could not be placed. */
   onSubmit: (values: CheckoutValues) => Promise<SubmitOutcome> | SubmitOutcome
+  /** Shown just above the submit button, e.g. the total being confirmed. */
+  totalNote?: ReactNode
 }
 
-export function CheckoutForm({ defaultValues, onSubmit }: CheckoutFormProps) {
+export function CheckoutForm({ defaultValues, onSubmit, totalNote }: CheckoutFormProps) {
   const {
     register,
     handleSubmit,
@@ -44,8 +47,10 @@ export function CheckoutForm({ defaultValues, onSubmit }: CheckoutFormProps) {
     <form onSubmit={submit} noValidate className="space-y-6">
       {errors.root?.message && <FormAlert>{errors.root.message}</FormAlert>}
 
-      <fieldset className="space-y-4">
-        <legend className="mb-2 text-lg font-bold">פרטי קשר</legend>
+      <p className="text-sm text-muted">שדות חובה מסומנים בכוכבית (*).</p>
+
+      <fieldset className="space-y-4 rounded-xl border border-line bg-white p-5">
+        <legend className="px-2 text-lg font-bold">פרטי קשר</legend>
         <TextField
           label="שם מלא"
           autoComplete="name"
@@ -75,8 +80,8 @@ export function CheckoutForm({ defaultValues, onSubmit }: CheckoutFormProps) {
         </div>
       </fieldset>
 
-      <fieldset className="space-y-4">
-        <legend className="mb-2 text-lg font-bold">כתובת למשלוח</legend>
+      <fieldset className="space-y-4 rounded-xl border border-line bg-white p-5">
+        <legend className="px-2 text-lg font-bold">כתובת למשלוח</legend>
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
             label="עיר"
@@ -129,7 +134,10 @@ export function CheckoutForm({ defaultValues, onSubmit }: CheckoutFormProps) {
         {...register('acceptDemo')}
       />
 
-      <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+      {/* Under the button's own box on a phone, where the summary is far below the form. */}
+      {totalNote}
+
+      <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto sm:min-w-56">
         {isSubmitting ? 'שולח…' : 'אישור הזמנה (הדגמה)'}
       </Button>
     </form>

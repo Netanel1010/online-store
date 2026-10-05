@@ -376,3 +376,60 @@ test.describe('product page layout', () => {
     })
   })
 })
+
+test.describe('cart layout', () => {
+  test('keeps the quantity, the remove button and the line total on one row, with big touch targets', async ({
+    page,
+  }) => {
+    await addToCartFromProductPage(page, PSU)
+    await page.goto('cart')
+    const minus = page.getByRole('button', { name: `הפחתת כמות: ${PSU.name}` })
+    const plus = page.getByRole('button', { name: `הגדלת כמות: ${PSU.name}` })
+    const remove = page.getByRole('button', { name: `הסרת ${PSU.name} מהעגלה` })
+    const lineTotal = page.getByText('סה"כ לשורה:').locator('xpath=..')
+
+    for (const target of [minus, plus, remove]) {
+      const box = (await target.boundingBox())!
+      expect(box.height).toBeGreaterThanOrEqual(43)
+      expect(box.width).toBeGreaterThanOrEqual(43)
+    }
+    const stepper = (await plus.boundingBox())!
+    const total = (await lineTotal.boundingBox())!
+    expect(Math.abs(stepper.y + stepper.height / 2 - (total.y + total.height / 2))).toBeLessThan(30)
+  })
+
+  test('offers to keep shopping from the cart', async ({ page }) => {
+    await addToCartFromProductPage(page, PSU)
+    await page.goto('cart')
+
+    await summary(page).getByRole('link', { name: 'המשך בקניות' }).click()
+
+    await expect(page).toHaveURL(/\/online-store\/products\/?$/)
+  })
+
+  test.describe('on a phone', () => {
+    test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true })
+
+    test('shows the controls and the line total on one row, below the product', async ({
+      page,
+    }) => {
+      await addToCartFromProductPage(page, PSU)
+      await page.goto('cart')
+      const plus = page.getByRole('button', { name: `הגדלת כמות: ${PSU.name}` })
+      const lineTotal = page.getByText('סה"כ לשורה:').locator('xpath=..')
+      const name = page.getByRole('link', { name: PSU.name, exact: true })
+
+      const stepper = (await plus.boundingBox())!
+      const total = (await lineTotal.boundingBox())!
+      const title = (await name.boundingBox())!
+      expect(Math.abs(stepper.y + stepper.height / 2 - (total.y + total.height / 2))).toBeLessThan(
+        30,
+      )
+      expect(stepper.y).toBeGreaterThan(title.y + title.height)
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    })
+  })
+})

@@ -363,3 +363,40 @@ describe('valid checkout submission', () => {
     expect(screen.getByRole('link', { name: 'לדף הבית' })).toBeInTheDocument()
   })
 })
+
+describe('checkout form layout', () => {
+  it('groups the fields into two named sections and says which ones are required', async () => {
+    await signIn()
+    useCartStore.getState().addItem('PSU-1')
+    renderApp('/checkout', catalog)
+    await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+    expect(screen.getByRole('group', { name: 'פרטי קשר' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'כתובת למשלוח' })).toBeInTheDocument()
+    expect(screen.getByText('שדות חובה מסומנים בכוכבית (*).')).toBeInTheDocument()
+  })
+
+  it('repeats the total just above the submit button, for a phone where the summary is far away', async () => {
+    await signIn()
+    useCartStore.getState().addItem('PSU-1')
+    useCartStore.getState().addItem('GPU-1', 2)
+    renderApp('/checkout', catalog)
+    await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+    const note = screen.getByText('סה"כ להזמנה').closest('p')!
+    expect(note).toHaveTextContent(/2,500/)
+    // It sits right before the submit button in the form.
+    expect(note.nextElementSibling).toBe(
+      screen.getByRole('button', { name: 'אישור הזמנה (הדגמה)' }),
+    )
+  })
+
+  it('does not change the order summary, which still has exactly one total', async () => {
+    await signIn()
+    useCartStore.getState().addItem('PSU-1')
+    renderApp('/checkout', catalog)
+    await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+    expect(within(summary()).getAllByText('סה"כ')).toHaveLength(1)
+  })
+})
