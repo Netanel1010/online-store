@@ -9,7 +9,7 @@ interface QuantityStepperProps {
 }
 
 const stepButton =
-  'inline-flex size-10 items-center justify-center text-lg font-semibold hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40'
+  'inline-flex size-11 items-center justify-center text-lg font-semibold transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40'
 
 /**
  * Quantity control: minus/plus buttons and a numeric field. While typing, the field shows the
@@ -23,7 +23,7 @@ export function QuantityStepper({ value, onChange, label, max }: QuantityStepper
     <div
       role="group"
       aria-label={`כמות: ${label}`}
-      className="inline-flex rounded-lg border border-line"
+      className="inline-flex overflow-hidden rounded-lg border border-line"
     >
       <button
         type="button"
@@ -56,7 +56,7 @@ export function QuantityStepper({ value, onChange, label, max }: QuantityStepper
         onKeyDown={(event) => {
           if (event.key === 'Enter') event.currentTarget.blur()
         }}
-        className="w-12 border-x border-line text-center text-base tabular-nums"
+        className="h-11 w-14 border-x border-line bg-white text-center text-base tabular-nums"
       />
       <button
         type="button"

@@ -188,3 +188,28 @@ describe('header cart badge', () => {
     expect(await screen.findByRole('link', { name: /עגלת קניות/ })).toHaveTextContent('99+')
   })
 })
+
+describe('cart page layout', () => {
+  it('offers a way to keep shopping next to the checkout button', async () => {
+    useCartStore.getState().addItem('PSU-1')
+    renderApp('/cart', catalog)
+    await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+    expect(within(summary()).getByRole('link', { name: 'המשך בקניות' })).toHaveAttribute(
+      'href',
+      '/products',
+    )
+    expect(within(summary()).getByRole('link', { name: 'מעבר לסיום ההזמנה' })).toBeInTheDocument()
+  })
+
+  it('shows the total of a line next to its quantity and remove controls', async () => {
+    useCartStore.getState().addItem('GPU-1', 2)
+    renderApp('/cart', catalog)
+    await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+    const remove = screen.getByRole('button', { name: /הסרת/ })
+    const controls = remove.parentElement!.parentElement!
+    expect(within(controls).getByRole('group', { name: /כמות/ })).toBeInTheDocument()
+    expect(within(controls).getByText(/סה"כ לשורה/).parentElement).toHaveTextContent(/1,500/)
+  })
+})

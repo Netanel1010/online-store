@@ -86,6 +86,12 @@ export function CartPage() {
                 <Link to={paths.checkout} className={`${buttonStyles()} w-full`}>
                   מעבר לסיום ההזמנה
                 </Link>
+                <Link
+                  to={paths.products}
+                  className="mt-3 block rounded text-center text-sm text-brand underline-offset-4 hover:underline"
+                >
+                  המשך בקניות
+                </Link>
                 {!user && (
                   <p className="mt-2 text-center text-xs text-muted">
                     כדי להמשיך תתבקשו להתחבר או להירשם.

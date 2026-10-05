@@ -14,7 +14,7 @@ export function OrderSummary({
   return (
     <aside
       aria-labelledby="order-summary-heading"
-      className="rounded-xl border border-line bg-surface p-5 lg:sticky lg:top-40"
+      className="rounded-xl border border-line bg-white p-5 shadow-sm lg:sticky lg:top-40"
     >
       <h2 id="order-summary-heading" className="text-lg font-bold">
         סיכום הזמנה
@@ -39,9 +39,9 @@ export function OrderSummary({
             </div>
           </>
         )}
-        <div className="flex justify-between gap-4 border-t border-line pt-3 text-lg font-bold">
+        <div className="flex items-baseline justify-between gap-4 border-t border-line pt-3 text-lg font-bold">
           <dt>סה&quot;כ</dt>
-          <dd>{formatPrice(summary.total)}</dd>
+          <dd className="text-2xl">{formatPrice(summary.total)}</dd>
         </div>
       </dl>
 

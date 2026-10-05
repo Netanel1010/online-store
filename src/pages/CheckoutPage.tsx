@@ -20,6 +20,7 @@ import type { CheckoutValues } from '@/features/checkout/schema'
 import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
 import type { Product } from '@/features/products/schema'
 import { PageMeta } from '@/components/shared/PageMeta'
+import { formatPrice } from '@/lib/format'
 import { noindexMeta } from '@/lib/seo'
 
 function CheckoutSkeleton() {
@@ -106,6 +107,12 @@ export function CheckoutPage() {
                 <CheckoutForm
                   defaultValues={{ fullName: user?.name ?? '', email: user?.email ?? '' }}
                   onSubmit={placeOrder(products)}
+                  totalNote={
+                    <p className="flex items-baseline justify-between gap-4 rounded-xl bg-brand-soft px-4 py-3 lg:hidden">
+                      <span className="text-sm font-semibold">סה&quot;כ להזמנה</span>
+                      <strong className="text-xl">{formatPrice(summarizeCart(lines).total)}</strong>
+                    </p>
+                  }
                 />
               </div>
 
