@@ -433,3 +433,66 @@ test.describe('cart layout', () => {
     })
   })
 })
+
+test.describe('favorites page', () => {
+  async function favorite(page: import('@playwright/test').Page, ...products: (typeof PSU)[]) {
+    for (const product of products) {
+      await page.goto(`products/${product.id}`)
+      await page.getByRole('button', { name: `מועדפים: ${product.name}` }).click()
+    }
+  }
+
+  test('adds all favorites to the cart at once, and then offers the cart', async ({ page }) => {
+    await favorite(page, PSU, RAM)
+    await page.goto('favorites')
+
+    await page.getByRole('button', { name: 'הוספת הכול לעגלה' }).click()
+
+    await expect(cartLink(page)).toHaveAccessibleName('עגלת קניות, 2 פריטים')
+    await expect(page.getByRole('link', { name: /הכול כבר בעגלה/ })).toBeVisible()
+    await expect(page.getByRole('article')).toHaveCount(2)
+  })
+
+  test('removes a favorite with the heart button and keeps the keyboard at the top', async ({
+    page,
+  }) => {
+    await favorite(page, PSU, RAM)
+    await page.goto('favorites')
+
+    await page.getByRole('button', { name: `הסרת ${PSU.name} מהמועדפים` }).focus()
+    await page.keyboard.press('Enter')
+
+    await expect(page.getByRole('article')).toHaveCount(1)
+    await expect(page.getByRole('heading', { level: 1, name: 'מועדפים' })).toBeFocused()
+  })
+
+  test('shows recommended products when there are no favorites', async ({ page }) => {
+    await page.goto('favorites')
+
+    await expect(page.getByText('אין מוצרים במועדפים')).toBeVisible()
+    await expect(
+      page.getByRole('region', { name: 'מומלצים' }).getByRole('article').first(),
+    ).toBeVisible()
+  })
+
+  test.describe('on a phone', () => {
+    test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true })
+
+    test('has no horizontal scrolling, with big touch targets for the card buttons', async ({
+      page,
+    }) => {
+      await favorite(page, PSU)
+      await page.goto('favorites')
+      const remove = page.getByRole('button', { name: `הסרת ${PSU.name} מהמועדפים` })
+      await expect(remove).toBeVisible()
+
+      const box = (await remove.boundingBox())!
+      expect(box.width).toBeGreaterThanOrEqual(43)
+      expect(box.height).toBeGreaterThanOrEqual(43)
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    })
+  })
+})

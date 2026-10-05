@@ -102,3 +102,83 @@ describe('header favorites badge', () => {
     expect(screen.getByRole('link', { name: 'מועדפים, 1 פריטים' })).toHaveTextContent('1')
   })
 })
+
+describe('FavoritesPage: cart connection and layout', () => {
+  const cartItems = () => useCartStore.getState().items
+
+  it('adds every favorite to the cart with one button and tells how many were added', async () => {
+    useFavoritesStore.getState().toggle('PSU-1')
+    useFavoritesStore.getState().toggle('GPU-1')
+    renderApp('/favorites', catalog)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'הוספת הכול לעגלה' }))
+
+    expect(cartItems()).toEqual([
+      { productId: 'PSU-1', quantity: 1 },
+      { productId: 'GPU-1', quantity: 1 },
+    ])
+    expect(await screen.findByText('2 מוצרים נוספו לעגלה')).toBeInTheDocument()
+    expect(useFavoritesStore.getState().ids).toEqual(['PSU-1', 'GPU-1'])
+  })
+
+  it('only adds the favorites that are not in the cart yet, and keeps their quantities', async () => {
+    useCartStore.getState().addItem('PSU-1', 3)
+    useFavoritesStore.getState().toggle('PSU-1')
+    useFavoritesStore.getState().toggle('GPU-1')
+    renderApp('/favorites', catalog)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'הוספת השאר לעגלה (1)' }))
+
+    expect(cartItems()).toEqual([
+      { productId: 'PSU-1', quantity: 3 },
+      { productId: 'GPU-1', quantity: 1 },
+    ])
+    expect(await screen.findByText('מוצר אחד נוסף לעגלה')).toBeInTheDocument()
+  })
+
+  it('offers the cart instead once everything is already in it', async () => {
+    useCartStore.getState().addItem('PSU-1')
+    useFavoritesStore.getState().toggle('PSU-1')
+    renderApp('/favorites', catalog)
+
+    expect(await screen.findByRole('link', { name: /הכול כבר בעגלה/ })).toHaveAttribute(
+      'href',
+      '/cart',
+    )
+    expect(screen.queryByRole('button', { name: /הוספת הכול|הוספת השאר/ })).not.toBeInTheDocument()
+  })
+
+  it('keeps the remove control a named button, with the filled heart as its icon', async () => {
+    useFavoritesStore.getState().toggle('PSU-1')
+    renderApp('/favorites', catalog)
+
+    const remove = await screen.findByRole('button', { name: 'הסרת ספק כוח מהמועדפים' })
+
+    expect(remove).toHaveTextContent('')
+    expect(remove.querySelector('svg')).not.toBeNull()
+  })
+
+  it('suggests the recommended products when there are no favorites', async () => {
+    const recommended = makeProduct({ id: 'REC-1', name: 'מוצר מומלץ', isRecommended: true })
+    renderApp('/favorites', [psu, recommended])
+
+    expect(await screen.findByText('אין מוצרים במועדפים')).toBeInTheDocument()
+    const section = screen.getByRole('region', { name: 'מומלצים' })
+    expect(within(section).getByRole('link', { name: 'מוצר מומלץ' })).toBeInTheDocument()
+  })
+
+  it('shows no suggestions when nothing is recommended, and none next to real favorites', async () => {
+    renderApp('/favorites', catalog)
+    expect(await screen.findByText('אין מוצרים במועדפים')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'מומלצים' })).not.toBeInTheDocument()
+  })
+
+  it('does not suggest anything while there are favorites', async () => {
+    const recommended = makeProduct({ id: 'REC-1', name: 'מוצר מומלץ', isRecommended: true })
+    useFavoritesStore.getState().toggle('PSU-1')
+    renderApp('/favorites', [psu, recommended])
+
+    await screen.findAllByRole('article')
+    expect(screen.queryByRole('region', { name: 'מומלצים' })).not.toBeInTheDocument()
+  })
+})
