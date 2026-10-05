@@ -17,8 +17,10 @@ export function HomePage() {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">חנות רכיבי מחשב</h1>
-          <p className="mt-1 text-muted">מעבדים, כרטיסי מסך, לוחות אם, מסכים ועוד.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">חנות רכיבי מחשב</h1>
+          <p className="mt-1 text-base text-muted md:text-lg">
+            מעבדים, כרטיסי מסך, לוחות אם, מסכים ועוד.
+          </p>
         </div>
         <Link to={paths.products} className={buttonStyles()}>
           לכל המוצרים

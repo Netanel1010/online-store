@@ -25,18 +25,18 @@ export function ProductCard({ product, headingAs: Heading = 'h3', actions }: Pro
   const discount = discountPercent(product.price)
 
   return (
-    <article className="relative flex h-full flex-col overflow-hidden rounded-xl border border-line bg-white transition-shadow focus-within:shadow-md hover:shadow-md">
-      <div className="relative aspect-square p-4">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-line bg-white transition duration-200 focus-within:border-brand/40 focus-within:shadow-lg motion-safe:hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-lg">
+      <div className="relative aspect-[4/3] p-4 sm:aspect-square">
         {/* Decorative: the product name in the link below already describes it. */}
         <img
           src={assetUrl(product.images.card)}
           alt=""
           loading="lazy"
           decoding="async"
-          className="size-full object-contain"
+          className="size-full object-contain transition-transform duration-300 motion-safe:group-hover:scale-105"
         />
         {discount !== undefined && (
-          <span className="absolute start-3 top-3 rounded bg-sale px-2 py-0.5 text-xs font-bold text-white">
+          <span className="absolute start-3 top-3 rounded-full bg-sale px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
             מבצע
           </span>
         )}

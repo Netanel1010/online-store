@@ -6,7 +6,7 @@ import { HERO_AUTOPLAY_DELAY_MS, type HeroSlide } from '../heroSlides'
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
 
 const arrowClass =
-  'absolute top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink shadow hover:bg-white'
+  'absolute top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink shadow transition hover:scale-105 hover:bg-white'
 
 function subscribeToReducedMotion(onChange: () => void) {
   if (typeof window.matchMedia !== 'function') return () => {}
@@ -98,7 +98,7 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
       onFocus={() => setFocused(true)}
       onBlur={handleBlur}
     >
-      <div className="relative overflow-hidden rounded-2xl bg-black">
+      <div className="relative overflow-hidden rounded-2xl bg-black shadow-lg">
         <div aria-live={advancing ? 'off' : 'polite'}>
           {slides.map((slide, index) => (
             <div
