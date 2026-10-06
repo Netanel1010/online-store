@@ -36,6 +36,11 @@ the GitHub Pages base path. Vitest ignores `e2e/`; Playwright ignores `src/`.
 - **Safety net:** `e2e/support/test.ts` fails any test on an uncaught error, console error, failed
   request or failing asset. Only the console echo of a deep link's own `404.html` response is
   ignored.
+  A request the page cancels on purpose (a filter changes while the listing loads) is the one
+  exception, and it is not recognised by its error text: the page reports every request whose
+  `AbortSignal` it aborts, and only an `ERR_ABORTED` fetch for an address the page itself
+  cancelled is excused (`e2e/support/requestFailures.ts`, tested by `e2e/safety-net.spec.ts`).
+  Any other failure, including an abort the page did not cause, still fails the test.
 - URL-driven pages apply navigation a moment after a click, so tests wait for the URL (or use
   auto-retrying assertions) before reading the page, rather than sleeping.
 
