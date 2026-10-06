@@ -7,12 +7,12 @@ import { useAuthStatus, useAuthStore, useCurrentUser } from './authStore'
 import { isProtectedPath } from './routing'
 
 const buttonClass =
-  'inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-ink hover:bg-surface hover:text-brand'
+  'inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-ink hover:bg-surface hover:text-brand'
 
 /** A link that looks like the buttons, highlighted while its own page is open. */
 const accountLinkClass = ({ isActive }: { isActive: boolean }) =>
   isActive
-    ? 'inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-soft px-3 text-sm font-semibold text-brand'
+    ? 'inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-brand-soft px-3 text-sm font-semibold text-brand'
     : buttonClass
 
 /**

@@ -25,8 +25,8 @@ export function Header() {
   useScrollCurrentIntoView(categoryBar)
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white/95 shadow-sm backdrop-blur">
-      <div className="container-page flex h-16 items-center gap-4">
+    <header className="sticky top-0 z-40 [@media(max-height:500px)]:static border-b border-line bg-white/95 shadow-sm backdrop-blur">
+      <div className="container-page flex h-16 items-center gap-4 max-[374px]:gap-2">
         <MobileNav handleRef={mobileNav} />
 
         <Link
@@ -63,7 +63,7 @@ export function Header() {
             aria-label="פתיחת חיפוש"
             aria-haspopup="dialog"
             onClick={() => mobileNav.current?.open({ focusSearch: true })}
-            className="inline-flex size-11 items-center justify-center rounded-lg text-ink hover:bg-surface hover:text-brand md:hidden"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-ink hover:bg-surface hover:text-brand max-[359px]:hidden md:hidden"
           >
             <SearchIcon className="size-6" />
           </button>

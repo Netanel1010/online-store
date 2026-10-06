@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { SlowLoadNotice } from '@/components/shared/SlowLoadNotice'
 import { ErrorState } from '@/components/shared/StateMessages'
 import type { Product } from '../schema'
 import { useProductCatalog } from '../useProductCatalog'
@@ -13,7 +14,14 @@ interface CatalogBoundaryProps {
 export function CatalogBoundary({ loading, children }: CatalogBoundaryProps) {
   const catalog = useProductCatalog()
 
-  if (catalog.status === 'loading') return loading
+  if (catalog.status === 'loading') {
+    return (
+      <>
+        {loading}
+        <SlowLoadNotice />
+      </>
+    )
+  }
   if (catalog.status === 'error') return <ErrorState onRetry={catalog.retry} />
   return children(catalog.products)
 }

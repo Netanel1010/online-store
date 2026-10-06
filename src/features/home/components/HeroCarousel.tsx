@@ -6,7 +6,7 @@ import { HERO_AUTOPLAY_DELAY_MS, type HeroSlide } from '../heroSlides'
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
 
 const arrowClass =
-  'absolute top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink shadow transition hover:scale-105 hover:bg-white'
+  'absolute top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink shadow transition hover:scale-105 hover:bg-white sm:size-11'
 
 function subscribeToReducedMotion(onChange: () => void) {
   if (typeof window.matchMedia !== 'function') return () => {}
@@ -119,7 +119,7 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
                 loading={index === 0 ? 'eager' : 'lazy'}
                 fetchPriority={index === 0 ? 'high' : undefined}
                 decoding="async"
-                className={`aspect-[2/1] w-full sm:aspect-[1834/788] sm:max-h-[33rem] ${
+                className={`aspect-[1834/788] w-full ${
                   slide.fit === 'contain' ? 'object-contain' : 'object-cover'
                 }`}
               />
@@ -133,7 +133,7 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
               type="button"
               aria-label="הקודם"
               onClick={() => chooseSlide(current - 1)}
-              className={`${arrowClass} start-3`}
+              className={`${arrowClass} start-2 sm:start-3`}
             >
               <ChevronStartIcon />
             </button>
@@ -141,7 +141,7 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
               type="button"
               aria-label="הבא"
               onClick={() => chooseSlide(current + 1)}
-              className={`${arrowClass} end-3`}
+              className={`${arrowClass} end-2 sm:end-3`}
             >
               <ChevronEndIcon />
             </button>

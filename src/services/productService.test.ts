@@ -58,18 +58,27 @@ describe('fetchProducts', () => {
     await expect(fetchProducts()).resolves.toEqual([])
   })
 
-  it('passes the abort signal on to every request', async () => {
+  it('cancels the request when the caller aborts', async () => {
     const controller = new AbortController()
-    const fetchMock = stubFetch({
-      [firstPage]: () => pageOf([makeProduct({ id: 'A' })], 2),
-      [`${API}/api/products?page=2&limit=100`]: () => pageOf([makeProduct({ id: 'B' })], 2),
-    })
+    const signals: AbortSignal[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            signals.push(init.signal!)
+            init.signal!.addEventListener('abort', () => reject(init.signal!.reason))
+          }),
+      ),
+    )
 
-    await fetchProducts(controller.signal)
+    const pending = fetchProducts(controller.signal)
+    const outcome = expect(pending).rejects.toBeInstanceOf(ProductDataError)
+    controller.abort()
 
-    for (const call of fetchMock.mock.calls) {
-      expect(call[1]).toEqual({ signal: controller.signal })
-    }
+    await outcome
+    expect(signals.length).toBeGreaterThan(0)
+    expect(signals.every((signal) => signal.aborted)).toBe(true)
   })
 
   it('throws a ProductDataError when the API cannot be reached', async () => {
