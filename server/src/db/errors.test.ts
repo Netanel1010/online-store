@@ -9,8 +9,8 @@ describe('redactUri', () => {
   })
 
   it('handles the Atlas form and every string in a text', () => {
-    expect(redactUri('a mongodb+srv://u:p@cluster0.mongodb.net/ and b MONGODB://x:y@host')).toBe(
-      'a mongodb+srv://***@cluster0.mongodb.net/ and b MONGODB://***@host',
+    expect(redactUri('a mongodb+srv://u:p@cluster.example.invalid/ and b MONGODB://x:y@host')).toBe(
+      'a mongodb+srv://***@cluster.example.invalid/ and b MONGODB://***@host',
     )
   })
 

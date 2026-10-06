@@ -12,6 +12,7 @@ lists every SHA.
 | M4  | DONE    | Request ids (`X-Request-Id`, `requestId` in 5xx bodies), one structured JSON log line per request and for errors, with secrets scrubbed, and a Render troubleshooting guide.                                                    |
 | M5  | PARTIAL | A CI `integration` job runs the MongoDB tests against a throwaway MongoDB 8 service container, `npm run test:integration` cannot skip, and deploy needs the job. Verified locally; the job itself has not run on GitHub yet.    |
 | M6  | DONE    | React error boundaries (root and per page, with a stale-deployment case that offers a reload), verified together with the earlier timeout, retry, cold-start message, preconnect and removed preload.                           |
+| M7  | DONE    | Dependabot, a security workflow (npm audit of shipped packages and CodeQL), every action pinned to a commit, `.nvmrc` as the single Node version, a PR template, and fake-looking fixtures guarded by a repository scan.        |
 
 ## M1: E2E reliability
 
@@ -134,3 +135,27 @@ lists every SHA.
 - **Known issues:** errors in event handlers and un-awaited promises are not render errors and are
   not caught by a boundary (their code handles them). No remote error reporting (`onError` is the
   hook for it).
+
+## M7: Dependency and security hygiene
+
+- **Dependabot** (`.github/dependabot.yml`): weekly, one grouped pull request for npm minor/patch
+  updates (majors separate) and one for Actions; limits of 5 and 3 open pull requests.
+- **`security.yml`**: `npm audit --omit=dev --audit-level=high` (0 vulnerabilities today, so it does not
+  start red) and CodeQL `javascript-typescript` (`build-mode: none`), on pull requests, pushes to main
+  and weekly. Not a deployment gate on purpose.
+- **Pinning:** all 11 `uses:` in `ci.yml` (and the ones in `security.yml`) are pinned to the commit
+  their major tag pointed to when this was written (looked up through the public GitHub API:
+  checkout v4.4.0, setup-node v4.4.0, upload-pages-artifact v3.0.1, deploy-pages v4.0.5,
+  upload-artifact v4.6.2, codeql-action v3.38.2), so the behaviour is unchanged; the release is in a
+  comment. `node-version: 24` became `node-version-file: .nvmrc` (`24`).
+- **Fixtures:** the two Atlas-shaped test strings (`.mongodb.net` hosts, one of them the one GitHub
+  once reported) now use `test-user:not-a-real-password@cluster.example.invalid`.
+  `scripts/secretShapes.mjs` + test (24 tests with the existing script tests) fail if any tracked
+  file holds an Atlas connection string with credentials, an AWS/GitHub/Slack/Stripe key or a
+  private key; samples are assembled at run time and findings never print the value.
+- **PR template** in English.
+- **Not added (noisy or redundant):** no separate secret-scanning tool (GitHub's push protection and
+  the repository test cover it), no licence scanner, no audit of dev dependencies in CI.
+- **Known issues:** neither new workflow has run on GitHub yet (both parse and the audit command was
+  run locally). CodeQL needs the repository to be public or to have code scanning enabled. The
+  Dependabot ecosystem for the `server` workspace relies on the root lockfile.

@@ -1,0 +1,35 @@
+# Keeps the dependencies and the pinned GitHub Actions up to date with one pull request per week and
+# per ecosystem, not one per package: minor and patch updates of the npm packages are grouped, and
+# so are the actions. A major update is its own pull request because it can break something and
+# deserves a look. The CI of the repository checks each one.
+version: 2
+updates:
+  - package-ecosystem: npm
+    # The root: it holds the lockfile of the site and of the API (an npm workspace).
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    # The workflows pin every action to a commit; Dependabot moves the pin to the new release and
+    # updates the version in the comment next to it.
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: 'chore(ci)'
+    groups:
+      actions:
+        patterns:
+          - '*'

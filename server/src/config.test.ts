@@ -109,7 +109,7 @@ describe('loadConfig: MongoDB', () => {
   })
 
   it('accepts an Atlas (mongodb+srv) connection string', () => {
-    const uri = 'mongodb+srv://shop:s3cret@cluster0.abcde.mongodb.net/'
+    const uri = 'mongodb+srv://test-user:not-a-real-password@cluster.example.invalid/'
     expect(loadConfig({ MONGODB_URI: uri }).mongodb?.uri).toBe(uri)
   })
 

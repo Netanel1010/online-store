@@ -115,6 +115,27 @@ On pushes to `main`, a fourth job, **deploy**, runs only if all three succeeded:
 API (`npm run check:api`) and then publishes the site to GitHub Pages. See
 [`deployment.md`](deployment.md).
 
+## Dependencies and security checks
+
+Separate from the deployment gate, so that a newly published advisory can never stop a deploy:
+
+- **`.github/workflows/security.yml`** runs `npm audit --omit=dev --audit-level=high` (only the
+  packages that are shipped; a high or critical advisory fails the job) and CodeQL (JavaScript and
+  TypeScript) on pull requests, on pushes to `main` and once a week, which is what finds a problem that
+  appears while nothing changes.
+- **`.github/dependabot.yml`** opens one pull request a week for the npm packages (minor and patch
+  updates grouped, a major update on its own) and one for the GitHub Actions.
+- **Actions are pinned to a commit** (`uses: owner/action@<sha> # v4.4.0`), so a moved or hijacked tag
+  cannot change what runs; Dependabot moves the pin and the comment together.
+- **`.nvmrc`** is the one place for the Node version: `nvm use` and every job of CI read it.
+- **No credential-shaped text in the repository** (`scripts/secretShapes.test.mjs`, part of
+  `npm test`): a MongoDB Atlas connection string with a password, cloud and token keys and private
+  keys are looked for in every tracked file, and the test says which file, never the value. Test data
+  that needs a password uses an obviously fake one and a host that cannot exist (`.invalid`), so
+  neither this test nor GitHub's secret scanning reports a fixture.
+- **`.github/pull_request_template.md`** asks for an English summary, the checks that were run (and
+  what was not) and that no secret is in the diff.
+
 A test that only passes on its retry is reported as **flaky** in the log and the HTML report, so
 it is visible rather than hidden. In CI Playwright retries a failed test once and gives assertions
 10 s instead of 5 s, because the runners are slower than a developer machine.

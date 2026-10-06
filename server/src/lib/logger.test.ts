@@ -75,13 +75,13 @@ describe('createJsonLogger', () => {
 
   it('never writes a connection string password, in a message, a stack or a field', () => {
     const { logger, out, err } = setup()
-    const uri = 'mongodb+srv://shop:s3cretPass@cluster0.example.mongodb.net/db'
+    const uri = 'mongodb+srv://test-user:not-a-real-password@cluster.example.invalid/db'
 
     logger.info(`connecting to ${uri}`, { detail: `tried ${uri}` })
     logger.error(new Error(`failed for ${uri}`, { cause: new Error(`cause ${uri}`) }))
 
     for (const line of [...out, ...err]) {
-      expect(line).not.toContain('s3cretPass')
+      expect(line).not.toContain('not-a-real-password')
       expect(line).toContain('mongodb+srv://***@')
     }
   })
