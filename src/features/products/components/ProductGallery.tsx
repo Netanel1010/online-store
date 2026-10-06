@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronEndIcon, ChevronStartIcon } from '@/components/icons'
 import { assetUrl } from '@/lib/assets'
+import { IMAGE_SIZE } from '@/lib/imageSizes'
 
 interface ProductGalleryProps {
   /** Image paths relative to `public/`. The first one is shown initially. */
@@ -87,6 +88,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
                 <img
                   src={assetUrl(image)}
                   alt=""
+                  {...IMAGE_SIZE.productPicture}
                   loading="lazy"
                   decoding="async"
                   className="size-full object-contain"

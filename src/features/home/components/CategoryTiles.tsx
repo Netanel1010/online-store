@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { paths } from '@/app/paths'
 import { SectionHeading } from '@/components/shared/SectionHeading'
 import { assetUrl } from '@/lib/assets'
+import { IMAGE_SIZE } from '@/lib/imageSizes'
 import { CATEGORIES } from '@/features/products/categories'
 
 /** Shortcut tiles for the categories that have artwork. */
@@ -22,6 +23,7 @@ export function CategoryTiles() {
               <img
                 src={assetUrl(tile.image)}
                 alt=""
+                {...IMAGE_SIZE.category}
                 loading="lazy"
                 decoding="async"
                 className="h-24 w-full object-contain transition-transform duration-300 motion-safe:group-hover:scale-105"

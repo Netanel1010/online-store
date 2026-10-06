@@ -8,6 +8,7 @@ import { suggestProducts } from '@/features/products/listing/search'
 import { useLoadedCatalog } from '@/features/products/useProductCatalog'
 import { assetUrl } from '@/lib/assets'
 import { formatPrice } from '@/lib/format'
+import { IMAGE_SIZE } from '@/lib/imageSizes'
 
 const MAX_SUGGESTIONS = 5
 
@@ -199,6 +200,7 @@ export function SearchForm({ className = 'flex' }: { className?: string }) {
                 <img
                   src={assetUrl(product.images.card)}
                   alt=""
+                  {...IMAGE_SIZE.productPicture}
                   loading="lazy"
                   decoding="async"
                   className="size-10 shrink-0 rounded-md border border-line bg-white object-contain p-0.5"
