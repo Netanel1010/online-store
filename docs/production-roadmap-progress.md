@@ -2,18 +2,18 @@
 
 Work on the branch `chore/production-roadmap-m1-m8`, one commit per milestone, in order. The commit
 of each milestone is in `git log`; the final report ([production-roadmap-m1-m8-report.md](production-roadmap-m1-m8-report.md))
-lists every SHA.
+lists every SHA in full, with the final results.
 
-| M   | Status  | Summary                                                                                                                                                                                                                         |
-| --- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M1  | DONE    | The e2e safety net excuses a request only when the page itself cancelled that address (`ERR_ABORTED`); every other failure still fails the test.                                                                                |
-| M2  | DONE    | Per-address limits on sign-in (30 per 15 min) and registration (10 per hour), a concurrency gate on password hashing (2 at once, 8 waiting, then 503), and `TRUST_PROXY_HOPS` for the client address behind Render.             |
-| M3  | DONE    | Security headers (with HSTS only over HTTPS), explicit CORS methods/headers/`Retry-After`/max-age, `no-store` on errors, a 25 s answer timeout, proxy-friendly server timeouts and warn-by-default production hardening checks. |
-| M4  | DONE    | Request ids (`X-Request-Id`, `requestId` in 5xx bodies), one structured JSON log line per request and for errors, with secrets scrubbed, and a Render troubleshooting guide.                                                    |
-| M5  | PARTIAL | A CI `integration` job runs the MongoDB tests against a throwaway MongoDB 8 service container, `npm run test:integration` cannot skip, and deploy needs the job. Verified locally; the job itself has not run on GitHub yet.    |
-| M6  | DONE    | React error boundaries (root and per page, with a stale-deployment case that offers a reload), verified together with the earlier timeout, retry, cold-start message, preconnect and removed preload.                           |
-| M7  | DONE    | Dependabot, a security workflow (npm audit of shipped packages and CodeQL), every action pinned to a commit, `.nvmrc` as the single Node version, a PR template, and fake-looking fixtures guarded by a repository scan.        |
-| M8  | DONE    | `sessions` index on the account, a cap of 10 sessions per account (the oldest ends), `POST /api/auth/logout-all` and its storefront entry, with exact behaviour for ended, expired and orphaned sessions.                       |
+| M   | Status  | Commit    | Summary                                                                                                                                                                                                                         |
+| --- | ------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1  | DONE    | `5afd817` | The e2e safety net excuses a request only when the page itself cancelled that address (`ERR_ABORTED`); every other failure still fails the test.                                                                                |
+| M2  | DONE    | `6bf3f35` | Per-address limits on sign-in (30 per 15 min) and registration (10 per hour), a concurrency gate on password hashing (2 at once, 8 waiting, then 503), and `TRUST_PROXY_HOPS` for the client address behind Render.             |
+| M3  | DONE    | `dfb06e5` | Security headers (with HSTS only over HTTPS), explicit CORS methods/headers/`Retry-After`/max-age, `no-store` on errors, a 25 s answer timeout, proxy-friendly server timeouts and warn-by-default production hardening checks. |
+| M4  | DONE    | `8663110` | Request ids (`X-Request-Id`, `requestId` in 5xx bodies), one structured JSON log line per request and for errors, with secrets scrubbed, and a Render troubleshooting guide.                                                    |
+| M5  | PARTIAL | `eb762d3` | A CI `integration` job runs the MongoDB tests against a throwaway MongoDB 8 service container, `npm run test:integration` cannot skip, and deploy needs the job. Verified locally; the job itself has not run on GitHub yet.    |
+| M6  | DONE    | `1c0e2f7` | React error boundaries (root and per page, with a stale-deployment case that offers a reload), verified together with the earlier timeout, retry, cold-start message, preconnect and removed preload.                           |
+| M7  | DONE    | `9550c78` | Dependabot, a security workflow (npm audit of shipped packages and CodeQL), every action pinned to a commit, `.nvmrc` as the single Node version, a PR template, and fake-looking fixtures guarded by a repository scan.        |
+| M8  | DONE    | `1d225c5` | `sessions` index on the account, a cap of 10 sessions per account (the oldest ends), `POST /api/auth/logout-all` and its storefront entry, with exact behaviour for ended, expired and orphaned sessions.                       |
 
 ## M1: E2E reliability
 
