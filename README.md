@@ -24,7 +24,7 @@ A Hebrew, right-to-left online store for PC components, built with **React 19 an
 
 The project covers the shopping experience in the browser — from discovering products and filtering the catalog to managing a cart, saving favorites, signing in to a demo account and completing a demo checkout.
 
-The **product catalog is served by a real backend**: an Express API on Render that reads the products from MongoDB Atlas. The site, hosted on GitHub Pages, loads its products from that API.
+The **product catalog is served by a real backend**: an Express API on Render that reads the products from MongoDB Atlas. The site, hosted on GitHub Pages, loads its products from that API, and the **search, filtering and sorting of the product listings run in the API**, as MongoDB queries.
 
 > 🎯 **Portfolio project:** a frontend-first store with a first backend feature (the Products API) in production.
 
@@ -45,7 +45,9 @@ Browser ── GitHub Pages (React site) ──► Render (Express API) ──�
 | 🔌 API       | Render (free web service)          | Express 5 + TypeScript in [`server/`](server/README.md), deployed from `main` |
 | 🗄️ Database  | MongoDB Atlas                      | The `products` collection, filled by `npm run seed:products`             |
 
-The site loads the whole catalog from `GET /api/products` (following the API's pagination) and a single product from `GET /api/products/:id`. Search, filtering, sorting, the cart and favorites still work on the catalog **in the browser**: there is no search or filter API yet.
+The products, search, category and filtered pages ask `GET /api/products` for the products that match what the visitor typed, ticked and sorted (and for the filter options with their counts), and a product page asks `GET /api/products/:id`. The API does the searching, filtering, sorting and paging in MongoDB.
+
+The site still loads the whole catalog once (`GET /api/products`, following the pagination) for what needs every product: the cart, favorites and checkout, the sale and recommended products of the home page, the category links with their counts, and the suggestions under the search box.
 
 How it is deployed, configured and checked: [`docs/deployment.md`](docs/deployment.md).
 
@@ -56,9 +58,9 @@ How it is deployed, configured and checked: [`docs/deployment.md`](docs/deployme
 |     | Feature                 | Description                                                                                     |
 | --- | ----------------------- | ----------------------------------------------------------------------------------------------- |
 | 🏪  | **Product Catalog**     | Hero slider, brands, categories, product listings and product detail pages, loaded from the API |
-| 🔌  | **Products API**        | Read-only, paginated REST API backed by MongoDB, with health and readiness checks               |
-| 🔎  | **Search**              | URL-based search with shareable and reloadable results                                          |
-| 🎛️  | **Filters & Sorting**   | Brand and specification filters with result counts and URL state                                |
+| 🔌  | **Products API**        | Read-only REST API backed by MongoDB: server-side search, filters, sorting and paging, with health and readiness checks |
+| 🔎  | **Search**              | URL-based search, done by the API, with shareable and reloadable results                        |
+| 🎛️  | **Filters & Sorting**   | Brand and specification filters with result counts, filtered and sorted by the API, with URL state |
 | 🛒  | **Shopping Cart**       | Add, remove and update quantities with calculated totals and savings                            |
 | ❤️  | **Favorites**           | Save products and access them from a dedicated favorites page                                   |
 | 👤  | **Demo Authentication** | Register, log in and log out with protected checkout                                            |
@@ -96,7 +98,7 @@ This is a **portfolio application**. The product catalog has a real backend; eve
 ### What is included
 
 - Product catalog of **31 products**, stored in MongoDB and served by the Products API
-- A read-only API: `GET /api/products` (paginated), `GET /api/products/:id`, `GET /api/health` and `GET /api/health/ready`
+- A read-only API: `GET /api/products` (paginated, with search, category, brand, specification and sort parameters), `GET /api/products/:id`, `GET /api/health` and `GET /api/health/ready`
 - A seed command that copies [`public/data/products.json`](public/data/products.json) to MongoDB
 - Zod validation of every product the site receives and every product the API reads
 - Client-side authentication flow
@@ -109,7 +111,7 @@ This is a **portfolio application**. The product catalog has a real backend; eve
 
 | Limitation                  | Details                                                                                                                                               |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🔍 **No Search API**        | Search, filtering and sorting run in the browser over the loaded catalog. The API only lists and returns products                                      |
+| 🔍 **Listings Only**        | The API searches, filters and sorts the product listings. The header's search suggestions, and the cart, favorites and home sections, still work on the whole catalog loaded in the browser |
 | ✏️ **Read-Only API**        | The API cannot create, update or delete products. Changes to the catalog go through `products.json` and the seed command                                |
 | 🔐 **Demo Authentication**  | Accounts exist only in browser `localStorage`. There is no server-side authentication                                                                  |
 | 🛒 **No Server Cart**       | The cart and favorites are stored in the browser, not in the API                                                                                       |
@@ -212,11 +214,11 @@ The project uses multiple testing layers rather than relying on a single test ty
 
 ### Current test suite
 
-- **547** unit and component tests in **42** test files
-- **228** API tests in **15** test files, plus **13** optional MongoDB integration tests (in 2 more files) that are skipped unless `MONGODB_TEST_URI` is set
-- **222** Playwright E2E tests in **9** test files
+- **554** unit and component tests in **43** test files
+- **409** API tests in **20** test files, plus **39** optional MongoDB integration tests (in 2 more files) that are skipped unless `MONGODB_TEST_URI` is set
+- **224** Playwright E2E tests in **9** test files
 
-The API tests need **no MongoDB and no credentials**.
+The API tests need **no MongoDB and no credentials**. The optional integration tests run the same questions against a real MongoDB and compare its answers with the in-memory ones.
 
 The E2E suite runs against the production build under the `/online-store/` base path, using the GitHub Pages `404.html` fallback for SPA routing. The site reads its products from a stub API that runs the real API code over in-memory data, so the browser tests need no database either.
 

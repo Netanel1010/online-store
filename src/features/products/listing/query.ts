@@ -1,4 +1,6 @@
-import { BRAND_IDS, type BrandId } from '../brands'
+// The extension is required because the API (server/) imports this file as well, and Node's ES
+// modules do not resolve extensionless imports. The app and its tests are not affected.
+import { BRAND_IDS, type BrandId } from '../brands.ts'
 
 /**
  * The state of a product listing (search text, filters, sort) and how it maps to the URL.
@@ -7,8 +9,8 @@ import { BRAND_IDS, type BrandId } from '../brands'
  *
  * URL format (all parts optional). Parsing validates what it can without the catalog: the
  * syntax, brand ids, sort keys and sizes. Whether a specification label and value actually exist
- * is checked against the catalog by `sanitizeSpecFilters` (filtering.ts), so unknown ones never
- * reach the filtering:
+ * is checked against the filter options the API offers by `sanitizeSpecFilters` (facets.ts), so
+ * unknown ones are never shown or applied:
  *   ?q=intel                      free-text search
  *   &brand=amd&brand=intel        brand filter, repeated for multiple values
  *   &s.<label>=<value>            specification filter, repeated per value (e.g. s.תושבת מעבד=AM5)
@@ -29,9 +31,10 @@ export interface ListingState extends ListingQuery {
   sort: SortKey
 }
 
-const SPEC_PREFIX = 's.'
-const MAX_QUERY_LENGTH = 100
-const MAX_SPEC_VALUES = 60
+/** The URL parameter of a specification filter is this prefix followed by the label. */
+export const SPEC_PREFIX = 's.'
+export const MAX_QUERY_LENGTH = 100
+export const MAX_SPEC_VALUES = 60
 
 export const emptyListingState: ListingState = {
   q: '',

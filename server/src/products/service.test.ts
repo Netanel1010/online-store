@@ -25,7 +25,10 @@ describe('list', () => {
     expect(DEFAULT_LIMIT).toBe(20)
     expect(page).toMatchObject({ page: 1, limit: 20, total: 45, totalPages: 3 })
     expect(page.items).toHaveLength(20)
-    expect(list).toHaveBeenCalledWith({ skip: 0, limit: 20 })
+    expect(list).toHaveBeenCalledWith(
+      { brands: [], specs: new Map(), category: undefined, search: undefined },
+      { sort: 'default', skip: 0, limit: 20 },
+    )
   })
 
   it('returns the page that was asked for, and asks the repository for only that range', async () => {
@@ -33,7 +36,7 @@ describe('list', () => {
 
     const page = await service.list({ page: 3, limit: 10 })
 
-    expect(list).toHaveBeenCalledWith({ skip: 20, limit: 10 })
+    expect(list).toHaveBeenCalledWith(expect.anything(), { sort: 'default', skip: 20, limit: 10 })
     expect(ids(page.items)).toEqual(
       Array.from({ length: 10 }, (_, index) => `P-${String(index + 21).padStart(3, '0')}`),
     )

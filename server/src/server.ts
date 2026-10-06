@@ -14,8 +14,13 @@ async function start() {
     database = createDatabase(config.mongodb)
     await database.connect()
     console.log(`MongoDB connected (database "${config.mongodb.dbName}")`)
-    // Once at startup, never per request. It does nothing when the index already exists.
-    await createProductRepository(database).ensureIndexes()
+    // Once at startup, never per request. Each does nothing when there is nothing to do: the index
+    // exists, and every product already has its current search text. A database filled before the
+    // search existed becomes searchable here, without a new seed.
+    const products = createProductRepository(database)
+    await products.ensureIndexes()
+    const prepared = await products.ensureSearchFields()
+    if (prepared > 0) console.log(`Search text stored for ${prepared} product(s)`)
   } else {
     console.log('MONGODB_URI is not set: running without a database')
   }

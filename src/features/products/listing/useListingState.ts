@@ -9,9 +9,9 @@ import { parseListingState, serializeListingState, type ListingState } from './q
  *
  * `search: false` is for pages without a search box: any `q` in the URL is ignored there.
  *
- * `sanitize` removes parts of the URL that do not exist in the catalog (see
- * `sanitizeSpecFilters`). It is applied to what the page shows and to what is written back, so
- * an invalid parameter never filters anything and disappears from the URL on the next change.
+ * `sanitize` drops the parts of the URL the page has no use for (the listing ignores specification
+ * filters on pages that have none). It is applied to what the page reads and to what is written
+ * back, so such a parameter never takes effect and disappears from the URL on the next change.
  */
 export function useListingState({
   search,

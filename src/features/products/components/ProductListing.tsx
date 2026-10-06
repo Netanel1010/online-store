@@ -1,18 +1,12 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router'
 import { paths } from '@/app/paths'
-import { EmptyState } from '@/components/shared/StateMessages'
+import { EmptyState, ErrorState } from '@/components/shared/StateMessages'
 import { Button } from '@/components/ui/Button'
 import { buttonStyles } from '@/components/ui/buttonStyles'
 import type { BrandId } from '../brands'
 import type { CategoryId } from '../categories'
-import {
-  deriveFacets,
-  filterProducts,
-  sanitizeSpecFilters,
-  sortProducts,
-  type Facet,
-} from '../listing/filtering'
+import { sanitizeSpecFilters, toFacets, type Facet } from '../listing/facets'
 import {
   clearFilters,
   countActiveFilters,
@@ -21,27 +15,24 @@ import {
   toggleSpecValue,
   type ListingState,
 } from '../listing/query'
-import { rankBySearch } from '../listing/search'
 import { useListingState } from '../listing/useListingState'
-import type { Product } from '../schema'
+import { useLoadedCatalog } from '../useProductCatalog'
+import { useProductListing } from '../useProductListing'
 import { ActiveFilters } from './ActiveFilters'
 import { CategoryFilterNav } from './CategoryFilterNav'
 import { FilterPanel } from './FilterPanel'
-import { ProductGrid } from './ProductGrid'
+import { ProductGrid, ProductGridSkeleton } from './ProductGrid'
 import { SortSelect } from './SortSelect'
 
 interface ProductListingProps {
-  /** The whole catalog, used for the category navigation counts. */
-  allProducts: readonly Product[]
-  /** The products being browsed: everything, one category, or everything for a search. */
-  scopeProducts: readonly Product[]
   /**
    * - all: every product (brand filter and sort)
    * - category: one category (adds the specification filters, which only make sense within one)
    * - search: search results (the search text comes from the URL)
    */
   mode: 'all' | 'category' | 'search'
-  activeCategory?: CategoryId
+  /** The category to list, for the category mode. */
+  category?: CategoryId
 }
 
 function countText(count: number) {
@@ -49,48 +40,69 @@ function countText(count: number) {
   return count === 1 ? 'מוצר אחד' : `${count} מוצרים`
 }
 
-/** Shared body of the products, category and search pages. All of its state lives in the URL. */
-export function ProductListing({
-  allProducts,
-  scopeProducts,
-  mode,
-  activeCategory,
-}: ProductListingProps) {
+/**
+ * Shared body of the products, category and search pages. All of its state lives in the URL, and
+ * the API does the work: the search text, the filters and the sort are sent to it, and it answers
+ * with the matching products and with the filter options (with their counts) to show.
+ */
+export function ProductListing({ mode, category }: ProductListingProps) {
   const search = mode === 'search'
   const includeSpecs = mode === 'category'
-  // URL selections that do not exist in this scope's filters are dropped before anything uses them.
-  const sanitize = useCallback(
-    (candidate: ListingState) => sanitizeSpecFilters(scopeProducts, candidate, { includeSpecs }),
-    [scopeProducts, includeSpecs],
+  // Specification filters only exist within a category: on the other pages they are not read.
+  const ignoreSpecs = useCallback(
+    (candidate: ListingState) =>
+      includeSpecs || candidate.specs.size === 0 ? candidate : { ...candidate, specs: new Map() },
+    [includeSpecs],
   )
-  const { state, update } = useListingState({ search, sanitize })
+  const { state, update } = useListingState({ search, sanitize: ignoreSpecs })
   const [filtersOpen, setFiltersOpen] = useState(false)
 
-  const facets = useMemo(
-    () => deriveFacets(scopeProducts, state, { includeSpecs }),
-    [scopeProducts, state, includeSpecs],
-  )
-  const results = useMemo(() => {
-    const matching = filterProducts(scopeProducts, state)
-    // Without an explicit sort a search lists the best matches first.
-    return search && state.q !== '' && state.sort === 'default'
-      ? rankBySearch(matching, state.q)
-      : sortProducts(matching, state.sort)
-  }, [scopeProducts, state, search])
-  const activeCount = countActiveFilters(state)
+  const catalog = useLoadedCatalog()
+  const loaded = useProductListing({ ...state, category: includeSpecs ? category : undefined })
 
+  const nav = catalog && mode !== 'search' && (
+    <CategoryFilterNav products={catalog} active={includeSpecs ? category : undefined} />
+  )
+
+  if (loaded.status === 'loading') {
+    return (
+      <>
+        {nav}
+        <ProductGridSkeleton />
+      </>
+    )
+  }
+  if (loaded.status === 'error') {
+    return (
+      <>
+        {nav}
+        <ErrorState onRetry={loaded.retry} />
+      </>
+    )
+  }
+
+  const { listing, refreshing } = loaded
+  // The API ignores specification selections it does not offer, so they are not shown either.
+  const shown = sanitizeSpecFilters(state, listing.facets)
+  const facets = toFacets(listing.facets, shown)
+  const activeCount = countActiveFilters(shown)
+
+  // Changes start from what is shown, so an invalid part of the URL goes away with the next change.
+  const change = (apply: (current: ListingState) => ListingState) =>
+    update((current) => apply(sanitizeSpecFilters(current, listing.facets)))
   const toggleFacet = (facet: Facet, value: string) =>
-    update((current) =>
+    change((current) =>
       facet.key.kind === 'brand'
         ? toggleBrand(current, value as BrandId)
         : toggleSpecValue(current, facet.key.label, value),
     )
-  const clear = () => update(clearFilters)
+  const clear = () => change(clearFilters)
 
-  if (scopeProducts.length === 0) {
+  // Nothing to list even without a search or a filter: there are no products here at all.
+  if (listing.total === 0 && activeCount === 0 && shown.q === '') {
     return (
       <>
-        {mode !== 'search' && <CategoryFilterNav products={allProducts} active={activeCategory} />}
+        {nav}
         <EmptyState
           title="אין מוצרים להצגה"
           action={
@@ -109,7 +121,7 @@ export function ProductListing({
 
   return (
     <>
-      {mode !== 'search' && <CategoryFilterNav products={allProducts} active={activeCategory} />}
+      {nav}
 
       <div className={hasPanel ? 'lg:grid lg:grid-cols-[16rem_1fr] lg:items-start lg:gap-8' : ''}>
         {hasPanel && (
@@ -137,26 +149,29 @@ export function ProductListing({
           </aside>
         )}
 
-        <div>
+        {/* While a changed search or filter loads, the previous results stay and are dimmed. */}
+        <div aria-busy={refreshing} className={refreshing ? 'opacity-60 transition-opacity' : ''}>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <p role="status" className="text-sm text-muted">
-              {countText(results.length)}
+              {countText(listing.total)}
             </p>
             <SortSelect
               value={state.sort}
               defaultLabel={search && state.q !== '' ? 'התאמה לחיפוש' : undefined}
-              onChange={(sort) => update((s) => setSort(s, sort))}
+              onChange={(sort) => change((current) => setSort(current, sort))}
             />
           </div>
 
           <ActiveFilters
-            query={state}
-            onRemoveBrand={(brand) => update((s) => toggleBrand(s, brand))}
-            onRemoveSpec={(label, value) => update((s) => toggleSpecValue(s, label, value))}
+            query={shown}
+            onRemoveBrand={(brand) => change((current) => toggleBrand(current, brand))}
+            onRemoveSpec={(label, value) =>
+              change((current) => toggleSpecValue(current, label, value))
+            }
             onClear={clear}
           />
 
-          {results.length === 0 ? (
+          {listing.products.length === 0 ? (
             <EmptyState
               title="לא נמצאו מוצרים"
               details={
@@ -187,7 +202,7 @@ export function ProductListing({
                 : 'אין מוצרים שמתאימים לסינון שנבחר.'}
             </EmptyState>
           ) : (
-            <ProductGrid products={results} headingAs="h2" eagerCount={4} />
+            <ProductGrid products={listing.products} headingAs="h2" eagerCount={4} />
           )}
         </div>
       </div>

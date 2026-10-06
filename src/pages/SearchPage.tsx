@@ -3,8 +3,6 @@ import { paths } from '@/app/paths'
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
 import { EmptyState } from '@/components/shared/StateMessages'
 import { buttonStyles } from '@/components/ui/buttonStyles'
-import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
-import { ProductGridSkeleton } from '@/features/products/components/ProductGrid'
 import { ProductListing } from '@/features/products/components/ProductListing'
 import { PageMeta } from '@/components/shared/PageMeta'
 import { searchMeta } from '@/lib/seo'
@@ -32,11 +30,7 @@ export function SearchPage() {
           הקלידו שם מוצר, מותג או מק&quot;ט בשורת החיפוש.
         </EmptyState>
       ) : (
-        <CatalogBoundary loading={<ProductGridSkeleton />}>
-          {(products) => (
-            <ProductListing allProducts={products} scopeProducts={products} mode="search" />
-          )}
-        </CatalogBoundary>
+        <ProductListing mode="search" />
       )}
     </>
   )

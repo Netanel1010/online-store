@@ -3,7 +3,6 @@ import {
   countByCategory,
   discountPercent,
   findProduct,
-  productsInCategory,
   recommendedProducts,
   saleProducts,
 } from './selectors'
@@ -22,11 +21,6 @@ describe('selectors', () => {
     expect(findProduct(products, 'CPU-1')).toBe(cpu)
     expect(findProduct(products, 'nope')).toBeUndefined()
     expect(findProduct(products, undefined)).toBeUndefined()
-  })
-
-  it('filters by category', () => {
-    expect(productsInCategory(products, 'cpu')).toEqual([cpu, cpu2])
-    expect(productsInCategory(products, 'psu')).toEqual([])
   })
 
   it('selects recommended and sale products', () => {

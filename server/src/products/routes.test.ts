@@ -105,7 +105,7 @@ describe('GET /api/products', () => {
   })
 
   it('ignores parameters it does not know', async () => {
-    expect(await pageOf('?limit=5&sort=price&q=x')).toMatchObject({ limit: 5, page: 1 })
+    expect(await pageOf('?limit=5&utm_source=x&other=1')).toMatchObject({ limit: 5, page: 1 })
   })
 
   it.each([
@@ -311,5 +311,205 @@ describe('through the application', () => {
         message: 'This endpoint needs a database, and none is configured',
       },
     })
+  })
+})
+
+describe('GET /api/products with search, filters and sorting', () => {
+  const idsOf = (page: ProductPage) => page.items.map((item) => item.id)
+  const encode = (text: string) => encodeURIComponent(text)
+
+  it('searches, however the text is written', async () => {
+    for (const q of ['RTX 4070', 'rtx%204070', 'rtx4070', 'rtx-4070']) {
+      expect(idsOf(await pageOf(`?q=${q}`)), q).toEqual(['N4070GAMINGOCV212GD'])
+    }
+  })
+
+  it('searches in Hebrew', async () => {
+    const gpus = catalog.filter((product) => product.category === 'gpu')
+    const page = await pageOf(`?q=${encode('כרטיסי מסך')}&limit=100`)
+
+    expect(page.total).toBe(gpus.length)
+    expect(new Set(page.items.map((item) => item.category))).toEqual(new Set(['gpu']))
+  })
+
+  it('filters by category', async () => {
+    const cpus = catalog.filter((product) => product.category === 'cpu')
+    const page = await pageOf('?category=cpu&limit=100')
+
+    expect(page.total).toBe(cpus.length)
+    expect(idsOf(page)).toEqual(cpus.map((p) => p.id).sort())
+  })
+
+  it('filters by one brand, and by any of several', async () => {
+    const amd = await pageOf('?brand=amd&limit=100')
+    const either = await pageOf('?brand=amd&brand=intel&limit=100')
+
+    expect(new Set(amd.items.map((item) => item.brand))).toEqual(new Set(['amd']))
+    expect(new Set(either.items.map((item) => item.brand))).toEqual(new Set(['amd', 'intel']))
+    expect(either.total).toBe(
+      catalog.filter((p) => p.brand === 'amd' || p.brand === 'intel').length,
+    )
+  })
+
+  it('filters by a specification of a category, with a label that needs encoding', async () => {
+    const page = await pageOf(`?category=cpu&${encode('s.תושבת מעבד')}=AM5&limit=100`)
+
+    expect(page.total).toBeGreaterThan(0)
+    for (const item of page.items) {
+      expect(item.specs).toContainEqual({ label: 'תושבת מעבד', value: 'AM5' })
+    }
+  })
+
+  it('ignores a specification that does not exist, like the storefront always did', async () => {
+    const page = await pageOf(`?category=cpu&s.fake=x&${encode('s.תושבת מעבד')}=Nope&limit=100`)
+
+    expect(page.total).toBe(catalog.filter((product) => product.category === 'cpu').length)
+  })
+
+  it('combines the search, category, brands and specification filters', async () => {
+    const page = await pageOf(
+      `?q=intel&category=cpu&brand=intel&${encode('s.תמיכה בזכרון')}=DDR5&limit=100`,
+    )
+
+    expect(page.total).toBeGreaterThan(0)
+    for (const item of page.items) {
+      expect(item.brand).toBe('intel')
+      expect(item.category).toBe('cpu')
+      expect(item.specs).toContainEqual({ label: 'תמיכה בזכרון', value: 'DDR5' })
+    }
+  })
+
+  it.each([
+    ['price-asc', (a: Product, b: Product) => a.price.current - b.price.current],
+    ['price-desc', (a: Product, b: Product) => b.price.current - a.price.current],
+  ])('sorts by %s', async (sort, compare) => {
+    const page = await pageOf(`?sort=${sort}&limit=100`)
+
+    expect(page.items.map((item) => item.price.current)).toEqual(
+      [...catalog].sort(compare).map((item) => item.price.current),
+    )
+  })
+
+  it('sorts by name in both directions', async () => {
+    const names = catalog
+      .map((p) => p.name)
+      .sort((a, b) => a.localeCompare(b, 'he', { numeric: true }))
+
+    expect((await pageOf('?sort=name-asc&limit=100')).items.map((i) => i.name)).toEqual(names)
+    expect((await pageOf('?sort=name-desc&limit=100')).items.map((i) => i.name)).toEqual(
+      [...names].reverse(),
+    )
+  })
+
+  it('pages a filtered listing, with the total and pages of the matches', async () => {
+    const cpus = catalog.filter((product) => product.category === 'cpu')
+    const second = await pageOf('?category=cpu&sort=price-asc&limit=4&page=2')
+
+    expect(second).toMatchObject({
+      page: 2,
+      limit: 4,
+      total: cpus.length,
+      totalPages: Math.ceil(cpus.length / 4),
+    })
+    expect(second.items.map((i) => i.price.current)).toEqual(
+      cpus
+        .map((p) => p.price.current)
+        .sort((a, b) => a - b)
+        .slice(4, 8),
+    )
+  })
+
+  it('answers 200 with no items when nothing matches', async () => {
+    const response = await get('?q=zzzz&category=cpu')
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
+    })
+  })
+
+  it('adds the filter options only when they are asked for', async () => {
+    const without = (await (await get('?category=cpu')).json()) as ProductPage
+    const withFacets = (await (await get('?category=cpu&facets=true')).json()) as ProductPage
+
+    expect(without).not.toHaveProperty('facets')
+    expect(Object.keys(withFacets).sort()).toEqual([
+      'facets',
+      'items',
+      'limit',
+      'page',
+      'total',
+      'totalPages',
+    ])
+    expect(withFacets.facets?.brands.map((option) => option.value)).toEqual(['amd', 'intel'])
+    expect(withFacets.facets?.specs.map((group) => group.label)).toContain('תושבת מעבד')
+    expect(withFacets.items).toEqual(without.items)
+  })
+
+  it.each([
+    ['an unknown category', 'category=phones'],
+    ['an unknown brand', 'brand=nvidia'],
+    ['one unknown brand among known ones', 'brand=amd&brand=nope'],
+    ['an unknown sort', 'sort=cheapest'],
+    ['a repeated sort', 'sort=price-asc&sort=price-desc'],
+    ['a search text that is too long', `q=${'a'.repeat(101)}`],
+    ['a repeated search text', 'q=a&q=b'],
+    ['an empty specification value', 's.x='],
+    ['an empty specification label', 's.=x'],
+    ['facets that is not true or false', 'facets=yes'],
+  ])('answers 400 invalid_query for %s, in the usual error shape', async (_name, query) => {
+    const { status, body } = await errorOf(`?${query}`)
+
+    expect(status).toBe(400)
+    expect(body.error.code).toBe('invalid_query')
+    expect(Object.keys(body)).toEqual(['error'])
+    expect(Object.keys(body.error).sort()).toEqual(['code', 'message'])
+  })
+
+  it('does not repeat what was sent in the error', async () => {
+    const { body } = await errorOf('?sort=secret-value')
+
+    expect(body.error.message).not.toContain('secret-value')
+  })
+
+  it('keeps answering invalid_pagination for a bad page or limit, filters or not', async () => {
+    expect((await errorOf('?category=cpu&page=0')).body.error.code).toBe('invalid_pagination')
+    expect((await errorOf('?q=intel&limit=abc')).body.error.code).toBe('invalid_pagination')
+    expect((await errorOf('?q=intel&limit=101')).body.error.code).toBe('invalid_pagination')
+  })
+
+  it('treats a query that looks like an operator as text, not as a query', async () => {
+    // The punctuation is only a separator, so this is the search for the word "ne" and nothing more.
+    expect((await pageOf('?q=%7B%22%24ne%22%3A%22%22%7D')).items).toEqual(
+      (await pageOf('?q=ne')).items,
+    )
+    // A bracketed key is just an unknown parameter for Express' simple query parser, never an object.
+    expect((await pageOf('?category[$ne]=cpu')).total).toBe(catalog.length)
+  })
+})
+
+describe('GET /api/products/:id after the listing gained filters', () => {
+  it('still returns one product by its id, whatever the query string says', async () => {
+    const id = catalog[0]!.id
+
+    const response = await fetch(
+      `${api.url}/api/products/${encodeURIComponent(id)}?q=nothing&brand=nope`,
+    )
+
+    expect(response.status).toBe(200)
+    expect(((await response.json()) as Product).id).toBe(id)
+  })
+
+  it('still answers 404 for an unknown product and 400 for an id it cannot hold', async () => {
+    const unknown = await fetch(`${api.url}/api/products/DOES-NOT-EXIST`)
+    const invalid = await fetch(`${api.url}/api/products/${encodeURIComponent('a b')}`)
+
+    expect(unknown.status).toBe(404)
+    expect(((await unknown.json()) as ErrorBody).error.code).toBe('product_not_found')
+    expect(invalid.status).toBe(400)
   })
 })

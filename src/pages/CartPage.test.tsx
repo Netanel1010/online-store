@@ -152,10 +152,11 @@ describe('header cart badge', () => {
 
   it('counts every unit when the same product is added repeatedly, and follows quantity changes', async () => {
     renderApp('/products', catalog)
-    await screen.findByRole('link', { name: 'עגלת קניות' })
-
-    const [firstCard] = screen.getAllByRole('article')
-    const add = within(firstCard!).getByRole('button', { name: /הוספה לעגלה/ })
+    // The API lists the products by id, so the card is looked up by its name, not by its place.
+    const card = (await screen.findByRole('heading', { level: 2, name: 'ספק כוח' })).closest(
+      'article',
+    )
+    const add = within(card!).getByRole('button', { name: /הוספה לעגלה/ })
     await userEvent.click(add)
     await userEvent.click(add)
     await userEvent.click(add)

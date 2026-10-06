@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { makeProduct } from '@/test/fixtures'
+import { fakeListingApi } from '@/test/fakeListingApi'
 import { renderApp } from '@/test/renderApp'
 
 const gpu = makeProduct({ id: 'GPU-1', name: 'כרטיס מסך אחד', category: 'gpu' })
@@ -37,12 +38,12 @@ describe('ProductsPage', () => {
   })
 
   it('shows an error with a retry that recovers', async () => {
-    const { fetchProducts } = renderApp('/products', new Error('down'))
+    const { fetchProductListing } = renderApp('/products', new Error('down'))
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('משהו השתבש')
 
-    fetchProducts.mockResolvedValue(catalog)
+    fetchProductListing.mockImplementation(fakeListingApi(catalog))
     await userEvent.click(within(alert).getByRole('button', { name: 'נסו שוב' }))
 
     expect(await screen.findByRole('heading', { level: 2, name: 'מעבד אחד' })).toBeInTheDocument()

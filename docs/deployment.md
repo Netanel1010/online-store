@@ -67,7 +67,10 @@ The site learns where the API is when it is **built**, from the `VITE_API_URL` v
    [`scripts/check-api.mjs`](../scripts/check-api.mjs) against the production API, and only then
    publishes the site to GitHub Pages. A site whose products cannot be loaded is not published.
 4. Render redeploys the API for the same commit once the checks pass (`autoDeployTrigger:
-checksPass`). The site and the API are deployed independently of each other.
+checksPass`). The site and the API are deployed independently of each other: when a change adds
+   API parameters that the site starts to send (as the search and filters did), the site can be
+   live a few minutes before the API has redeployed, and until then the older API ignores the
+   parameters it does not know and lists every product.
 
 To roll back, revert the commit on `main`: CI redeploys both parts from the reverted state.
 
@@ -114,6 +117,11 @@ The catalog lives in MongoDB and is served by the API, but its source is
    `server/.env`; take care not to leave that file around.
 3. The static SEO pages and the sitemap are generated at build time from the same file
    ([`docs/seo.md`](seo.md)), so the merge also redeploys the site with the new pages.
+
+The seed also stores the text the API's search works on with each product. A database seeded before
+the search existed needs no new seed: when the API starts it stores that text for every product
+that has none (the Render log says `Search text stored for N product(s)`), which is why its
+database user needs permission to write.
 
 A product removed from `products.json` stays in MongoDB until it is removed by hand.
 

@@ -1,9 +1,13 @@
-import { BRANDS } from '../brands'
-import { findCategory } from '../categories'
-import type { Product } from '../schema'
+// The extensions are required because the API (server/) imports this file as well, and Node's ES
+// modules do not resolve extensionless imports. The app and its tests are not affected.
+import { BRANDS } from '../brands.ts'
+import { findCategory } from '../categories.ts'
+import type { Product } from '../schema.ts'
 
 /* ---------------------------------------------------------------------------------------------
- * Product search (local, over the loaded catalog).
+ * Product search. The API runs it for the search and listing pages (its stored search text is built
+ * by `searchTexts` below, its patterns follow the rules here, and it ranks with `rankBySearch`);
+ * the storefront runs it locally, over the loaded catalog, for the suggestions under the search box.
  *
  * How a query is understood
  *  - Text is normalized the same way for the query and for the products: lower case, no accents or
@@ -30,9 +34,9 @@ import type { Product } from '../schema'
 
 const MAX_WORDS = 8
 /** From this length on a word may match inside another word. */
-const MIN_SUBSTRING_LENGTH = 3
+export const MIN_SUBSTRING_LENGTH = 3
 /** From this length on a single word is also tried against the text with its spaces removed. */
-const MIN_GLUED_LENGTH = 4
+export const MIN_GLUED_LENGTH = 4
 
 const FIELD_WEIGHTS = {
   name: 6,
@@ -43,10 +47,12 @@ const FIELD_WEIGHTS = {
   features: 1,
 } as const
 
-type FieldName = keyof typeof FIELD_WEIGHTS
+export type SearchFieldName = keyof typeof FIELD_WEIGHTS
 
-const CORE_FIELDS: readonly FieldName[] = ['name', 'sku', 'brand', 'category']
-const ALL_FIELDS = Object.keys(FIELD_WEIGHTS) as FieldName[]
+/** The fields a first search looks at (see the top of this file). */
+export const CORE_SEARCH_FIELDS: readonly SearchFieldName[] = ['name', 'sku', 'brand', 'category']
+/** Every field, which a search falls back to when the core fields match nothing. */
+export const ALL_SEARCH_FIELDS = Object.keys(FIELD_WEIGHTS) as SearchFieldName[]
 
 /** Lower case, no diacritics, and every run of punctuation or symbols replaced by one space. */
 export function normalizeSearchText(text: string): string {
@@ -74,11 +80,28 @@ interface SearchField {
   glued: string
 }
 
-type SearchDocument = Record<FieldName, SearchField>
+type SearchDocument = Record<SearchFieldName, SearchField>
 
 function field(...parts: string[]): SearchField {
   const text = normalizeSearchText(parts.join(' '))
   return { text, words: text.split(' ').filter(Boolean), glued: text.replaceAll(' ', '') }
+}
+
+/**
+ * The normalized text of each searchable field of a product. The API stores these with the product
+ * so that MongoDB can search them, and the search in this file builds its documents from the same
+ * function, so both read a product the same way.
+ */
+export function searchTexts(product: Product): Record<SearchFieldName, string> {
+  const texts = (parts: string[]) => normalizeSearchText(parts.join(' '))
+  return {
+    name: texts([product.name, product.fullName]),
+    sku: texts([product.id]),
+    brand: texts([BRANDS[product.brand].name, product.brand]),
+    category: texts([findCategory(product.category)?.label ?? '', product.category]),
+    specs: texts(product.specs.map((spec) => spec.value)),
+    features: texts(product.features),
+  }
 }
 
 const documents = new WeakMap<Product, SearchDocument>()
@@ -86,13 +109,14 @@ const documents = new WeakMap<Product, SearchDocument>()
 function documentOf(product: Product): SearchDocument {
   let document = documents.get(product)
   if (!document) {
+    const texts = searchTexts(product)
     document = {
-      name: field(product.name, product.fullName),
-      sku: field(product.id),
-      brand: field(BRANDS[product.brand].name, product.brand),
-      category: field(findCategory(product.category)?.label ?? '', product.category),
-      specs: field(...product.specs.map((spec) => spec.value)),
-      features: field(...product.features),
+      name: field(texts.name),
+      sku: field(texts.sku),
+      brand: field(texts.brand),
+      category: field(texts.category),
+      specs: field(texts.specs),
+      features: field(texts.features),
     }
     documents.set(product, document)
   }
@@ -116,7 +140,7 @@ function matchLevel(word: string, target: SearchField, allowGlued: boolean): num
 function wordScore(
   word: string,
   document: SearchDocument,
-  fields: readonly FieldName[],
+  fields: readonly SearchFieldName[],
   allowGlued: boolean,
 ): number {
   let best = 0
@@ -136,7 +160,7 @@ export function searchScore(product: Product, query: string, { deep = false } = 
   if (words.length === 0) return 1
   const document = documentOf(product)
   const allowGlued = words.length === 1 && (words[0]?.length ?? 0) >= MIN_GLUED_LENGTH
-  const fields = deep ? ALL_FIELDS : CORE_FIELDS
+  const fields = deep ? ALL_SEARCH_FIELDS : CORE_SEARCH_FIELDS
 
   let total = 0
   for (const word of words) {
