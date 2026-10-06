@@ -114,6 +114,8 @@ export function HeroCarousel({ slides }: { slides: readonly HeroSlide[] }) {
               <img
                 src={assetUrl(slide.image)}
                 alt={slide.alt}
+                width={slide.width}
+                height={slide.height}
                 loading={index === 0 ? 'eager' : 'lazy'}
                 fetchPriority={index === 0 ? 'high' : undefined}
                 decoding="async"

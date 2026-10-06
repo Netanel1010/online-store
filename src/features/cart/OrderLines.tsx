@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { paths } from '@/app/paths'
 import { assetUrl } from '@/lib/assets'
 import { formatPrice } from '@/lib/format'
+import { IMAGE_SIZE } from '@/lib/imageSizes'
 import type { CartLine } from './summary'
 
 /** Read-only list of what is being ordered, for the checkout and the confirmation. */
@@ -13,6 +14,7 @@ export function OrderLines({ lines, label }: { lines: readonly CartLine[]; label
           <img
             src={assetUrl(product.images.card)}
             alt=""
+            {...IMAGE_SIZE.productPicture}
             loading="lazy"
             decoding="async"
             className="size-14 shrink-0 rounded-lg border border-line bg-white object-contain p-1"

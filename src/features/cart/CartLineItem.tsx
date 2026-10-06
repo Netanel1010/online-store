@@ -5,6 +5,7 @@ import { Price } from '@/components/shared/Price'
 import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { assetUrl } from '@/lib/assets'
 import { formatPrice } from '@/lib/format'
+import { IMAGE_SIZE } from '@/lib/imageSizes'
 import { MAX_QUANTITY, useCartStore } from './cartStore'
 import type { CartLine } from './summary'
 
@@ -34,6 +35,7 @@ export function CartLineItem({ line, onRemove }: CartLineItemProps) {
         <img
           src={assetUrl(product.images.card)}
           alt=""
+          {...IMAGE_SIZE.productPicture}
           loading="lazy"
           decoding="async"
           className="size-16 object-contain sm:size-24"

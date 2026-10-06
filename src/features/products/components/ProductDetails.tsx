@@ -3,6 +3,7 @@ import { ExternalLinkIcon } from '@/components/icons'
 import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { FavoriteButton } from '@/features/favorites/FavoriteButton'
 import { assetUrl } from '@/lib/assets'
+import { IMAGE_SIZE } from '@/lib/imageSizes'
 import { formatPrice } from '@/lib/format'
 import { BRANDS } from '../brands'
 import type { Product } from '../schema'
@@ -25,7 +26,12 @@ export function ProductDetails({ product }: { product: Product }) {
 
         <div className="flex min-w-0 flex-col gap-5">
           <div className="flex flex-col gap-3">
-            <img src={assetUrl(brand.logo)} alt={brand.name} className="h-8 w-auto self-start" />
+            <img
+              src={assetUrl(brand.logo)}
+              alt={brand.name}
+              {...IMAGE_SIZE.brandLogo}
+              className="h-8 w-auto self-start"
+            />
             <h1 className="text-2xl font-bold leading-snug text-balance sm:text-3xl">
               {product.fullName}
             </h1>

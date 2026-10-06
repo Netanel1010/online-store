@@ -3,10 +3,11 @@ import { stubReducedMotion } from '@/test/reducedMotion'
 import { HERO_AUTOPLAY_DELAY_MS, type HeroSlide } from '../heroSlides'
 import { HeroCarousel } from './HeroCarousel'
 
+const SIZE = { width: 1834, height: 788 }
 const slides: HeroSlide[] = [
-  { image: 'images/hero/a.avif', alt: 'ראשון' },
-  { image: 'images/hero/b.avif', alt: 'שני' },
-  { image: 'images/hero/c.avif', alt: 'שלישי' },
+  { image: 'images/hero/a.avif', alt: 'ראשון', ...SIZE },
+  { image: 'images/hero/b.avif', alt: 'שני', ...SIZE },
+  { image: 'images/hero/c.avif', alt: 'שלישי', ...SIZE },
 ]
 const DELAY = HERO_AUTOPLAY_DELAY_MS
 
@@ -240,8 +241,8 @@ describe('HeroCarousel image fit', () => {
     render(
       <HeroCarousel
         slides={[
-          { image: 'images/hero/wide.avif', alt: 'רחב', fit: 'contain' },
-          { image: 'images/hero/normal.avif', alt: 'רגיל' },
+          { image: 'images/hero/wide.avif', alt: 'רחב', width: 1154, height: 368, fit: 'contain' },
+          { image: 'images/hero/normal.avif', alt: 'רגיל', ...SIZE },
         ]}
       />,
     )
@@ -251,5 +252,27 @@ describe('HeroCarousel image fit', () => {
     expect(images[0]).not.toHaveClass('object-cover')
     expect(images[1]).toHaveClass('object-cover')
     expect(images[1]).not.toHaveClass('object-contain')
+  })
+})
+
+describe('HeroCarousel image size', () => {
+  it('gives every slide, the lazy ones included, the size of its own file', () => {
+    stubReducedMotion(true)
+    render(
+      <HeroCarousel
+        slides={[
+          { image: 'images/hero/wide.avif', alt: 'רחב', width: 1154, height: 368, fit: 'contain' },
+          { image: 'images/hero/normal.avif', alt: 'רגיל', ...SIZE },
+        ]}
+      />,
+    )
+    const images = within(carousel()).getAllByRole('img', { hidden: true })
+
+    expect(images[0]).toHaveAttribute('loading', 'eager')
+    expect(images[0]).toHaveAttribute('width', '1154')
+    expect(images[0]).toHaveAttribute('height', '368')
+    expect(images[1]).toHaveAttribute('loading', 'lazy')
+    expect(images[1]).toHaveAttribute('width', '1834')
+    expect(images[1]).toHaveAttribute('height', '788')
   })
 })

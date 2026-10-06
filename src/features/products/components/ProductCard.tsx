@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { paths } from '@/app/paths'
 import { Price } from '@/components/shared/Price'
 import { assetUrl } from '@/lib/assets'
+import { IMAGE_SIZE } from '@/lib/imageSizes'
 import { BRANDS } from '../brands'
 import type { Product } from '../schema'
 import { discountPercent } from '../selectors'
@@ -38,6 +39,7 @@ export function ProductCard({
         <img
           src={assetUrl(product.images.card)}
           alt=""
+          {...IMAGE_SIZE.productPicture}
           loading={eager ? 'eager' : 'lazy'}
           decoding="async"
           className="size-full object-contain transition-transform duration-300 motion-safe:group-hover:scale-105"
@@ -53,6 +55,7 @@ export function ProductCard({
         <img
           src={assetUrl(brand.logo)}
           alt={brand.name}
+          {...IMAGE_SIZE.brandLogo}
           loading="lazy"
           decoding="async"
           className="h-5 w-auto self-start"
