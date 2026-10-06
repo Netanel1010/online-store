@@ -11,6 +11,7 @@ lists every SHA.
 | M3  | DONE    | Security headers (with HSTS only over HTTPS), explicit CORS methods/headers/`Retry-After`/max-age, `no-store` on errors, a 25 s answer timeout, proxy-friendly server timeouts and warn-by-default production hardening checks. |
 | M4  | DONE    | Request ids (`X-Request-Id`, `requestId` in 5xx bodies), one structured JSON log line per request and for errors, with secrets scrubbed, and a Render troubleshooting guide.                                                    |
 | M5  | PARTIAL | A CI `integration` job runs the MongoDB tests against a throwaway MongoDB 8 service container, `npm run test:integration` cannot skip, and deploy needs the job. Verified locally; the job itself has not run on GitHub yet.    |
+| M6  | DONE    | React error boundaries (root and per page, with a stale-deployment case that offers a reload), verified together with the earlier timeout, retry, cold-start message, preconnect and removed preload.                           |
 
 ## M1: E2E reliability
 
@@ -110,3 +111,26 @@ lists every SHA.
   Docker here. The first pull request will show whether the `mongosh` health check and the
   `localhost:27017` mapping work as expected; if the service fails to become healthy, that is where
   to look.
+
+## M6: Frontend resilience
+
+- **Already delivered** (merged earlier in `perf: improve initial load and responsive ux`, verified
+  here and not redone): API timeout (30 s per attempt) and retry (3 attempts) in
+  `lib/fetchWithRetry.ts`, the cold-start message (`SlowLoadNotice`), the removal of the stale
+  `products.json` preload and the API `preconnect`/catalog `preload` (`vite.config.ts`). No
+  `products.json` reference is left in `index.html`.
+- **Error boundaries** (new): `components/shared/ErrorBoundary.tsx` (class, resets when its
+  `resetKey` changes), `CrashScreens.tsx`, `lib/chunkError.ts`. A boundary in `RootLayout` around the
+  page (header and footer stay; going to another page clears it) and one around the router in
+  `App` (last resort, no router needed). A page that fails to load after a new deployment
+  (`Failed to fetch dynamically imported module` and the Firefox/Safari wordings) says a new
+  version is available and offers a reload, because a retry cannot work (React remembers the failed
+  import); any other render error offers "try again" and a link home and says the cart is safe.
+  The error is written to the console; the technical message is not shown to the visitor.
+- **Tests:** 40 unit/component tests (classification, boundary mechanics, both screens, the real
+  layout keeping header/footer, recovery by navigating or retrying, the whole-app case) and an e2e
+  spec that refuses a lazy chunk for real; it fails (blank page) without the boundary. Frontend 678,
+  e2e 273 pass.
+- **Known issues:** errors in event handlers and un-awaited promises are not render errors and are
+  not caught by a boundary (their code handles them). No remote error reporting (`onError` is the
+  hook for it).

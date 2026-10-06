@@ -2,6 +2,8 @@ import { Suspense, useEffect, useRef } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
+import { RouteCrash } from '@/components/shared/CrashScreens'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { PageLoading } from '@/components/shared/StateMessages'
 import { useRestoreSession } from '@/features/auth/useRestoreSession'
 import { ToastProvider } from '@/features/notifications/ToastProvider'
@@ -37,9 +39,16 @@ export function RootLayout() {
         <Header />
         <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 focus:outline-none">
           <div className="container-page py-8">
-            <Suspense fallback={<PageLoading />}>
-              <Outlet />
-            </Suspense>
+            {/* A page that fails shows a message here, inside the layout, and going to another
+                page tries again. */}
+            <ErrorBoundary
+              resetKey={pathname}
+              fallback={({ error, reset }) => <RouteCrash error={error} reset={reset} />}
+            >
+              <Suspense fallback={<PageLoading />}>
+                <Outlet />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         </main>
         <Footer />
