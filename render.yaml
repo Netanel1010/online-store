@@ -1,0 +1,38 @@
+# The production API, as a Render Blueprint: https://render.com/docs/blueprint-spec
+#
+# Render builds and runs the Express API straight from this repository (no Docker). The database
+# stays on MongoDB Atlas. The values that are secrets or belong to the account are NOT here: they
+# are entered once in the Render dashboard (`sync: false`), so nothing sensitive is ever committed.
+services:
+  - type: web
+    name: online-store-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    # Redeploy only when this repository's checks (the CI workflow) pass for the commit, so a
+    # broken commit is never deployed.
+    autoDeployTrigger: checksPass
+    # The server imports the storefront's product schema, so the build needs the whole repository.
+    # `--include=dev` because the TypeScript compiler is a development dependency, and the host may
+    # set NODE_ENV=production while it installs.
+    buildCommand: npm ci --include=dev && npm run build:server
+    startCommand: npm run start:server
+    # The process answers this without touching the database, so a database that is briefly
+    # unreachable does not make Render restart a server that is fine. /api/health/ready is the
+    # check that includes the database (scripts/check-api.mjs and the deploy job use it).
+    healthCheckPath: /api/health
+    envVars:
+      # The server needs Node 22.9 or newer.
+      - key: NODE_VERSION
+        value: '24'
+      - key: NODE_ENV
+        value: production
+      # PORT is set by Render itself and read by the server.
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: online-store
+      # The origin of the deployed site: scheme and host only, no path and no trailing slash.
+      - key: CORS_ORIGINS
+        value: https://netanel1010.github.io

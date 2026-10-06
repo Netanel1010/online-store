@@ -34,7 +34,11 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:server
+      # The site reads its products from the production API. The address is the repository
+      # variable API_URL (Settings > Secrets and variables > Actions > Variables), not a secret.
       - run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.API_URL }}
       - run: npm run build:server
       # On main only: keep the production build as the Pages artifact. It is published by the
       # `deploy` job below, and only if `e2e` passes as well.
@@ -80,8 +84,10 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: [verify, e2e]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Up to 5 minutes of this can be spent waiting for a sleeping API host to wake up.
+    timeout-minutes: 15
     permissions:
+      contents: read
       pages: write
       id-token: write
     concurrency:
@@ -91,5 +97,25 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Never publish a site whose products cannot be loaded: check the production API first
+      # (up, connected to its database, products readable, CORS allowing this site). It waits for a
+      # host that is asleep. Skipped while API_URL is not set, so the site is deployed as before.
+      - uses: actions/checkout@v4
+        if: vars.API_URL != ''
+      - uses: actions/setup-node@v4
+        if: vars.API_URL != ''
+        with:
+          node-version: 24
+      - name: Check the production API
+        if: vars.API_URL != ''
+        # The site's origin is its GitHub Pages host, <owner>.github.io, which a browser sends in
+        # lower case.
+        run: |
+          export SITE_ORIGIN="https://$(echo "$OWNER" | tr '[:upper:]' '[:lower:]').github.io"
+          node scripts/check-api.mjs
+        env:
+          API_URL: ${{ vars.API_URL }}
+          OWNER: ${{ github.repository_owner }}
+
       - id: deployment
         uses: actions/deploy-pages@v4
