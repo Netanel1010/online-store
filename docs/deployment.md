@@ -198,8 +198,52 @@ start again when the free service sleeps or restarts.
   this on purpose.
 - **Moving the site to another address** means changing `CORS_ORIGINS` (Render) and `SITE_URL`
   ([`src/lib/seo.ts`](../src/lib/seo.ts)).
-- **Logs** of the API are in the Render dashboard. They never contain the connection string, and a
-  client only gets a generic `500 internal_error`.
+- **Logs** of the API are in the Render dashboard (see
+  [Troubleshooting with the logs](#troubleshooting-with-the-logs)). They never contain the
+  connection string, a password or a token, and a client only gets a generic `500 internal_error`
+  with a `requestId` to quote.
+
+## Troubleshooting with the logs
+
+Every line the API writes is one JSON object (`level`, `time`, `msg` and fields), in the Render
+dashboard under **Logs**. Render's search box filters on text, so search for a field value, for
+example `"status":500` or a `requestId`.
+
+Each request ends with one line, `"msg":"request"`:
+
+```json
+{
+  "level": "warn",
+  "time": "2026-10-06T17:14:51.776Z",
+  "msg": "request",
+  "requestId": "5d0f…",
+  "method": "GET",
+  "path": "/api/products",
+  "status": 404,
+  "durationMs": 6.6,
+  "ip": "198.51.100.23"
+}
+```
+
+`info` is a success, `warn` a 4xx or 5xx (a 5xx also has `"outcome":"server error"`), and a request
+the client abandoned has `"aborted":true`. Successful `/api/health` checks are not logged (Render
+makes them every few seconds). The query string, headers, cookies, bodies, passwords and tokens are
+never logged, and a connection string's password is replaced by `***`.
+
+- **A visitor reports an error.** The API's answer to a server error is
+  `{"error":{"code":"internal_error","message":"...","requestId":"5d0f…"}}`, and every answer has an
+  `X-Request-Id` header (visible in the browser's network tab). Search the logs for that id: the
+  `"level":"error"` line has the message, the `stack` and the `cause`; the `request` line has the
+  status and the time it took.
+- **The site is slow.** Search `"durationMs"` and look for large values. The first request after a
+  quiet period is a cold start (see Operating notes), not a bug: the log starts with
+  `"msg":"API listening"` when the service has just booted.
+- **A request was refused.** `"status":429` is a rate limit (`rate_limited`, or `too_many_attempts`
+  for one email) and `"status":503` with `server_busy` or `request_timeout` is load.
+- **Is the client address right?** The `ip` of your own request should be your public address
+  (see [Client addresses and rate limits](#client-addresses-and-rate-limits)).
+- **A caller can name its own request.** An `X-Request-Id` of 8 to 64 letters, digits, `.`, `_` or
+  `-` is kept, so a request can be followed from the site to the API; anything else is replaced.
 
 ## Troubleshooting
 

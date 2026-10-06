@@ -122,9 +122,9 @@ describe('CORS', () => {
     expect(response.headers.get('access-control-allow-headers')).toBe('Authorization,Content-Type')
   })
 
-  it('lets a page read Retry-After, which says how long to wait', async () => {
+  it('lets a page read Retry-After (how long to wait) and X-Request-Id (what to quote)', async () => {
     const response = await get(behindProxy, '/api/health', { Origin: SITE })
 
-    expect(response.headers.get('access-control-expose-headers')).toBe('Retry-After')
+    expect(response.headers.get('access-control-expose-headers')).toBe('Retry-After,X-Request-Id')
   })
 })

@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express'
 import type { ErrorBody } from './errorHandler.ts'
+import { getRequestId } from './requestLogging.ts'
 
 /** Longer than any normal answer, shorter than the host's proxy waits (Render gives up at 100 s). */
 export const REQUEST_TIMEOUT_MS = 25_000
@@ -14,8 +15,13 @@ export function requestTimeout(timeoutMs = REQUEST_TIMEOUT_MS): RequestHandler {
   return (_req, res, next) => {
     const timer = setTimeout(() => {
       if (res.headersSent) return
+      const requestId = getRequestId(res)
       const body: ErrorBody = {
-        error: { code: 'request_timeout', message: 'The request took too long. Try again' },
+        error: {
+          code: 'request_timeout',
+          message: 'The request took too long. Try again',
+          ...(requestId && { requestId }),
+        },
       }
       res.set({ 'Cache-Control': 'no-store', 'Retry-After': '5' }).status(503).json(body)
     }, timeoutMs)

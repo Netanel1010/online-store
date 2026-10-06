@@ -2,8 +2,10 @@ import cors from 'cors'
 import express from 'express'
 import type { Config } from './config.ts'
 import type { Database } from './db/database.ts'
-import { errorHandler, type Logger } from './middleware/errorHandler.ts'
+import { silentLogger, type Logger } from './lib/logger.ts'
+import { errorHandler } from './middleware/errorHandler.ts'
 import { notFound } from './middleware/notFound.ts'
+import { requestLogging } from './middleware/requestLogging.ts'
 import { requestTimeout } from './middleware/requestTimeout.ts'
 import { securityHeaders } from './middleware/securityHeaders.ts'
 import { createApiRouter } from './routes/index.ts'
@@ -15,7 +17,8 @@ import { createApiRouter } from './routes/index.ts'
  */
 export function createApp(
   config: Pick<Config, 'corsOrigins'> & Partial<Pick<Config, 'trustProxyHops'>>,
-  logger: Logger = console,
+  // server.ts passes the JSON logger; an app built without one (most tests) logs nothing.
+  logger: Logger = silentLogger,
   database: Database | null = null,
 ) {
   const app = express()
@@ -25,6 +28,8 @@ export function createApp(
   // past exactly as many proxies as there are, so a header the visitor sends cannot choose it.
   if (config.trustProxyHops) app.set('trust proxy', config.trustProxyHops)
 
+  // First, so that every answer, even the one for a request that is refused later, has an id and a log line.
+  app.use(requestLogging(logger))
   app.use(securityHeaders)
   app.use(requestTimeout())
 
@@ -35,7 +40,7 @@ export function createApp(
       methods: ['GET', 'HEAD', 'POST'],
       allowedHeaders: ['Authorization', 'Content-Type'],
       // A page's script can read only the headers a server lists: the one that says how long to wait.
-      exposedHeaders: ['Retry-After'],
+      exposedHeaders: ['Retry-After', 'X-Request-Id'],
       // A browser may remember a preflight answer, so the requests that need one (the ones that
       // carry an Authorization header) are not each preceded by a second round trip to a host that
       // may be slow to answer.

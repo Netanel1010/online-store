@@ -9,6 +9,7 @@ lists every SHA.
 | M1  | DONE   | The e2e safety net excuses a request only when the page itself cancelled that address (`ERR_ABORTED`); every other failure still fails the test.                                                                                |
 | M2  | DONE   | Per-address limits on sign-in (30 per 15 min) and registration (10 per hour), a concurrency gate on password hashing (2 at once, 8 waiting, then 503), and `TRUST_PROXY_HOPS` for the client address behind Render.             |
 | M3  | DONE   | Security headers (with HSTS only over HTTPS), explicit CORS methods/headers/`Retry-After`/max-age, `no-store` on errors, a 25 s answer timeout, proxy-friendly server timeouts and warn-by-default production hardening checks. |
+| M4  | DONE   | Request ids (`X-Request-Id`, `requestId` in 5xx bodies), one structured JSON log line per request and for errors, with secrets scrubbed, and a Render troubleshooting guide.                                                    |
 
 ## M1: E2E reliability
 
@@ -67,3 +68,24 @@ lists every SHA.
   timeouts, 13 hardening checks. Server 637 (52 integration skipped locally), frontend 637 (incl. the 13 script tests), e2e 271 pass.
 - **Known issues:** HSTS and the header set can only be verified in production after Render deploys
   (`STRICT_HARDENING=1 npm run check:api`). No CSP on the GitHub Pages site (it cannot send headers).
+
+## M4: Observability
+
+- **Request ids** (`middleware/requestLogging.ts`): every answer has `X-Request-Id` (a valid caller id,
+  8 to 64 of `A-Za-z0-9._-`, is kept; anything else is replaced by a UUID, so an id cannot forge a
+  log line). A 5xx body has `error.requestId` (additive; the 500 test now checks that it equals the
+  header and the id on the `error` log line). Exposed to the site through CORS.
+- **Structured logs** (`lib/logger.ts`, no library): one JSON line per request (method, path
+  without query, status, `durationMs`, client `ip`, `aborted`), one `error` line with name, message,
+  stack and cause, and JSON startup/shutdown lines. Successful `/api/health` checks are skipped.
+- **Secrets:** `redactSecrets` (connection string credentials, `Bearer …`) on every text and
+  `scrub` (field names like password, token, authorization, cookie, secret, uri) on every field.
+  Tests send a password, bearer tokens, a cookie, a search query and a database error that repeats a
+  connection string, and assert none of it appears in any log line.
+- **Docs:** `docs/deployment.md#troubleshooting-with-the-logs` (what a line looks like, how to find
+  a visitor's error by request id, slow requests, refusals, checking the client address),
+  `server/README.md`. `check:api` also checks for `X-Request-Id` (warn mode).
+- **Tests:** 15 logger, 18 request logging/ids (incl. a stubbed response for abandoned requests).
+  A real compiled-server run printed the expected lines. Server 669 (52 integration skipped locally), frontend 638, e2e 271 pass.
+- **Known issues:** logs are only as retained as Render keeps them (free tier: short). No metrics or
+  alerting. The storefront does not show the `requestId` to the visitor yet.

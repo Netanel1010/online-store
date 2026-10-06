@@ -35,6 +35,10 @@ export function hardeningProblems({ product, missing, preflight, https }) {
     includes(product.get('content-security-policy'), "frame-ancestors 'none'"),
     "answers lack a Content-Security-Policy with frame-ancestors 'none'",
   )
+  need(
+    /^[A-Za-z0-9._-]{8,64}$/.test(product.get('x-request-id') ?? ''),
+    'answers lack an X-Request-Id',
+  )
   need(product.get('x-powered-by') === null, 'answers name the framework (X-Powered-By)')
   if (https) {
     need(
@@ -48,8 +52,9 @@ export function hardeningProblems({ product, missing, preflight, https }) {
     'a product read lacks Cache-Control with max-age and stale-while-revalidate',
   )
   need(
-    list(product.get('access-control-expose-headers')).includes('retry-after'),
-    'CORS does not let the site read Retry-After',
+    list(product.get('access-control-expose-headers')).includes('retry-after') &&
+      list(product.get('access-control-expose-headers')).includes('x-request-id'),
+    'CORS does not let the site read Retry-After and X-Request-Id',
   )
 
   need(

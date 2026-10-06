@@ -474,6 +474,12 @@ in a database of its own named `online_store_test_<random>` and drops it at the 
   deliberately not enabled: authentication uses an `Authorization` header, not cookies, so a page
   of another origin cannot ride on a visitor's session (a request with that header is first
   checked by the browser with a preflight, which the same allow-list answers).
+- **Logging:** every line is one JSON object (`lib/logger.ts`, no logging library). Each request
+  gets an id (`X-Request-Id`, kept if the caller sends a valid one) and one `request` line when it is
+  over (`middleware/requestLogging.ts`): method, path without the query string, status, duration
+  and client address. A server error's body carries the id as `requestId`, and its `error` line has
+  the same one. Passwords, tokens, headers, cookies, bodies and connection string credentials are
+  never written. See [deployment](../docs/deployment.md#troubleshooting-with-the-logs).
 - **Response headers** (`middleware/securityHeaders.ts`): `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: no-referrer`, a `Content-Security-Policy` that allows nothing and no frames
   (the API only answers JSON), `X-Frame-Options: DENY`, and `Strict-Transport-Security` only when

@@ -1,12 +1,13 @@
 import type { ErrorRequestHandler } from 'express'
 import { HttpError } from '../lib/httpError.ts'
+import type { Logger } from '../lib/logger.ts'
+import { getRequestId } from './requestLogging.ts'
 
-export interface Logger {
-  error: (...args: unknown[]) => void
-}
+export type { Logger }
 
 export interface ErrorBody {
-  error: { code: string; message: string }
+  /** `requestId` is on a server error (5xx): it is what to quote to find it in the log. */
+  error: { code: string; message: string; requestId?: string }
 }
 
 /** Errors thrown by Express's own body parser (invalid JSON, a body that is too large). */
@@ -29,6 +30,7 @@ function bodyParserError(error: unknown): { status: number; code: string; messag
  */
 export function errorHandler(logger: Logger): ErrorRequestHandler {
   return (error, _req, res, next) => {
+    const requestId = getRequestId(res)
     // Too late to change the response: let Express close the connection.
     if (res.headersSent) {
       next(error)
@@ -44,15 +46,25 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
     res.set('Cache-Control', 'no-store')
 
     if (known) {
-      const body: ErrorBody = { error: { code: known.code, message: known.message } }
+      const body: ErrorBody = {
+        error: {
+          code: known.code,
+          message: known.message,
+          ...(known.status >= 500 && requestId && { requestId }),
+        },
+      }
       if (error instanceof HttpError) res.set(error.headers)
       res.status(known.status).json(body)
       return
     }
 
-    logger.error(error)
+    logger.error(error, { requestId })
     const body: ErrorBody = {
-      error: { code: 'internal_error', message: 'Internal server error' },
+      error: {
+        code: 'internal_error',
+        message: 'Internal server error',
+        ...(requestId && { requestId }),
+      },
     }
     res.status(500).json(body)
   }

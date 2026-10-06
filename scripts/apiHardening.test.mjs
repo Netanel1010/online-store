@@ -12,7 +12,8 @@ function good() {
       'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
       'strict-transport-security': 'max-age=31536000; includeSubDomains',
       'cache-control': 'public, max-age=60, stale-while-revalidate=3600',
-      'access-control-expose-headers': 'Retry-After',
+      'access-control-expose-headers': 'Retry-After, X-Request-Id',
+      'x-request-id': '3f2a9c1e-7b4d-4e1a-9c55-0a1b2c3d4e5f',
     }),
     missing: headers({ 'cache-control': 'no-store' }),
     preflight: headers({
@@ -35,6 +36,7 @@ describe('hardeningProblems', () => {
     ['HSTS over HTTPS', 'strict-transport-security', /Strict-Transport-Security/],
     ['caching of a product', 'cache-control', /stale-while-revalidate/],
     ['reading Retry-After', 'access-control-expose-headers', /Retry-After/],
+    ['a request id', 'x-request-id', /X-Request-Id/],
   ])('says when %s is missing', (_name, header, message) => {
     const answers = good()
     answers.product.delete(header)
@@ -95,6 +97,6 @@ describe('hardeningProblems', () => {
       }),
     }
 
-    expect(hardeningProblems(before).length).toBeGreaterThanOrEqual(9)
+    expect(hardeningProblems(before).length).toBeGreaterThanOrEqual(10)
   })
 })
