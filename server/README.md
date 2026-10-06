@@ -1,11 +1,14 @@
 # Online Store API
 
-The backend of the online store: **Node.js**, **Express 5** and **TypeScript**. This is the
+The backend of the online store: **Node.js**, **Express 5** and **TypeScript**. It is the
 foundation with a first feature. It has health checks, JSON parsing, CORS, validated
 configuration, central error handling, a **MongoDB** connection (the official driver) with a managed
-life cycle, and a read-only **Products API** that serves the catalog from MongoDB. The storefront
-does not call the API: it still reads `products.json` itself, and accounts, cart and orders live in
-the frontend. Authentication, orders and moving the storefront to the API are later steps.
+life cycle, and a read-only **Products API** that serves the catalog from MongoDB.
+
+The storefront loads its products from this API, in production (hosted on Render, with MongoDB
+Atlas) and in development. Accounts, cart, favorites and orders still live in the frontend:
+authentication, a server cart and orders are later steps. How the API is deployed and checked is in
+[`docs/deployment.md`](../docs/deployment.md).
 
 It is an npm workspace of this repository, so one `npm install` at the root installs everything and
 the root ESLint, Prettier and TypeScript settings apply to it.
@@ -25,7 +28,9 @@ curl http://localhost:3001/api/health
 ```
 
 Run the storefront next to it with `npm run dev`. Its origin (`http://localhost:5173`) is already
-allowed by CORS.
+allowed by CORS, and in development the storefront calls `http://localhost:3001` by default. The
+storefront needs the products in MongoDB, so set `MONGODB_URI` and
+[seed the products](#seed-the-products) first.
 
 Node prints `.env not found. Continuing without it.` when there is no `.env` file. That is fine:
 every setting has a development default. Without `MONGODB_URI` the API starts without a database
@@ -116,8 +121,10 @@ answer `503 database_not_configured`.
   trimmed. MongoDB's own `_id` is never part of a response.
 - **Errors** use the usual `{ "error": { "code", "message" } }` shape. A database failure is a
   generic `500 internal_error`: the details stay in the server log.
-- **The storefront does not use this API yet.** It still loads `products.json`; moving it to the API
-  is a separate step.
+- **The storefront uses this API.** It reads the whole catalog with `GET /api/products?limit=100`,
+  following the pages until the last, and a product page reads `GET /api/products/:id`. Search,
+  filtering and sorting happen in the browser: there is no search or filter endpoint yet. A `400` or
+  `404` for a product means "no such product" to the storefront; any other failure is an error.
 
 Three layers, each with one job: `routes.ts` reads the request and sends the answer, `service.ts`
 holds the paging rules and what a missing product means, and `repository.ts` is the only code that
@@ -164,7 +171,8 @@ Run from the repository root (or without `:server`, inside `server/`):
 | `npm run test:server`  | Run the tests (Vitest, Node environment, no MongoDB needed) |
 | `npm run seed:products` | Copy `public/data/products.json` to MongoDB (see above) |
 | `npm run build:server` | Compile to `server/dist` (the server is `dist/server/src/server.js`, next to the three storefront schema files it shares in `dist/src/`) |
-| `npm run start:server` | Run the compiled build                               |
+| `npm run start:server` | Run the compiled build (what Render runs in production) |
+| `npm run check:api`    | Check a running API: health, readiness, products, CORS (see [deployment](../docs/deployment.md#verify-a-deployment)) |
 | `npm run typecheck`    | Type-check the site, the tests and the API together  |
 | `npm run lint`         | ESLint for the whole repository, API included        |
 
@@ -182,6 +190,16 @@ to change them; `.env` is git-ignored.
 | `MONGODB_URI`  | not set                                          | MongoDB connection string (`mongodb://` or `mongodb+srv://`). It holds the password. **Required in production.** Not set: the API runs without a database. |
 | `MONGODB_DB_NAME` | `online-store`                                | Database to use: 1 to 38 letters, digits, `_` or `-`. Use a different one per environment.               |
 | `MONGODB_CONNECT_TIMEOUT_MS` | `5000`                             | How long to look for a reachable MongoDB at startup before giving up (100 to 60000).                     |
+
+## Production
+
+The API runs on **Render** as the web service `online-store-api`, described by
+[`render.yaml`](../render.yaml) at the repository root, with its data in **MongoDB Atlas**. In
+production `CORS_ORIGINS` (the site's origin) and `MONGODB_URI` are required, and the connection
+string is entered in the Render dashboard, never committed. Render uses `/api/health` as its health
+check, and `/api/health/ready` is the check that includes the database. Configuration, how a
+change is released, verification commands and troubleshooting are in
+[`docs/deployment.md`](../docs/deployment.md).
 
 ## Structure
 

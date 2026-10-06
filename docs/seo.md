@@ -20,7 +20,9 @@ page worth indexing and writes that page's tags into the copy:
 
 Pages serves these as real files (status 200; an address without the closing slash is redirected
 to the one with it), so they can be indexed. The app is the same on every copy and takes over as
-usual. The files are generated from `public/data/products.json`; nothing is committed.
+usual. The files are generated from `public/data/products.json`; nothing is committed. The site
+itself loads its products from the API, so a product changed only in MongoDB is not reflected in
+these pages and the sitemap until `products.json` is updated and the site is built again.
 
 The tags come from `src/lib/seo.ts`. The same code feeds `PageMeta`, which keeps the title,
 description, canonical address, social tags and structured data up to date while a visitor

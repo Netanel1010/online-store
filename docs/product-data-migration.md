@@ -1,8 +1,13 @@
 # Product data migration
 
 The catalog moved from the legacy `products.json` (tag `legacy-v1`) to
-`public/data/products.json`, validated at load time by the Zod schema in
-`src/features/products/schema.ts`.
+`public/data/products.json`, validated by the Zod schema in `src/features/products/schema.ts`.
+
+That file is now the **source** of the catalog, not what the site reads: `npm run seed:products`
+copies it to MongoDB, the API serves it from there, and the site validates what the API sends with
+the same schema. The build still generates the static SEO pages from it, and the tests read it
+(see [`deployment.md`](deployment.md#updating-the-products)). The migration below describes how the
+data in that file was shaped.
 
 ## Field mapping (old → new)
 
