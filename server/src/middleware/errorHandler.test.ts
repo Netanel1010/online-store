@@ -12,6 +12,12 @@ const failing = express()
 failing.get('/teapot', () => {
   throw new HttpError(418, 'teapot', 'I am a teapot')
 })
+failing.get('/with-headers', () => {
+  throw new HttpError(401, 'unauthorized', 'No', {
+    'WWW-Authenticate': 'Bearer',
+    'Retry-After': '9',
+  })
+})
 failing.get('/bug', () => {
   throw new Error('database password is hunter2')
 })
@@ -33,6 +39,14 @@ afterAll(async () => {
 })
 
 describe('errorHandler', () => {
+  it('sends the headers an HttpError carries', async () => {
+    const response = await fetch(`${failingApi.url}/with-headers`)
+
+    expect(response.status).toBe(401)
+    expect(response.headers.get('www-authenticate')).toBe('Bearer')
+    expect(response.headers.get('retry-after')).toBe('9')
+  })
+
   it('answers an HttpError with its own status, code and message', async () => {
     const response = await fetch(`${failingApi.url}/teapot`)
 

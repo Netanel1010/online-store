@@ -13,7 +13,7 @@
 jsdom has no real layout, CSS, history or storage persistence, and no native `<dialog>`. The unit
 and component tests cover logic and behaviour quickly. The browser tests cover what jsdom cannot:
 responsive visibility, the mobile menu as a real modal dialog, reload and back/forward, persistence
-in real `localStorage`, WebCrypto, keyboard focus, colour contrast, and the production build under
+in real `localStorage`, a session across two origins, keyboard focus, colour contrast, and the production build under
 the GitHub Pages base path. Vitest ignores `e2e/`; Playwright ignores `src/`.
 
 ## End-to-end tests
@@ -64,6 +64,21 @@ memory, reached through the storefront's own request path. These tests therefore
 page sends and what it gets back, not a script, and the filtering rules are written only once.
 `src/services/productService.listing.test.ts` and `src/features/products/useProductListing.test.tsx`
 cover the request, the answer's validation and the loading, refreshing and error states.
+
+## Authentication in the tests
+
+The sign-in, registration, guard and checkout component tests call `setUpAuthApi` (`src/test/authApi.ts`):
+the **real API code** (routes, validation, scrypt hashing, sessions, middleware, error handling) over
+accounts and sessions in memory, on a free port, reached by the storefront's own requests. They
+check what the pages send and get back, and a test can end every session on the "server" to see
+what the page does when its token stops working. `authService.test.ts` and `authStore.test.ts` cover
+how the answers (401, 409, 429, 5xx, no network) are read and what is kept in the browser.
+
+The E2E tests register real accounts in the stub API that runs the same code, on another origin
+than the site (like the deployed site and API), and check, in a real browser, that the token goes
+in an `Authorization` header and no cookie is sent, that a session survives a reload, that signing
+out ends it on the server, that a token the server has ended signs nobody in, and that two browsers
+are two sessions.
 
 ## Accessibility tests
 

@@ -1,148 +1,160 @@
-import { useMemo } from 'react'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { z } from 'zod'
-import { generateSalt, hashPassword, verifyPassword } from '@/lib/password'
+import {
+  endSession,
+  fetchCurrentUser,
+  loginAccount,
+  registerAccount,
+  type AuthFailure,
+  type CurrentUser,
+  type SignedIn,
+} from './authService'
+
+export type { CurrentUser } from './authService'
 
 /**
- * DEMO authentication. There is no server: accounts and the session live in this browser's
- * localStorage, so this demonstrates the screens and the route protection but provides no real
- * security (anyone with access to the browser can read or edit this data).
+ * The visitor's session. The accounts and the sessions live in the API (MongoDB); the browser keeps
+ * only the session token, in localStorage, so a reload or a new tab stays signed in. Everything else
+ * (who the visitor is) is asked of the API, never read from storage.
  *
- * Passwords are never stored in readable form, only as a salted PBKDF2 hash.
+ *  - restoring: there is a token and the API has not yet said whether it is still good
+ *  - authenticated: the API knows the token, `user` is the visitor
+ *  - anonymous: no token, or the API does not accept it any more
+ *  - unavailable: there is a token but the API could not be asked (offline, asleep, failing); the
+ *    token is kept, because nothing has been said against it
+ *
+ * The token is readable by scripts of this page, which is the price of working across two origins
+ * (the site and the API) in every browser: it is short-lived, the API can end it, and the pages
+ * render all text as text, never as HTML.
  */
+export type AuthStatus = 'restoring' | 'authenticated' | 'anonymous' | 'unavailable'
 
-export interface StoredUser {
-  id: string
-  name: string
-  email: string
-  salt: string
-  passwordHash: string
-  createdAt: string
-}
-
-/** What the rest of the app may see about the signed-in user. Never includes the hash. */
-export interface CurrentUser {
-  id: string
-  name: string
-  email: string
-}
-
-export type AuthResult = { ok: true } | { ok: false; reason: 'email-taken' | 'invalid-credentials' }
+export type AuthResult = { ok: true } | { ok: false; reason: AuthFailure }
 
 interface AuthState {
-  users: StoredUser[]
-  /** The signed-in user's id, or null. This is the demo "session". */
-  currentUserId: string | null
+  token: string | null
+  /** When the session ends, as an ISO date. */
+  expiresAt: string | null
+  user: CurrentUser | null
+  status: AuthStatus
   register: (input: { name: string; email: string; password: string }) => Promise<AuthResult>
   login: (input: { email: string; password: string }) => Promise<AuthResult>
+  /** Signs out here at once, and asks the API to end the session (best effort). */
   logout: () => void
+  /** Asks the API whether the stored token is still good. Safe to call from many places. */
+  restore: () => Promise<void>
 }
 
-export function normalizeEmail(email: string) {
-  return email.trim().toLowerCase()
+/** Where the demo accounts of the first version of the site lived. They are not used any more. */
+const LEGACY_KEY = 'online-store:auth'
+try {
+  localStorage.removeItem(LEGACY_KEY)
+} catch {
+  // No storage (private mode, tests without a DOM): there is nothing to clean.
 }
 
 // Defined before the store: persist rehydrates, and so calls `merge`, while the store is created.
-const persistedAuthSchema = z.object({
-  users: z.array(
-    z.object({
-      id: z.string().min(1),
-      name: z.string().min(1),
-      email: z.string().min(1),
-      salt: z.string().regex(/^[0-9a-f]{32}$/),
-      passwordHash: z.string().regex(/^[0-9a-f]{64}$/),
-      createdAt: z.string().min(1),
-    }),
-  ),
-  currentUserId: z.string().nullable(),
+const persistedSchema = z.object({
+  token: z.string().min(16).nullable(),
+  expiresAt: z.iso.datetime().nullable(),
 })
 
-// Used so that logging in with an unknown email takes about as long as a wrong password.
-const DUMMY_SALT = '00000000000000000000000000000000'
+/** How long the API gets to confirm a stored session before the visitor is told it cannot be reached. */
+const RESTORE_TIMEOUT_MS = 60_000
+
+const SIGNED_OUT = { token: null, expiresAt: null, user: null } as const
+
+function signedInState({ token, expiresAt, user }: SignedIn) {
+  return { token, expiresAt, user, status: 'authenticated' as const }
+}
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
-      users: [],
-      currentUserId: null,
+    (set, get) => {
+      // The question being asked, and about which token: another token is another question.
+      let restoring: { token: string; promise: Promise<void> } | null = null
 
-      register: async ({ name, email, password }) => {
-        const normalized = normalizeEmail(email)
-        if (get().users.some((user) => user.email === normalized)) {
-          return { ok: false, reason: 'email-taken' }
-        }
-
-        const salt = generateSalt()
-        const user: StoredUser = {
-          id: crypto.randomUUID(),
-          name: name.trim(),
-          email: normalized,
-          salt,
-          passwordHash: await hashPassword(password, salt),
-          createdAt: new Date().toISOString(),
-        }
-
-        // Check again at write time: another registration may have finished while hashing.
-        let taken = false
-        set((state) => {
-          if (state.users.some((existing) => existing.email === normalized)) {
-            taken = true
-            return state
-          }
-          return { users: [...state.users, user], currentUserId: user.id }
-        })
-        return taken ? { ok: false, reason: 'email-taken' } : { ok: true }
-      },
-
-      login: async ({ email, password }) => {
-        const user = get().users.find((candidate) => candidate.email === normalizeEmail(email))
-        const valid = user
-          ? await verifyPassword(password, user.salt, user.passwordHash)
-          : (await hashPassword(password, DUMMY_SALT), false)
-
-        // The same answer for an unknown email and a wrong password.
-        if (!user || !valid) return { ok: false, reason: 'invalid-credentials' }
-        set({ currentUserId: user.id })
+      async function enter(
+        request: Promise<Awaited<ReturnType<typeof loginAccount>>>,
+      ): Promise<AuthResult> {
+        const outcome = await request
+        if (!outcome.ok) return outcome
+        set(signedInState(outcome.value))
         return { ok: true }
-      },
+      }
 
-      logout: () => set({ currentUserId: null }),
-    }),
+      return {
+        ...SIGNED_OUT,
+        status: 'anonymous',
+
+        register: (input) => enter(registerAccount(input)),
+        login: (input) => enter(loginAccount(input)),
+
+        logout: () => {
+          const { token } = get()
+          set({ ...SIGNED_OUT, status: 'anonymous' })
+          if (token) void endSession(token)
+        },
+
+        restore: () => {
+          const { token, status } = get()
+          if (!token) return Promise.resolve()
+          // Already known, or already being asked: nothing to add.
+          if (status === 'authenticated') return Promise.resolve()
+          if (restoring?.token === token) return restoring.promise
+
+          set({ status: 'restoring' })
+          // The timeout is there so that an API that never answers ends in "unavailable" (with a retry)
+          // instead of a page that waits for ever. A host that is waking up can take about a minute.
+          const promise = fetchCurrentUser(token, AbortSignal.timeout(RESTORE_TIMEOUT_MS))
+            .then((outcome) => {
+              // The visitor signed out (or in as someone else) while the API was answering.
+              if (get().token !== token) return
+              if (outcome.status === 'signed-in')
+                set({ user: outcome.user, status: 'authenticated' })
+              else if (outcome.status === 'signed-out') set({ ...SIGNED_OUT, status: 'anonymous' })
+              else set({ status: 'unavailable' })
+            })
+            .finally(() => {
+              if (restoring?.promise === promise) restoring = null
+            })
+          restoring = { token, promise }
+          return promise
+        },
+      }
+    },
     {
-      name: 'online-store:auth',
+      name: 'online-store:session',
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ users: state.users, currentUserId: state.currentUserId }),
+      // Only the token: who the visitor is comes from the API, and no password is ever kept.
+      partialize: (state) => ({ token: state.token, expiresAt: state.expiresAt }),
       // Stored data is untrusted (it can be edited or corrupted): validate, never spread it in.
       merge: (persisted, current) => {
-        const parsed = persistedAuthSchema.safeParse(persisted)
-        if (!parsed.success) return current
-
-        const users: StoredUser[] = []
-        for (const user of parsed.data.users) {
-          if (!users.some((kept) => kept.id === user.id || kept.email === user.email)) {
-            users.push(user)
-          }
+        const parsed = persistedSchema.safeParse(persisted)
+        if (!parsed.success || parsed.data.token === null || parsed.data.expiresAt === null) {
+          return current
         }
-        // A session is only valid if its account exists.
-        const currentUserId = users.some((user) => user.id === parsed.data.currentUserId)
-          ? parsed.data.currentUserId
-          : null
-        return { ...current, users, currentUserId }
+        // A session that has ended is not worth asking the API about.
+        if (Date.parse(parsed.data.expiresAt) <= Date.now()) return current
+        return {
+          ...current,
+          token: parsed.data.token,
+          expiresAt: parsed.data.expiresAt,
+          user: null,
+          status: 'restoring',
+        }
       },
     },
   ),
 )
 
-const selectStoredCurrentUser = (state: AuthState) =>
-  state.users.find((user) => user.id === state.currentUserId)
-
-/** The signed-in user (without credentials), or undefined when signed out. */
+/** The signed-in visitor (without credentials), or undefined when there is none (yet). */
 export function useCurrentUser(): CurrentUser | undefined {
-  const stored = useAuthStore(selectStoredCurrentUser)
-  return useMemo(
-    () => (stored ? { id: stored.id, name: stored.name, email: stored.email } : undefined),
-    [stored],
-  )
+  return useAuthStore((state) => state.user ?? undefined)
+}
+
+export function useAuthStatus(): AuthStatus {
+  return useAuthStore((state) => state.status)
 }

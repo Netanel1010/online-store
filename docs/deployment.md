@@ -125,6 +125,30 @@ database user needs permission to write.
 
 A product removed from `products.json` stays in MongoDB until it is removed by hand.
 
+## Authentication in production
+
+Authentication ([`server/README.md`](../server/README.md#authentication)) needs **no new secret and
+no new variable**: sessions are random tokens kept (as a digest) in MongoDB, not signed values.
+
+- When the API starts it creates the `users` and `sessions` collections' indexes (a unique email, a
+  unique token digest and the one that expires sessions). The database user needs the permission to
+  create indexes and to write, which it already needs for the seed and the product indexes.
+- The site sends the token in an `Authorization` header, so `CORS_ORIGINS` must name the site's
+  origin exactly (it already does). No cookies are used, so nothing about cookies, `SameSite` or
+  third-party cookie settings needs configuring, and Safari works.
+- Accounts of the first, browser-only version of the site were never on a server: visitors register
+  again, and those old records are removed from their browsers when the site loads.
+- The limit on failed sign-ins is in the memory of the API process: a restart (Render restarts a
+  free service when it wakes up) clears it.
+- Nothing in the `products` collection is read or changed by authentication.
+
+To check it by hand against the deployed API (use a throwaway address; the account stays):
+
+```bash
+curl -s -X POST "$API_URL/api/auth/register" -H 'Content-Type: application/json' \n  -d '{"name":"Check","email":"check-1@example.com","password":"<a password with a letter and a digit>"}'
+curl -s "$API_URL/api/auth/me" -H "Authorization: Bearer <the token of the answer>"
+```
+
 ## Operating notes
 
 - **Cold starts.** A free Render service sleeps when it is idle, so the first request after a pause
@@ -137,11 +161,14 @@ A product removed from `products.json` stays in MongoDB until it is removed by h
 
 ## Troubleshooting
 
-| Symptom                                               | Likely cause and what to check                                                                                                                                                                        |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The site shows its error state instead of products    | `/api/health/ready` first. Then the browser console: a CORS error means `CORS_ORIGINS` does not match the site's origin; a request to `github.io/api/...` means the site was built without `API_URL`. |
-| `/api/health/ready` answers `503` with `down`         | Atlas is unreachable: check the `MONGODB_URI` secret (special characters in the password must be URL-encoded) and Atlas _Network Access_, which must admit Render.                                    |
-| `/api/products` answers `503 database_not_configured` | `MONGODB_URI` is not set on the service.                                                                                                                                                              |
-| `/api/products` answers `200` with no items           | The collection is empty: run `npm run seed:products` against that database.                                                                                                                           |
-| The service does not start                            | The Render logs name the invalid variable. Production requires `CORS_ORIGINS` (origins without a path or trailing slash) and `MONGODB_URI`.                                                           |
-| The deploy job fails at "Check the production API"    | The step prints which check failed. The same command can be run by hand (above).                                                                                                                      |
+| Symptom                                                   | Likely cause and what to check                                                                                                                                                                                          |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The site shows its error state instead of products        | `/api/health/ready` first. Then the browser console: a CORS error means `CORS_ORIGINS` does not match the site's origin; a request to `github.io/api/...` means the site was built without `API_URL`.                   |
+| `/api/health/ready` answers `503` with `down`             | Atlas is unreachable: check the `MONGODB_URI` secret (special characters in the password must be URL-encoded) and Atlas _Network Access_, which must admit Render.                                                      |
+| `/api/products` answers `503 database_not_configured`     | `MONGODB_URI` is not set on the service.                                                                                                                                                                                |
+| `/api/products` answers `200` with no items               | The collection is empty: run `npm run seed:products` against that database.                                                                                                                                             |
+| The service does not start                                | The Render logs name the invalid variable. Production requires `CORS_ORIGINS` (origins without a path or trailing slash) and `MONGODB_URI`.                                                                             |
+| Sign-in or registration says the server cannot be reached | `/api/health/ready`; a request to `github.io/api/...` means the site was built without `API_URL`; a CORS error means `CORS_ORIGINS` does not match the site's origin. A host that is waking up can take about a minute. |
+| `/api/auth/*` answers `503 database_not_configured`       | `MONGODB_URI` is not set on the service.                                                                                                                                                                                |
+| Visitors are signed out after a deploy                    | They should not be: sessions are in MongoDB. Check that the `sessions` collection still has its documents and that `MONGODB_DB_NAME` did not change.                                                                    |
+| The deploy job fails at "Check the production API"        | The step prints which check failed. The same command can be run by hand (above).                                                                                                                                        |

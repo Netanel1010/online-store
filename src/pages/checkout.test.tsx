@@ -5,7 +5,11 @@ import { useCartStore } from '@/features/cart/cartStore'
 import * as placeOrder from '@/features/checkout/placeOrder'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 import { makeProduct } from '@/test/fixtures'
+import { setUpAuthApi } from '@/test/authApi'
 import { renderApp } from '@/test/renderApp'
+
+// The real authentication API answers these tests (see setUpAuthApi).
+setUpAuthApi()
 
 const GOOD = { name: 'נתנאל', email: 'netanel@example.com', password: 'Passw0rdOK' }
 
@@ -304,7 +308,7 @@ describe('valid checkout submission', () => {
     // The cart is emptied; the favorites and the session are untouched.
     expect(useCartStore.getState().items).toEqual([])
     expect(useFavoritesStore.getState().ids).toEqual(['GPU-1'])
-    expect(useAuthStore.getState().currentUserId).not.toBeNull()
+    expect(useAuthStore.getState().status).toBe('authenticated')
   })
 
   it('says again that nothing was charged or stored', async () => {

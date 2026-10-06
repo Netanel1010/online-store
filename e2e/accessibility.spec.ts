@@ -609,6 +609,9 @@ test.describe('mobile menu (dialog)', () => {
     await expect(page).toHaveURL(/\/login$/)
 
     await register(page, newAccount())
+    // Registering is a request to the API: wait for the redirect to the home page, which would
+    // otherwise close a menu that was opened in the meantime.
+    await expect(page).toHaveURL(/\/online-store\/$/)
     await toggle(page).click()
     await expect(menu(page).getByText('שלום,')).toBeVisible()
     await menu(page).getByRole('button', { name: 'התנתקות' }).click()

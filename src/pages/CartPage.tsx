@@ -5,7 +5,7 @@ import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
 import { EmptyState } from '@/components/shared/StateMessages'
 import { Skeleton } from '@/components/shared/Skeleton'
 import { buttonStyles } from '@/components/ui/buttonStyles'
-import { useCurrentUser } from '@/features/auth/authStore'
+import { useAuthStatus, useCurrentUser } from '@/features/auth/authStore'
 import { useCartStore } from '@/features/cart/cartStore'
 import { CartLineItem } from '@/features/cart/CartLineItem'
 import { OrderSummary } from '@/features/cart/OrderSummary'
@@ -31,6 +31,7 @@ function CartSkeleton() {
 
 export function CartPage() {
   const user = useCurrentUser()
+  const authStatus = useAuthStatus()
   const items = useCartStore((state) => state.items)
   const removeItem = useCartStore((state) => state.removeItem)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -92,7 +93,7 @@ export function CartPage() {
                 >
                   המשך בקניות
                 </Link>
-                {!user && (
+                {!user && authStatus !== 'restoring' && (
                   <p className="mt-2 text-center text-xs text-muted">
                     כדי להמשיך תתבקשו להתחבר או להירשם.
                   </p>

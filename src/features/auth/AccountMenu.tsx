@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router'
 import { paths } from '@/app/paths'
 import { LogoutIcon, UserIcon } from '@/components/icons'
 import { useToast } from '@/features/notifications/toastContext'
-import { useAuthStore, useCurrentUser } from './authStore'
+import { useAuthStatus, useAuthStore, useCurrentUser } from './authStore'
 import { isProtectedPath } from './routing'
 
 const buttonClass =
@@ -21,6 +21,7 @@ const accountLinkClass = ({ isActive }: { isActive: boolean }) =>
  */
 export function AccountMenu({ variant }: { variant: 'header' | 'drawer' }) {
   const user = useCurrentUser()
+  const status = useAuthStatus()
   const logout = useAuthStore((state) => state.logout)
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -42,6 +43,9 @@ export function AccountMenu({ variant }: { variant: 'header' | 'drawer' }) {
       finishSignOut()
     }
   }, [pathname, finishSignOut])
+
+  // A stored session is being confirmed: show neither the sign-in link nor a name that is not yet known.
+  if (status === 'restoring') return null
 
   if (!user) {
     return (

@@ -1,4 +1,6 @@
 import { createApp } from './app.ts'
+import { createSessionRepository } from './auth/sessionRepository.ts'
+import { createUserRepository } from './auth/userRepository.ts'
 import { loadConfig } from './config.ts'
 import { createDatabase, type Database } from './db/database.ts'
 import { createProductRepository } from './products/repository.ts'
@@ -21,6 +23,9 @@ async function start() {
     await products.ensureIndexes()
     const prepared = await products.ensureSearchFields()
     if (prepared > 0) console.log(`Search text stored for ${prepared} product(s)`)
+    // The unique indexes of the accounts and the sessions (and the one that expires sessions).
+    await createUserRepository(database).ensureIndexes()
+    await createSessionRepository(database).ensureIndexes()
   } else {
     console.log('MONGODB_URI is not set: running without a database')
   }
