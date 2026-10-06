@@ -107,6 +107,16 @@ $env:API_URL="https://online-store-api-9hz8.onrender.com"; $env:SITE_ORIGIN="htt
 
 `WAIT_SECONDS` (default 300) is how long it waits for a sleeping host to wake up and reach its database.
 
+`npm run check:api` also reports the HTTP hardening of the API (security headers, CORS, caching; see
+[the server README](../server/README.md#behaviour-worth-knowing)). In the deploy job these are
+**warnings**, because that job checks the API that is deployed at that moment, which is the one
+before the change being deployed. After Render has deployed a new API, run it by hand with
+`STRICT_HARDENING=1` to make a missing header an error:
+
+```bash
+STRICT_HARDENING=1 API_URL=https://online-store-api-9hz8.onrender.com SITE_ORIGIN=https://netanel1010.github.io npm run check:api
+```
+
 ## Updating the products
 
 The catalog lives in MongoDB and is served by the API, but its source is

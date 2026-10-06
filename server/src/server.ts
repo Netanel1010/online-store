@@ -3,6 +3,7 @@ import { createSessionRepository } from './auth/sessionRepository.ts'
 import { createUserRepository } from './auth/userRepository.ts'
 import { loadConfig } from './config.ts'
 import { createDatabase, type Database } from './db/database.ts'
+import { configureServerTimeouts } from './lib/serverTimeouts.ts'
 import { createProductRepository } from './products/repository.ts'
 
 async function start() {
@@ -33,6 +34,8 @@ async function start() {
   const server = createApp(config, console, database).listen(config.port, () => {
     console.log(`API listening on http://localhost:${config.port} (${config.nodeEnv})`)
   })
+
+  configureServerTimeouts(server)
 
   // Hosts stop a container with SIGTERM: finish the requests in progress, then close the database
   // and exit. The timer makes sure a stuck connection cannot keep the process alive for ever.

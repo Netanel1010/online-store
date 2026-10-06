@@ -205,12 +205,12 @@ describe('what a browser may keep', () => {
     expect(PRODUCT_CACHE_CONTROL).toMatch(/stale-while-revalidate=\d+/)
   })
 
-  it('never lets an error be kept', async () => {
+  it('never lets an error be kept: it is marked no-store', async () => {
     for (const path of ['/NOPE-404', '/bad%20id', '?page=0', '?category=nope', '?limit=1000']) {
       const response = await get(path)
 
       expect(response.status, path).toBeGreaterThanOrEqual(400)
-      expect(response.headers.get('cache-control'), path).toBeNull()
+      expect(response.headers.get('cache-control'), path).toBe('no-store')
     }
   })
 })

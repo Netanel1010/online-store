@@ -40,6 +40,9 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
         ? { status: error.status, code: error.code, message: error.message }
         : bodyParserError(error)
 
+    // An error is never kept by a browser or a proxy: the same request may well work next time.
+    res.set('Cache-Control', 'no-store')
+
     if (known) {
       const body: ErrorBody = { error: { code: known.code, message: known.message } }
       if (error instanceof HttpError) res.set(error.headers)

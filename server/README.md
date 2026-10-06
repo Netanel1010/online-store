@@ -474,6 +474,17 @@ in a database of its own named `online_store_test_<random>` and drops it at the 
   deliberately not enabled: authentication uses an `Authorization` header, not cookies, so a page
   of another origin cannot ride on a visitor's session (a request with that header is first
   checked by the browser with a preflight, which the same allow-list answers).
+- **Response headers** (`middleware/securityHeaders.ts`): `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy: no-referrer`, a `Content-Security-Policy` that allows nothing and no frames
+  (the API only answers JSON), `X-Frame-Options: DENY`, and `Strict-Transport-Security` only when
+  the request really came over HTTPS (see `TRUST_PROXY_HOPS`). No framework such as Helmet is used:
+  this is all an API that serves JSON needs. Every error answer is `Cache-Control: no-store`.
+- **CORS** offers only `GET`, `HEAD` and `POST`, the headers `Authorization` and `Content-Type`, lets a
+  page read `Retry-After`, and lets a browser keep a preflight answer for ten minutes.
+- **Timeouts:** an answer that takes longer than 25 seconds is replaced by `503 request_timeout`
+  (the work itself is not stopped). The server keeps idle connections for 65 seconds, longer than a
+  proxy keeps its own, so a reused connection is never closed under it (that race shows up as an
+  occasional `502`), and a client has two minutes at most to send a request.
 - **Request bodies** are limited to 100 kB.
 - **One client**: the process has a single `MongoClient`, which owns the connection pool. It is
   never created per request.

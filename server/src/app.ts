@@ -4,6 +4,8 @@ import type { Config } from './config.ts'
 import type { Database } from './db/database.ts'
 import { errorHandler, type Logger } from './middleware/errorHandler.ts'
 import { notFound } from './middleware/notFound.ts'
+import { requestTimeout } from './middleware/requestTimeout.ts'
+import { securityHeaders } from './middleware/securityHeaders.ts'
 import { createApiRouter } from './routes/index.ts'
 
 /**
@@ -23,8 +25,17 @@ export function createApp(
   // past exactly as many proxies as there are, so a header the visitor sends cannot choose it.
   if (config.trustProxyHops) app.set('trust proxy', config.trustProxyHops)
 
+  app.use(securityHeaders)
+  app.use(requestTimeout())
+
   app.use(
     cors({
+      // The storefront reads (GET) and signs in or out (POST). Nothing else is offered, so nothing
+      // else is allowed from a browser.
+      methods: ['GET', 'HEAD', 'POST'],
+      allowedHeaders: ['Authorization', 'Content-Type'],
+      // A page's script can read only the headers a server lists: the one that says how long to wait.
+      exposedHeaders: ['Retry-After'],
       // A browser may remember a preflight answer, so the requests that need one (the ones that
       // carry an Authorization header) are not each preceded by a second round trip to a host that
       // may be slow to answer.

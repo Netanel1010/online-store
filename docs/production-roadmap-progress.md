@@ -4,10 +4,11 @@ Work on the branch `chore/production-roadmap-m1-m8`, one commit per milestone, i
 of each milestone is in `git log`; the final report ([production-roadmap-m1-m8-report.md](production-roadmap-m1-m8-report.md))
 lists every SHA.
 
-| M   | Status | Summary                                                                                                                                                                                                             |
-| --- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M1  | DONE   | The e2e safety net excuses a request only when the page itself cancelled that address (`ERR_ABORTED`); every other failure still fails the test.                                                                    |
-| M2  | DONE   | Per-address limits on sign-in (30 per 15 min) and registration (10 per hour), a concurrency gate on password hashing (2 at once, 8 waiting, then 503), and `TRUST_PROXY_HOPS` for the client address behind Render. |
+| M   | Status | Summary                                                                                                                                                                                                                         |
+| --- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1  | DONE   | The e2e safety net excuses a request only when the page itself cancelled that address (`ERR_ABORTED`); every other failure still fails the test.                                                                                |
+| M2  | DONE   | Per-address limits on sign-in (30 per 15 min) and registration (10 per hour), a concurrency gate on password hashing (2 at once, 8 waiting, then 503), and `TRUST_PROXY_HOPS` for the client address behind Render.             |
+| M3  | DONE   | Security headers (with HSTS only over HTTPS), explicit CORS methods/headers/`Retry-After`/max-age, `no-store` on errors, a 25 s answer timeout, proxy-friendly server timeouts and warn-by-default production hardening checks. |
 
 ## M1: E2E reliability
 
@@ -46,3 +47,23 @@ lists every SHA.
 - **Known issues:** the right number of proxies on Render cannot be proven from here: verify after
   the first deployment (`docs/deployment.md#client-addresses-and-rate-limits`; it uses the request
   log of M4). A `503 server_busy` is shown by the storefront as "could not reach the server".
+
+## M3: HTTP security hardening
+
+- **Headers** (`middleware/securityHeaders.ts`, no framework): nosniff, `Referrer-Policy: no-referrer`,
+  a CSP that allows nothing and no frames, `X-Frame-Options`, HSTS only when `req.secure` (so a local
+  server never pins `localhost`, and a header sent by a visitor cannot trigger it when no proxy is
+  trusted). Every error answer is `Cache-Control: no-store` (`errorHandler`).
+- **CORS:** methods `GET,HEAD,POST`, allowed headers `Authorization,Content-Type`, exposed
+  `Retry-After`, preflight max-age 600 s (from the earlier performance milestone). Product read
+  caching (`max-age=60, stale-while-revalidate=3600`) was already in place and is checked.
+- **Timeouts:** `middleware/requestTimeout.ts` answers `503 request_timeout` after 25 s;
+  `lib/serverTimeouts.ts` sets keep-alive 65 s / headers 66 s / request 120 s (the proxy keep-alive race).
+- **Production checks:** `scripts/apiHardening.mjs` (13 tests) used by `scripts/check-api.mjs`.
+  Warnings by default, errors with `STRICT_HARDENING=1`: the deploy job checks the API deployed
+  _before_ the change, so strict checks would block the deploy that ships it. Run against the real
+  production API now it warns about exactly the gaps this milestone closes.
+- **Tests:** 15 for headers/CORS/no-store (`app.security.test.ts`), 3 request timeout, 3 server
+  timeouts, 13 hardening checks. Server 637 (52 integration skipped locally), frontend 637 (incl. the 13 script tests), e2e 271 pass.
+- **Known issues:** HSTS and the header set can only be verified in production after Render deploys
+  (`STRICT_HARDENING=1 npm run check:api`). No CSP on the GitHub Pages site (it cannot send headers).
