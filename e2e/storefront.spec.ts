@@ -141,6 +141,41 @@ test.describe('hero banners fit the frame', () => {
   })
 })
 
+test.describe('products from the API', () => {
+  const isApiCall = (path: string) => (request: { url(): string }) =>
+    new URL(request.url()).pathname + new URL(request.url()).search === path
+
+  test('the catalog is read from the API, page by page, not from a data file', async ({ page }) => {
+    const catalogRequest = page.waitForRequest(isApiCall('/api/products?page=1&limit=100'))
+
+    await page.goto('products')
+
+    await catalogRequest
+    await expect(page.getByRole('article')).toHaveCount(catalog.length)
+  })
+
+  test('a product page asks the API for that product', async ({ page }) => {
+    const productRequest = page.waitForRequest(isApiCall(`/api/products/${PSU.id}`))
+
+    await page.goto(`products/${PSU.id}`)
+
+    await productRequest
+    await expect(page.getByRole('heading', { level: 1, name: PSU.fullName })).toBeVisible()
+  })
+
+  test('the API answers with the same products the data file holds', async ({ request }) => {
+    const response = await request.get(
+      `http://localhost:${process.env.E2E_API_PORT ?? 4174}/api/products?limit=100`,
+    )
+
+    const body = await response.json()
+    expect(body).toMatchObject({ page: 1, limit: 100, total: catalog.length, totalPages: 1 })
+    expect(body.items.map((product: { id: string }) => product.id).sort()).toEqual(
+      catalog.map((product) => product.id).sort(),
+    )
+  })
+})
+
 test.describe('product listing', () => {
   test('lists every product of the catalog', async ({ page }) => {
     await page.goto('products')
