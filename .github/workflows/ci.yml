@@ -1,7 +1,7 @@
 name: CI
 
 # One workflow checks and deploys, so the deployment can wait for the checks of the same commit:
-# push to main -> verify + e2e -> deploy (only if both succeeded). Pull requests only run the
+# push to main -> verify + integration + e2e -> deploy (only if all succeeded). Pull requests only run the
 # checks. A manual run (workflow_dispatch) on main redeploys after the same checks.
 on:
   pull_request:
@@ -48,6 +48,38 @@ jobs:
         with:
           path: dist
 
+  # The tests of the code that talks to MongoDB (queries, unique indexes, sorting, the index that
+  # expires sessions) need a real server. `npm run test:server` skips them so that it stays fast and
+  # needs nothing; this job runs them, and `npm run test:integration` refuses to start without a
+  # MongoDB, so they can never "pass" by being skipped. The database is a throwaway server that
+  # exists only for this job (a service container, which is how GitHub runs one: Docker is not a
+  # dependency of the project). Nothing here can reach the production database: its address is not
+  # a secret of this workflow, and the tests only use databases named online_store_test_<random>.
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mongo:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping: 1}).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      MONGODB_TEST_URI: mongodb://localhost:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run the MongoDB integration tests
+        run: npm run test:integration
+
   # Browser tests of the production build, served like GitHub Pages serves it. Runs in parallel
   # with `verify`. `npm run test:e2e` builds the site first (see playwright.config.ts), so the
   # tests never run against a stale build.
@@ -79,10 +111,10 @@ jobs:
           retention-days: 7
 
   # Publishes the site that `verify` built, for the same commit. `needs` means this job runs
-  # only if both jobs succeeded: if either fails or is cancelled, it is skipped.
+  # only if all the jobs above succeeded: if either fails or is cancelled, it is skipped.
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: [verify, e2e]
+    needs: [verify, e2e, integration]
     runs-on: ubuntu-latest
     # Up to 5 minutes of this can be spent waiting for a sleeping API host to wake up.
     timeout-minutes: 15

@@ -50,7 +50,8 @@ the GitHub Pages base path. Vitest ignores `e2e/`; Playwright ignores `src/`.
 no credentials**, so CI runs it as it is: the driver is replaced by a stand-in, the products
 service and routes run over an in-memory repository, and the entry point and the seed command are
 started as real processes to check their failure paths. An optional integration suite talks to a
-real MongoDB and is skipped unless `MONGODB_TEST_URI` is set. Details:
+real MongoDB; `npm run test:server` skips it (it stays quick and needs nothing), and CI runs it with
+`npm run test:integration` against a throwaway MongoDB (below). Details:
 [`server/README.md`](../server/README.md#tests).
 
 The search, filters, sorting and filter options of the listings are covered at three levels: the
@@ -95,15 +96,22 @@ management and the mobile menu dialog.
 
 ## CI
 
-`.github/workflows/ci.yml` runs two parallel jobs on every pull request and push to `main`:
+`.github/workflows/ci.yml` runs three parallel jobs on every pull request and push to `main`:
 
 1. **verify**: `npm ci`, format check, lint, typecheck, unit tests, API tests, the site build (with
    `VITE_API_URL` from the `API_URL` repository variable) and the API build.
-2. **e2e**: `npm ci`, install Chromium, build and serve the site and the stub API, run the
+2. **integration**: the tests of the code that talks to MongoDB (queries, unique indexes, sorting,
+   the index that expires sessions) against a real MongoDB 8 that exists only for the job: a
+   GitHub Actions service container, so Docker is not a dependency of the project. The job sets
+   `MONGODB_TEST_URI=mongodb://localhost:27017`; no secret and no production address is available
+   to it, and the tests only use databases named `online_store_test_<random>`, which they drop.
+   `npm run test:integration` refuses to start without that address, so these tests can never pass
+   by being skipped, and a failing test fails the job.
+3. **e2e**: `npm ci`, install Chromium, build and serve the site and the stub API, run the
    Playwright suite. On failure the HTML report, screenshots and traces are kept as an artifact
    for 7 days (`playwright-report/` and `test-results/` are git-ignored and never committed).
 
-On pushes to `main`, a third job, **deploy**, runs only if both succeeded: it checks the production
+On pushes to `main`, a fourth job, **deploy**, runs only if all three succeeded: it checks the production
 API (`npm run check:api`) and then publishes the site to GitHub Pages. See
 [`deployment.md`](deployment.md).
 

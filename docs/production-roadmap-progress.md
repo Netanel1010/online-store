@@ -4,12 +4,13 @@ Work on the branch `chore/production-roadmap-m1-m8`, one commit per milestone, i
 of each milestone is in `git log`; the final report ([production-roadmap-m1-m8-report.md](production-roadmap-m1-m8-report.md))
 lists every SHA.
 
-| M   | Status | Summary                                                                                                                                                                                                                         |
-| --- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M1  | DONE   | The e2e safety net excuses a request only when the page itself cancelled that address (`ERR_ABORTED`); every other failure still fails the test.                                                                                |
-| M2  | DONE   | Per-address limits on sign-in (30 per 15 min) and registration (10 per hour), a concurrency gate on password hashing (2 at once, 8 waiting, then 503), and `TRUST_PROXY_HOPS` for the client address behind Render.             |
-| M3  | DONE   | Security headers (with HSTS only over HTTPS), explicit CORS methods/headers/`Retry-After`/max-age, `no-store` on errors, a 25 s answer timeout, proxy-friendly server timeouts and warn-by-default production hardening checks. |
-| M4  | DONE   | Request ids (`X-Request-Id`, `requestId` in 5xx bodies), one structured JSON log line per request and for errors, with secrets scrubbed, and a Render troubleshooting guide.                                                    |
+| M   | Status  | Summary                                                                                                                                                                                                                         |
+| --- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1  | DONE    | The e2e safety net excuses a request only when the page itself cancelled that address (`ERR_ABORTED`); every other failure still fails the test.                                                                                |
+| M2  | DONE    | Per-address limits on sign-in (30 per 15 min) and registration (10 per hour), a concurrency gate on password hashing (2 at once, 8 waiting, then 503), and `TRUST_PROXY_HOPS` for the client address behind Render.             |
+| M3  | DONE    | Security headers (with HSTS only over HTTPS), explicit CORS methods/headers/`Retry-After`/max-age, `no-store` on errors, a 25 s answer timeout, proxy-friendly server timeouts and warn-by-default production hardening checks. |
+| M4  | DONE    | Request ids (`X-Request-Id`, `requestId` in 5xx bodies), one structured JSON log line per request and for errors, with secrets scrubbed, and a Render troubleshooting guide.                                                    |
+| M5  | PARTIAL | A CI `integration` job runs the MongoDB tests against a throwaway MongoDB 8 service container, `npm run test:integration` cannot skip, and deploy needs the job. Verified locally; the job itself has not run on GitHub yet.    |
 
 ## M1: E2E reliability
 
@@ -89,3 +90,23 @@ lists every SHA.
   A real compiled-server run printed the expected lines. Server 669 (52 integration skipped locally), frontend 638, e2e 271 pass.
 - **Known issues:** logs are only as retained as Render keeps them (free tier: short). No metrics or
   alerting. The storefront does not show the `requestId` to the visitor yet.
+
+## M5: MongoDB integration tests in CI
+
+- **`npm run test:integration`** (`server/vitest.integration.config.ts`): runs only
+  `*.integration.test.ts`; **throws at startup without `MONGODB_TEST_URI`** (so it can never pass by
+  skipping), and refuses an Atlas address unless `MONGODB_TEST_ALLOW_ATLAS=1`. `npm run test:server`
+  is unchanged and still skips them, so unit tests stay fast.
+- **CI** (`.github/workflows/ci.yml`): job `integration` with a `mongo:8.0` service container
+  (health-checked with `mongosh`), `MONGODB_TEST_URI=mongodb://localhost:27017`, `npm ci`,
+  `npm run test:integration`. `deploy` now needs `[verify, e2e, integration]`, so Render's
+  `checksPass` and the Pages deploy both wait for it. Docker exists only inside GitHub Actions.
+- **Isolation and safety:** the tests use databases named `online_store_test_<random>` and drop them;
+  the job has no secrets and no production address; the container is destroyed with the job.
+- **Verified:** both guards (no URI, Atlas URI) trigger; the 3 suites (52 tests) pass against a real
+  MongoDB (a temporary Atlas database through `server/.env`, URI never printed) and left no
+  database behind; the workflow YAML parses and the job graph is as intended.
+- **Known issues (why PARTIAL):** the new job has not run on GitHub Actions: there is no runner or
+  Docker here. The first pull request will show whether the `mongosh` health check and the
+  `localhost:27017` mapping work as expected; if the service fails to become healthy, that is where
+  to look.

@@ -14,6 +14,7 @@
     "seed:products": "tsx --env-file-if-exists=.env src/scripts/seedProducts.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:watch": "vitest"
   },
   "dependencies": {

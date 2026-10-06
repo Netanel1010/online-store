@@ -444,14 +444,22 @@ sessions that expire and end), the middleware and the routes over HTTP with in-m
 (including that no answer contains a password, a hash or a token that was not just issued), the
 exact queries of the repositories, and CORS for the `Authorization` header.
 
-An **optional integration test** talks to a real MongoDB. It is skipped unless `MONGODB_TEST_URI`
-is set (a local instance or an Atlas cluster you can write to):
+The **integration tests** (`*.integration.test.ts`: products, accounts and sessions, the connection)
+talk to a real MongoDB. `npm run test:server` skips them, so it is quick and needs nothing. Run them
+with `npm run test:integration`, which needs `MONGODB_TEST_URI` and **stops with an error without it**
+instead of passing by skipping (CI runs them this way, against a throwaway MongoDB 8 service
+container that exists only for the job):
 
 ```bash
-MONGODB_TEST_URI=mongodb://localhost:27017 npm run test:server
+MONGODB_TEST_URI=mongodb://localhost:27017 npm run test:integration
 ```
 
-On PowerShell: `$env:MONGODB_TEST_URI="mongodb://localhost:27017"; npm run test:server`.
+On PowerShell: `$env:MONGODB_TEST_URI="mongodb://localhost:27017"; npm run test:integration`.
+
+The tests only ever use databases named `online_store_test_<random>` and drop them. They never read
+`MONGODB_URI`, and `test:integration` refuses a MongoDB Atlas address (`mongodb+srv://` or
+`*.mongodb.net`) unless you set `MONGODB_TEST_ALLOW_ATLAS=1` on purpose, so the production cluster is
+not touched by accident. Use a MongoDB of your own for them (a local `mongod`, or a container).
 
 It covers what mocks cannot: the unique index, upserts that insert, update and leave unchanged,
 that nothing is deleted, paging and counts, the search text and its backfill, and the API over HTTP,

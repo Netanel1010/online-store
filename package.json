@@ -22,6 +22,7 @@
     "seed:products": "npm run seed:products --workspace server --",
     "check:api": "node scripts/check-api.mjs",
     "test:server": "npm test --workspace server",
+    "test:integration": "npm run test:integration --workspace server",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
