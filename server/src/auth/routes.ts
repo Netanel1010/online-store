@@ -54,6 +54,14 @@ export function createAuthRouter(service: AuthService, limits: AuthRateLimits = 
     res.status(204).end()
   })
 
+  // Ends every session of the account the token belongs to, on every device, and the one that asks
+  // too. It needs a live session: ending all of them is not something to do with a token that is
+  // already over, and it must never end somebody else's.
+  router.post('/logout-all', requireAuth, async (_req, res) => {
+    await service.logoutAll(getAuth(res).user.id)
+    res.status(204).end()
+  })
+
   router.get('/me', requireAuth, (_req, res) => {
     res.json({ user: getAuth(res).user })
   })

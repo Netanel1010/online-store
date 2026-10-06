@@ -49,6 +49,7 @@ export function setUpAuthApi() {
         login: (input) => service.login(input),
         authenticate: (token) => service.authenticate(token),
         logout: (token) => service.logout(token),
+        logoutAll: (userId) => service.logoutAll(userId),
       },
       NO_AUTH_RATE_LIMITS,
     ),

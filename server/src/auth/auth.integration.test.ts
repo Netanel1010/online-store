@@ -70,7 +70,14 @@ describe.skipIf(!uri)(
         '_id_',
         'expiresAt_ttl',
         'tokenHash_unique',
+        'userId_createdAt',
       ])
+      expect(sessionIndexes.find((index) => index.name === 'userId_createdAt')).toMatchObject({
+        key: { userId: 1, createdAt: -1 },
+      })
+      expect(sessionIndexes.find((index) => index.name === 'userId_createdAt')?.unique).not.toBe(
+        true,
+      )
       expect(sessionIndexes.find((index) => index.name === 'expiresAt_ttl')).toMatchObject({
         key: { expiresAt: 1 },
         expireAfterSeconds: 0,
@@ -145,6 +152,82 @@ describe.skipIf(!uri)(
       await sessions.deleteByTokenHash(session.tokenHash)
       expect(await sessions.findByTokenHash(session.tokenHash)).toBeNull()
       await sessions.deleteByTokenHash(session.tokenHash)
+    })
+
+    describe('the sessions of one account', () => {
+      const sessionOf = (userId: string, createdAt: Date, label: string): Session => ({
+        tokenHash: hashToken(`${label}-${randomUUID()}`),
+        userId,
+        createdAt,
+        expiresAt: new Date(Date.now() + 60_000),
+      })
+      const hashesOf = async (userId: string) =>
+        (await rawSessions().find({ userId }).toArray()).map((session) => session.tokenHash)
+
+      it('ends every session of an account and none of another', async () => {
+        const mine = `mine-${randomUUID()}`
+        const theirs = `theirs-${randomUUID()}`
+        for (let i = 0; i < 3; i += 1) await sessions.create(sessionOf(mine, new Date(), `m${i}`))
+        await sessions.create(sessionOf(theirs, new Date(), 't'))
+
+        expect(await sessions.deleteAllForUser(mine)).toBe(3)
+
+        expect(await hashesOf(mine)).toEqual([])
+        expect(await hashesOf(theirs)).toHaveLength(1)
+        expect(await sessions.deleteAllForUser(mine)).toBe(0)
+      })
+
+      it('keeps the newest ones and ends the older ones, for that account only', async () => {
+        const mine = `mine-${randomUUID()}`
+        const theirs = `theirs-${randomUUID()}`
+        const base = Date.now()
+        const old = [0, 1, 2].map((i) => sessionOf(mine, new Date(base + i * 1000), `old${i}`))
+        const recent = [3, 4].map((i) => sessionOf(mine, new Date(base + i * 1000), `new${i}`))
+        // Created out of order: the age is the time of the sign-in, not the order of insertion.
+        for (const session of [recent[1]!, old[1]!, old[0]!, recent[0]!, old[2]!]) {
+          await sessions.create(session)
+        }
+        await sessions.create(sessionOf(theirs, new Date(base - 99_999), 'theirs'))
+
+        const ended = await sessions.trimToNewest(mine, 2)
+
+        expect(ended).toBe(3)
+        expect((await hashesOf(mine)).sort()).toEqual(recent.map((s) => s.tokenHash).sort())
+        expect(await hashesOf(theirs)).toHaveLength(1)
+      })
+
+      it('ends nothing when the account has no more than it may keep', async () => {
+        const mine = `mine-${randomUUID()}`
+        await sessions.create(sessionOf(mine, new Date(), 'a'))
+        await sessions.create(sessionOf(mine, new Date(), 'b'))
+
+        expect(await sessions.trimToNewest(mine, 2)).toBe(0)
+        expect(await sessions.trimToNewest(mine, 5)).toBe(0)
+        expect(await hashesOf(mine)).toHaveLength(2)
+      })
+
+      it('decides between two sign-ins in the same millisecond by which came later', async () => {
+        const mine = `mine-${randomUUID()}`
+        const at = new Date()
+        const earlier = sessionOf(mine, at, 'earlier')
+        const later = sessionOf(mine, at, 'later')
+        await sessions.create(earlier)
+        await sessions.create(later)
+
+        expect(await sessions.trimToNewest(mine, 1)).toBe(1)
+
+        expect(await hashesOf(mine)).toEqual([later.tokenHash])
+      })
+
+      it('uses the index on the account and the time for what it asks', async () => {
+        const mine = `mine-${randomUUID()}`
+        const plan = await rawSessions()
+          .find({ userId: mine })
+          .sort({ createdAt: -1 })
+          .explain('queryPlanner')
+
+        expect(JSON.stringify(plan)).toContain('userId_createdAt')
+      })
     })
 
     describe('over HTTP, against the real database', () => {
@@ -232,6 +315,34 @@ describe.skipIf(!uri)(
 
         expect((await me(registered.token)).status).toBe(401)
         expect(await sessions.findByTokenHash(hashToken(registered.token))).toBeNull()
+      })
+
+      it('signs out everywhere: every session of the account ends in the database, and another account keeps its own', async () => {
+        const signIn = async (email: string) => {
+          const response = await post('/api/auth/login', { email, password: credentials.password })
+          return (await response.json()) as SignedIn
+        }
+        const other = {
+          name: 'דנה',
+          email: `other-${randomUUID().slice(0, 8)}@example.com`,
+          password: credentials.password,
+        }
+        const otherAccount = (await (await post('/api/auth/register', other)).json()) as SignedIn
+        const phone = await signIn(credentials.email)
+        const laptop = await signIn(credentials.email)
+        expect(
+          await rawSessions().countDocuments({ userId: phone.user.id }),
+        ).toBeGreaterThanOrEqual(2)
+
+        const response = await post('/api/auth/logout-all', undefined, phone.token)
+
+        expect(response.status).toBe(204)
+        expect(await rawSessions().countDocuments({ userId: phone.user.id })).toBe(0)
+        for (const { token } of [phone, laptop]) expect((await me(token)).status).toBe(401)
+        expect((await me(otherAccount.token)).status).toBe(200)
+        // A token that has ended cannot end anything else.
+        expect((await post('/api/auth/logout-all', undefined, phone.token)).status).toBe(401)
+        expect((await me(otherAccount.token)).status).toBe(200)
       })
 
       it('has written to the accounts and the sessions only: the temporary database has no other collection', async () => {

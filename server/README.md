@@ -227,6 +227,7 @@ No roles exist, because nothing in the store needs them yet.
 | `POST /api/auth/login`     | no            | Checks the credentials. `200` with `{ user, token, expiresAt }`.                                               |
 | `GET /api/auth/me`         | yes           | `200` with `{ user }`: who the token belongs to.                                                               |
 | `POST /api/auth/logout`    | no (uses it)  | Ends the session of the token it is sent. Always `204`, also for a token that is not a session (nothing is revealed). |
+| `POST /api/auth/logout-all` | yes          | Ends **every** session of the account, on every device, the one that asks included. `204`. A token that is not a live session gets `401`, so it cannot be used to end the others. |
 
 ```bash
 curl -X POST http://localhost:3001/api/auth/register \
@@ -253,6 +254,18 @@ sign-in. A token is valid only while that session exists, so signing out really 
 server, and a copy of the database cannot be used to sign in. MongoDB removes expired sessions by
 itself (a TTL index, about once a minute); the API checks the end date too, because that removal is
 not instant. Every sign-in is a session of its own: two browsers do not affect each other.
+
+**Limits on sessions.** An account keeps at most **10** sessions (`MAX_SESSIONS_PER_USER` in
+`auth/service.ts`): signing in once more ends the oldest one, by the time of its sign-in, so a stolen
+or forgotten token cannot pile up and the collection does not grow without end for one account. The
+newest session is never the one that is ended, and neither are another account's. Ending the
+oldest runs after the new session exists; if that housekeeping fails the sign-in still works and the
+next sign-in does it again. `POST /api/auth/logout-all` ends all of them (the storefront offers it as
+"התנתקות מכל המכשירים" in the menu, and in the header from 1280 px); it only signs out here once the API
+has confirmed, so a visitor is never told other devices were signed out when that is not known.
+A session that was ended, has expired or whose account is gone is refused with the same `401` as
+a token that never existed, and an expired one is removed on the spot. An index on `sessions`
+(`userId`, `createdAt` descending: `userId_createdAt`) serves both of these.
 
 **Passwords.** At least 8 and at most 128 characters, with a letter and a digit (the form checks the
 same rules, from `src/features/auth/rules.ts`, to help the visitor; the API checks them again).

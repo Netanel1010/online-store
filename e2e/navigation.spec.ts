@@ -196,9 +196,9 @@ test.describe('the header on a phone', () => {
     await register(page, newAccount())
     await expect(page).toHaveURL(/\/online-store\/$/)
 
-    await expect(header(page).getByRole('button', { name: 'התנתקות' })).toBeHidden()
+    await expect(header(page).getByRole('button', { name: 'התנתקות', exact: true })).toBeHidden()
     await page.getByRole('button', { name: 'פתיחת תפריט' }).click()
-    await expect(menu(page).getByRole('button', { name: 'התנתקות' })).toBeVisible()
+    await expect(menu(page).getByRole('button', { name: 'התנתקות', exact: true })).toBeVisible()
     await expect(menu(page).getByText('שלום,')).toBeVisible()
   })
 })

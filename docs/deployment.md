@@ -144,7 +144,10 @@ Authentication ([`server/README.md`](../server/README.md#authentication)) needs 
 no new variable**: sessions are random tokens kept (as a digest) in MongoDB, not signed values.
 
 - When the API starts it creates the `users` and `sessions` collections' indexes (a unique email, a
-  unique token digest and the one that expires sessions). The database user needs the permission to
+  unique token digest, the one that expires sessions and `userId_createdAt` on the account of a
+  session). The last one is new and needs no data migration: the sessions that exist already have
+  both fields, an index on a collection this small builds at once, and an account that already has
+  more than ten sessions is trimmed at its next sign-in. The database user needs the permission to
   create indexes and to write, which it already needs for the seed and the product indexes.
 - The site sends the token in an `Authorization` header, so `CORS_ORIGINS` must name the site's
   origin exactly (it already does). No cookies are used, so nothing about cookies, `SameSite` or

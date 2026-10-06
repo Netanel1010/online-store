@@ -13,6 +13,7 @@ lists every SHA.
 | M5  | PARTIAL | A CI `integration` job runs the MongoDB tests against a throwaway MongoDB 8 service container, `npm run test:integration` cannot skip, and deploy needs the job. Verified locally; the job itself has not run on GitHub yet.    |
 | M6  | DONE    | React error boundaries (root and per page, with a stale-deployment case that offers a reload), verified together with the earlier timeout, retry, cold-start message, preconnect and removed preload.                           |
 | M7  | DONE    | Dependabot, a security workflow (npm audit of shipped packages and CodeQL), every action pinned to a commit, `.nvmrc` as the single Node version, a PR template, and fake-looking fixtures guarded by a repository scan.        |
+| M8  | DONE    | `sessions` index on the account, a cap of 10 sessions per account (the oldest ends), `POST /api/auth/logout-all` and its storefront entry, with exact behaviour for ended, expired and orphaned sessions.                       |
 
 ## M1: E2E reliability
 
@@ -159,3 +160,30 @@ lists every SHA.
 - **Known issues:** neither new workflow has run on GitHub yet (both parse and the audit command was
   run locally). CodeQL needs the repository to be public or to have code scanning enabled. The
   Dependabot ecosystem for the `server` workspace relies on the root lockfile.
+
+## M8: Authentication and session hardening
+
+- **Index:** `userId_createdAt` ({ userId: 1, createdAt: -1 }, not unique) on `sessions`, created at
+  API start like the others. No data migration (existing sessions have both fields); verified
+  against a real MongoDB, including that the planner uses it.
+- **Cap:** `MAX_SESSIONS_PER_USER = 10`. After a sign-in or registration creates a session,
+  `trimToNewest` ends the ones beyond the newest 10 for that account (a tie in the same
+  millisecond goes to the later insert: `_id` in MongoDB, insertion order in the memory fake). A failure
+  of the trim does not undo the sign-in. An account with more than 10 sessions from before is
+  trimmed at its next sign-in.
+- **Sign out everywhere:** `POST /api/auth/logout-all` (requires a live session; `204`; `401`
+  otherwise) calls `deleteAllForUser`. Storefront: `endAllSessions` in `authService`, a store action
+  that only reports and a button in the account menu ("התנתקות מכל המכשירים": always in the menu, in the
+  header from 1280 px). The visitor is signed out here only after the API confirmed (or said the
+  session was already over); if it cannot be reached they stay signed in and are told.
+- **Revoked/expired behaviour (tested at the service, over HTTP and in MongoDB):** an ended or expired
+  or orphaned session is refused with the generic `401`; an expired one is deleted when it is seen;
+  an ended token can never end the others; ending one session leaves the rest.
+- **Tests:** 25 repository (new queries, scoping to one account), 17 service, 9 over HTTP, 6 more
+  integration tests (58 in all, run against a real MongoDB), 18 client/UI (service, store, menu: success,
+  API down, already over, from a protected page, double click), 2 e2e (two browsers; a
+  signed-in header at six desktop widths). The Playwright locators for "התנתקות" are now exact,
+  because a name match is a substring and the new button contains it.
+- **Not done on purpose:** password reset, email verification, password change, a list of devices.
+- **Known issues:** there is no account page, so the entry point is the menu and the wide header; a page
+  for the account (devices, sign out everywhere) belongs with the account features of a later milestone.

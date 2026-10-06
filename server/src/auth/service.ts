@@ -12,6 +12,14 @@ import { EmailTakenError, type UserRepository } from './userRepository.ts'
 /** How long a session lasts from the moment of the sign-in. After that the visitor signs in again. */
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
+/**
+ * How many browsers an account may be signed in on at once. Signing in once more ends the oldest
+ * session, so a stolen or forgotten token cannot pile up into an unlimited number of live sessions,
+ * and the table does not grow without end for one account. Generous for a person: a phone, a laptop,
+ * a tablet and several browsers.
+ */
+export const MAX_SESSIONS_PER_USER = 10
+
 export interface AuthService {
   register(input: RegisterInput): Promise<SignedIn>
   login(input: LoginInput): Promise<SignedIn>
@@ -19,6 +27,8 @@ export interface AuthService {
   authenticate(token: string): Promise<AuthContext | null>
   /** Ends the session of a token. Quietly does nothing when there is none. */
   logout(token: string): Promise<void>
+  /** Ends every session of an account, on every device, including the one that asks. */
+  logoutAll(userId: string): Promise<void>
 }
 
 interface Dependencies {
@@ -27,6 +37,8 @@ interface Dependencies {
   throttle: LoginThrottle
   /** Limits how many passwords are hashed at once (the default suits one small host). */
   hashGate?: ConcurrencyGate
+  /** How many sessions an account keeps (default `MAX_SESSIONS_PER_USER`). */
+  maxSessionsPerUser?: number
   now?: () => Date
 }
 
@@ -46,6 +58,7 @@ export function createAuthService({
   sessions,
   throttle,
   hashGate = createConcurrencyGate({ maxConcurrent: 2, maxQueued: 8 }),
+  maxSessionsPerUser = MAX_SESSIONS_PER_USER,
   now = () => new Date(),
 }: Dependencies): AuthService {
   async function startSession(user: User): Promise<SignedIn> {
@@ -53,6 +66,9 @@ export function createAuthService({
     const createdAt = now()
     const expiresAt = new Date(createdAt.getTime() + SESSION_TTL_MS)
     await sessions.create({ tokenHash: hashToken(token), userId: user.id, createdAt, expiresAt })
+    // After the new one exists, so that the newest sessions are the ones that stay. A failure here
+    // does not undo the sign-in: it is only housekeeping, and the next sign-in does it again.
+    await sessions.trimToNewest(user.id, maxSessionsPerUser).catch(() => undefined)
     return { user: toPublic(user), token, expiresAt: expiresAt.toISOString() }
   }
 
@@ -124,6 +140,10 @@ export function createAuthService({
 
     async logout(token) {
       await sessions.deleteByTokenHash(hashToken(token))
+    },
+
+    async logoutAll(userId) {
+      await sessions.deleteAllForUser(userId)
     },
   }
 }

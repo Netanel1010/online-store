@@ -11,7 +11,8 @@ const PROJECTION = { _id: 0 } as const
  * A session is found by the digest of its token, which has a unique index. A second index makes
  * MongoDB remove a session by itself once `expiresAt` has passed (it checks about once a minute),
  * so expired sessions do not pile up. The service checks `expiresAt` too, because that removal is
- * not instant.
+ * not instant. A third, on the account and the time of the sign-in, serves what is asked about an
+ * account's sessions: ending all of them, and finding the oldest ones when there are too many.
  */
 export interface SessionRepository {
   /** Creates the indexes if they are missing. Safe to call any number of times. */
@@ -20,6 +21,13 @@ export interface SessionRepository {
   findByTokenHash(tokenHash: string): Promise<Session | null>
   /** Ends a session. Nothing happens when there is no such session. */
   deleteByTokenHash(tokenHash: string): Promise<void>
+  /** Ends every session of an account, and says how many there were. */
+  deleteAllForUser(userId: string): Promise<number>
+  /**
+   * Ends the sessions of an account beyond the `keep` newest (by the time of the sign-in), and says
+   * how many it ended. Nothing happens when the account has `keep` sessions or fewer.
+   */
+  trimToNewest(userId: string, keep: number): Promise<number>
 }
 
 const storedSessionSchema = z.object({
@@ -38,6 +46,8 @@ export function createSessionRepository(database: Database): SessionRepository {
         sessions().createIndex({ tokenHash: 1 }, { unique: true, name: 'tokenHash_unique' }),
         // expireAfterSeconds: 0 means "at the date in the field".
         sessions().createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, name: 'expiresAt_ttl' }),
+        // Not unique: an account has many sessions. The newest first is the order trimming needs.
+        sessions().createIndex({ userId: 1, createdAt: -1 }, { name: 'userId_createdAt' }),
       ])
     },
 
@@ -59,6 +69,27 @@ export function createSessionRepository(database: Database): SessionRepository {
 
     async deleteByTokenHash(tokenHash) {
       await sessions().deleteOne({ tokenHash })
+    },
+
+    async deleteAllForUser(userId) {
+      const { deletedCount } = await sessions().deleteMany({ userId })
+      return deletedCount
+    },
+
+    async trimToNewest(userId, keep) {
+      // The ones after the newest `keep`. The id breaks a tie between two sign-ins in the same
+      // millisecond, so which one is "newer" is never left to chance.
+      const surplus = await sessions()
+        .find({ userId }, { projection: { _id: 0, tokenHash: 1 } })
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(keep)
+        .toArray()
+      if (surplus.length === 0) return 0
+      const { deletedCount } = await sessions().deleteMany({
+        userId,
+        tokenHash: { $in: surplus.map((session) => session.tokenHash) },
+      })
+      return deletedCount
     },
   }
 }

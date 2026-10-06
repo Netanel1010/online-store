@@ -59,6 +59,31 @@ export function createMemorySessionRepository() {
       stored.delete(tokenHash)
       return Promise.resolve()
     },
+
+    deleteAllForUser(userId) {
+      let deleted = 0
+      for (const [tokenHash, session] of stored) {
+        if (session.userId !== userId) continue
+        stored.delete(tokenHash)
+        deleted += 1
+      }
+      return Promise.resolve(deleted)
+    },
+
+    trimToNewest(userId, keep) {
+      // The Map keeps the order of insertion, so for two sign-ins at the same time the later one is
+      // the newer one, like the id breaks a tie in the real repository.
+      const own = [...stored.values()]
+        .map((session, order) => ({ session, order }))
+        .filter(({ session }) => session.userId === userId)
+        .sort(
+          (a, b) =>
+            b.session.createdAt.getTime() - a.session.createdAt.getTime() || b.order - a.order,
+        )
+      const surplus = own.slice(keep)
+      for (const { session } of surplus) stored.delete(session.tokenHash)
+      return Promise.resolve(surplus.length)
+    },
   }
 
   return { repository, stored }

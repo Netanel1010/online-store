@@ -40,6 +40,7 @@ app.use(
       login: (input) => service.current.login(input),
       authenticate: (token) => service.current.authenticate(token),
       logout: (token) => service.current.logout(token),
+      logoutAll: (userId) => service.current.logoutAll(userId),
     },
     // These tests sign in far more often than a person; the limits have tests of their own.
     NO_AUTH_RATE_LIMITS,
