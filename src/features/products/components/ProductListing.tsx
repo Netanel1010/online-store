@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router'
 import { paths } from '@/app/paths'
+import { SlowLoadNotice } from '@/components/shared/SlowLoadNotice'
 import { EmptyState, ErrorState } from '@/components/shared/StateMessages'
 import { Button } from '@/components/ui/Button'
 import { buttonStyles } from '@/components/ui/buttonStyles'
@@ -69,6 +70,7 @@ export function ProductListing({ mode, category }: ProductListingProps) {
       <>
         {nav}
         <ProductGridSkeleton />
+        <SlowLoadNotice />
       </>
     )
   }

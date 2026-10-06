@@ -22,6 +22,10 @@ export function createApp(
 
   app.use(
     cors({
+      // A browser may remember a preflight answer, so the requests that need one (the ones that
+      // carry an Authorization header) are not each preceded by a second round trip to a host that
+      // may be slow to answer.
+      maxAge: 600,
       // A request without an Origin (curl, server to server) is not a browser cross-origin call
       // and is let through. A browser origin that is not listed gets no CORS headers, so the
       // browser blocks the response.

@@ -4,6 +4,8 @@ import { listingFacetsSchema, type ListingFacets } from '@/features/products/lis
 import { SPEC_PREFIX, type ListingState } from '@/features/products/listing/query'
 import { productSchema, productsSchema, type Product } from '@/features/products/schema'
 import { apiUrl } from '@/lib/api'
+import { CATALOG_PAGE_SIZE, catalogPagePath } from '@/lib/catalogRequest'
+import { fetchWithRetry } from '@/lib/fetchWithRetry'
 
 export class ProductDataError extends Error {
   constructor(message: string, options?: ErrorOptions) {
@@ -12,8 +14,7 @@ export class ProductDataError extends Error {
   }
 }
 
-/** The API's largest page, so the whole catalog takes as few requests as possible. */
-const PAGE_SIZE = 100
+const PAGE_SIZE = CATALOG_PAGE_SIZE
 /** A safety net against a server that never stops paging. */
 const MAX_PAGES = 50
 
@@ -24,7 +25,7 @@ const pageSchema = z.object({
 
 async function get(path: string, signal?: AbortSignal): Promise<Response> {
   try {
-    return await fetch(apiUrl(path), { signal })
+    return await fetchWithRetry(apiUrl(path), signal)
   } catch (cause) {
     throw new ProductDataError('Could not reach the product catalog', { cause })
   }
@@ -61,7 +62,7 @@ function requireOk(response: Response) {
  */
 export async function fetchProducts(signal?: AbortSignal): Promise<Product[]> {
   const fetchPage = async (page: number) => {
-    const response = await get(`/api/products?page=${page}&limit=${PAGE_SIZE}`, signal)
+    const response = await get(catalogPagePath(page), signal)
     requireOk(response)
     return validate(pageSchema, await readJson(response))
   }

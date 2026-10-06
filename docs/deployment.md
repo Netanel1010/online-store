@@ -151,9 +151,17 @@ curl -s "$API_URL/api/auth/me" -H "Authorization: Bearer <the token of the answe
 
 ## Operating notes
 
-- **Cold starts.** A free Render service sleeps when it is idle, so the first request after a pause
-  can take about a minute. The site shows its loading state until the API answers.
-  `check:api` waits for this on purpose.
+- **Cold starts.** A free Render service sleeps after 15 minutes without a request, so the first
+  request after a pause takes about 30 to 60 seconds (measured: 29 s for the catalog). This, not the
+  site's size, is what makes the site slow to become usable after a quiet period: the page, scripts
+  and banner arrive within about a second, and the products wait for the API. The site softens it:
+  the HTML tells the browser to connect to the API and start the catalog request before any script
+  runs, a read that fails while the host wakes is repeated (up to three attempts, 30 seconds each),
+  a page that is still loading after four seconds explains why, and a returning visitor sees the
+  catalog they already have at once (see the `Cache-Control` of the product reads). It cannot make
+  the first request after a pause fast: only a host that does not sleep can (a paid Render plan, or
+  something that requests `/api/health` more often than every 15 minutes). `check:api` waits for
+  this on purpose.
 - **Moving the site to another address** means changing `CORS_ORIGINS` (Render) and `SITE_URL`
   ([`src/lib/seo.ts`](../src/lib/seo.ts)).
 - **Logs** of the API are in the Render dashboard. They never contain the connection string, and a

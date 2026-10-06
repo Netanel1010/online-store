@@ -7,7 +7,7 @@ import { notFound } from '../middleware/notFound.ts'
 import { createMemoryProductRepository } from '../testing/memoryProductRepository.ts'
 import { listen } from '../testing/listen.ts'
 import { readSourceCatalog } from '../testing/products.ts'
-import { createProductsRouter } from './routes.ts'
+import { createProductsRouter, PRODUCT_CACHE_CONTROL } from './routes.ts'
 import { validateCatalog } from './seed.ts'
 import { createProductService } from './service.ts'
 import type { Product, ProductPage } from './types.ts'
@@ -190,6 +190,28 @@ describe('GET /api/products/:id', () => {
     const { status } = await errorOf('/DOES-NOT-EXIST?id[$ne]=x&id=' + catalog[0]!.id)
 
     expect(status).toBe(404)
+  })
+})
+
+describe('what a browser may keep', () => {
+  it('lets a browser keep a listing and a product, and show them again while it asks anew', async () => {
+    for (const path of ['', '?q=intel&facets=true', `/${sortedIds[0]}`]) {
+      const response = await get(path)
+
+      expect(response.status, path).toBe(200)
+      expect(response.headers.get('cache-control'), path).toBe(PRODUCT_CACHE_CONTROL)
+    }
+    expect(PRODUCT_CACHE_CONTROL).toMatch(/max-age=\d+/)
+    expect(PRODUCT_CACHE_CONTROL).toMatch(/stale-while-revalidate=\d+/)
+  })
+
+  it('never lets an error be kept', async () => {
+    for (const path of ['/NOPE-404', '/bad%20id', '?page=0', '?category=nope', '?limit=1000']) {
+      const response = await get(path)
+
+      expect(response.status, path).toBeGreaterThanOrEqual(400)
+      expect(response.headers.get('cache-control'), path).toBeNull()
+    }
   })
 })
 

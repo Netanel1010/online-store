@@ -54,7 +54,7 @@ export function MobileNav({ handleRef }: { handleRef?: Ref<MobileNavHandle> }) {
         aria-expanded={open}
         aria-controls="mobile-nav"
         onClick={() => openMenu()}
-        className="inline-flex size-11 items-center justify-center rounded-lg text-ink hover:bg-surface md:hidden"
+        className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-ink hover:bg-surface md:hidden"
       >
         <MenuIcon className="size-6" />
       </button>

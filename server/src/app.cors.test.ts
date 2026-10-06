@@ -36,6 +36,19 @@ describe('CORS', () => {
     }
   })
 
+  it('lets the browser remember a preflight answer, so it is not asked before every request', async () => {
+    const response = await health(
+      {
+        Origin: ALLOWED,
+        'Access-Control-Request-Method': 'GET',
+        'Access-Control-Request-Headers': 'authorization',
+      },
+      'OPTIONS',
+    )
+
+    expect(Number(response.headers.get('access-control-max-age'))).toBeGreaterThanOrEqual(60)
+  })
+
   it('answers the preflight request of a listed origin', async () => {
     const response = await health(
       {

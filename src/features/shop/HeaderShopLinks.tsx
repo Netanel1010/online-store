@@ -37,7 +37,7 @@ function IconLink({ to, label, children }: { to: string; label: string; children
       end
       aria-label={label}
       className={({ isActive }) =>
-        `relative inline-flex size-11 items-center justify-center rounded-lg transition-colors ${
+        `relative inline-flex size-11 shrink-0 items-center justify-center rounded-lg transition-colors ${
           isActive ? 'bg-brand-soft text-brand' : 'text-ink hover:bg-surface hover:text-brand'
         }`
       }

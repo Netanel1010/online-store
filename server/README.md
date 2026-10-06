@@ -122,6 +122,12 @@ answer `503 database_not_configured`.
   trimmed. MongoDB's own `_id` is never part of a response.
 - **Errors** use the usual `{ "error": { "code", "message" } }` shape. A database failure is a
   generic `500 internal_error`: the details stay in the server log.
+- **Caching.** A successful read carries `Cache-Control: public, max-age=60,
+  stale-while-revalidate=3600`: for a minute a browser answers a repeated read itself, and for an
+  hour after that it shows what it has at once and asks again in the background. A returning
+  visitor therefore does not wait for a sleeping host, and a change to the catalog can take up to
+  that long to show for someone who already has the old one. An error is never cached. CORS
+  preflight answers are cached for ten minutes (`Access-Control-Max-Age`).
 - **The storefront uses this API.** The products, category and search pages send the search text,
   the filters and the sort and read the matching products (following the pages until the last) and
   the filter options; a product page reads `GET /api/products/:id`. The whole catalog is also read

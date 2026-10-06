@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router'
 import { paths } from '@/app/paths'
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
+import { SlowLoadNotice } from '@/components/shared/SlowLoadNotice'
 import { Skeleton } from '@/components/shared/Skeleton'
 import { EmptyState, ErrorState } from '@/components/shared/StateMessages'
 import { buttonStyles } from '@/components/ui/buttonStyles'
@@ -31,7 +32,14 @@ export function ProductDetailPage() {
   const { productId } = useParams()
   const state = useProduct(productId)
 
-  if (state.status === 'loading') return <ProductDetailSkeleton />
+  if (state.status === 'loading') {
+    return (
+      <>
+        <ProductDetailSkeleton />
+        <SlowLoadNotice />
+      </>
+    )
+  }
   if (state.status === 'error') return <ErrorState onRetry={state.retry} />
 
   if (state.status === 'not-found') {
