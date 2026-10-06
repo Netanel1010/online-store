@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
+import { FormAlert } from '@/components/shared/Notices'
 import { Button } from '@/components/ui/Button'
 import { TextField } from '@/components/ui/fields'
 import { useToast } from '@/features/notifications/toastContext'
@@ -25,13 +26,21 @@ export function RegisterForm() {
     const result = await registerAccount({ name, email, password })
     if (result.ok) {
       toast.show({ message: 'החשבון נוצר ואתם מחוברים' })
-    } else {
+    } else if (result.reason === 'email-taken') {
       setError('email', { message: 'כתובת האימייל כבר רשומה' }, { shouldFocus: true })
+    } else {
+      setError('root', {
+        message:
+          result.reason === 'unavailable'
+            ? 'לא הצלחנו להתחבר לשרת. בדקו את החיבור ונסו שוב.'
+            : 'לא ניתן היה ליצור את החשבון עם הפרטים שהוזנו. בדקו אותם ונסו שוב.',
+      })
     }
   })
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
+      {errors.root?.message && <FormAlert>{errors.root.message}</FormAlert>}
       <TextField
         label="שם"
         autoComplete="name"

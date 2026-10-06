@@ -11,6 +11,10 @@ import { expect, test as base } from '@playwright/test'
  * "not found" message. Only those echoes are ignored; a 404 for any asset, any other API request
  * or any other data file still fails the test.
  *
+ * Authentication has answers that are not failures but the point of the feature: 401 for a wrong
+ * password or a session that has ended, 409 for an email that is taken, 429 for too many attempts
+ * (`/api/auth/login`, `/register` and `/me`). The same goes for the echoes of those.
+ *
  * Playwright gives every test its own browser context, so the accounts, cart, favorites and
  * session of one test are never visible to another.
  */
@@ -36,9 +40,13 @@ export const test = base.extend<{ problems: string[] }>({
       page.on('response', (response) => {
         if (response.status() < 400) return
         const type = response.request().resourceType()
-        const missingProduct =
-          type === 'fetch' && /\/api\/products\/[^/?]+$/.test(new URL(response.url()).pathname)
-        if ((type === 'document' || missingProduct) && response.status() === 404) {
+        const { pathname } = new URL(response.url())
+        const missingProduct = type === 'fetch' && /\/api\/products\/[^/?]+$/.test(pathname)
+        const refusedAuth =
+          type === 'fetch' &&
+          /^\/api\/auth\/(login|register|me)$/.test(pathname) &&
+          [401, 409, 429].includes(response.status())
+        if (((type === 'document' || missingProduct) && response.status() === 404) || refusedAuth) {
           expectedNotFound.add(response.url())
         } else {
           problems.push(`HTTP ${response.status()}: ${response.url()}`)

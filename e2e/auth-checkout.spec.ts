@@ -19,6 +19,7 @@ import {
 import { expect, test } from './support/test'
 
 const ORDER_BUTTON = 'אישור הזמנה (הדגמה)'
+const API = `http://localhost:${process.env.E2E_API_PORT ?? 4174}`
 const toasts = (page: Page) => page.getByRole('region', { name: 'התראות' })
 const home = /\/online-store\/$/
 
@@ -30,7 +31,7 @@ async function registeredAccount(page: Page): Promise<TestAccount> {
   return account
 }
 
-test.describe('demo authentication', () => {
+test.describe('authentication', () => {
   test('registers an account, signs out, and signs in again', async ({ page }) => {
     const account = newAccount()
 
@@ -53,11 +54,15 @@ test.describe('demo authentication', () => {
     await expectSignedIn(page)
   })
 
-  test('says clearly that this is a demo without real security', async ({ page }) => {
+  test('says that this is a demo store, and that the account is kept on the server', async ({
+    page,
+  }) => {
     for (const path of ['login', 'register']) {
       await page.goto(path)
       await expect(page.getByRole('complementary', { name: 'הערה' })).toContainText('אתר הדגמה')
-      await expect(page.getByRole('complementary', { name: 'הערה' })).toContainText('אינה מאובטחת')
+      await expect(page.getByRole('complementary', { name: 'הערה' })).toContainText(
+        'נשמר בשרת האתר',
+      )
     }
   })
 
@@ -140,16 +145,45 @@ test.describe('demo authentication', () => {
     await expectSignedIn(page)
   })
 
-  test('never stores the password in readable form', async ({ page }) => {
+  test('keeps only a session token in the browser: no password, no hash, no account', async ({
+    page,
+  }) => {
     const account = await registeredAccount(page)
 
-    const stored = await page.evaluate(() => localStorage.getItem('online-store:auth') ?? '')
+    const stored = await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage }))
+    const session = await page.evaluate(() => localStorage.getItem('online-store:session') ?? '')
 
     expect(stored).not.toContain(account.password)
-    expect(stored).toMatch(/"passwordHash":"[0-9a-f]{64}"/)
+    expect(stored).not.toContain(account.email)
+    expect(stored).not.toMatch(/passwordHash|scrypt/)
+    expect(JSON.parse(session).state).toEqual({
+      token: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/),
+      expiresAt: expect.any(String),
+    })
+    expect(await page.evaluate(() => document.cookie)).toBe('')
   })
 
-  test('keeps accounts and sessions isolated between browser contexts', async ({
+  test('asks the API from another origin with a Bearer token, and sends no cookies', async ({
+    page,
+  }) => {
+    const account = await registeredAccount(page)
+    const token = JSON.parse(
+      await page.evaluate(() => localStorage.getItem('online-store:session') ?? ''),
+    ).state.token
+
+    const meRequest = page.waitForRequest((request) => request.url().endsWith('/api/auth/me'))
+    await page.reload()
+    const request = await meRequest
+
+    expect(new URL(request.url()).origin).not.toBe(new URL(page.url()).origin)
+    expect(request.headers()['authorization']).toBe(`Bearer ${token}`)
+    expect(request.headers()['cookie']).toBeUndefined()
+    expect(new URL(request.url()).search).toBe('')
+    await expectSignedIn(page)
+    await expect(header(page).getByText(account.name).filter({ visible: true })).toBeVisible()
+  })
+
+  test('lets the same account sign in from another browser, as a session of its own', async ({
     page,
     browser,
   }) => {
@@ -160,11 +194,80 @@ test.describe('demo authentication', () => {
     await otherPage.goto('')
     await expectSignedOut(otherPage)
 
-    // The other browser does not know the account either.
+    // The account is on the server, so any browser can sign in to it.
     await otherPage.goto('login')
     await signIn(otherPage, account)
-    await expect(otherPage.getByRole('alert')).toHaveText('כתובת האימייל או הסיסמה שגויים')
+    await expect(otherPage).toHaveURL(home)
+    await expectSignedIn(otherPage)
+
+    // Signing out of one browser does not sign out the other.
+    await signOut(page)
+    await expectSignedOut(page)
+    await otherPage.reload()
+    await expectSignedIn(otherPage)
     await other.close()
+  })
+
+  test('ends the session on the server when signing out: the token stops working', async ({
+    page,
+    request,
+  }) => {
+    await registeredAccount(page)
+    const token = JSON.parse(
+      await page.evaluate(() => localStorage.getItem('online-store:session') ?? ''),
+    ).state.token
+    const me = (bearer?: string) =>
+      request.get(
+        `${API}/api/auth/me`,
+        bearer ? { headers: { Authorization: `Bearer ${bearer}` } } : {},
+      )
+    expect((await me(token)).status()).toBe(200)
+
+    await signOut(page)
+    await expectSignedOut(page)
+
+    await expect.poll(async () => (await me(token)).status()).toBe(401)
+    expect((await me()).status()).toBe(401)
+  })
+
+  test('does not sign in a browser that carries a token the server has ended', async ({
+    page,
+    browser,
+  }) => {
+    await registeredAccount(page)
+    const session = await page.evaluate(() => localStorage.getItem('online-store:session') ?? '')
+    await signOut(page)
+
+    const other = await browser.newContext({ locale: 'he-IL' })
+    await other.addInitScript(
+      (value) => localStorage.setItem('online-store:session', value),
+      session,
+    )
+    const otherPage = await other.newPage()
+    await otherPage.goto('checkout')
+
+    // Not the checkout: the server does not know the token, so it is the login page.
+    await expect(otherPage).toHaveURL(/\/online-store\/login$/)
+    await expectSignedOut(otherPage)
+    expect(
+      await otherPage.evaluate(() => localStorage.getItem('online-store:session')),
+    ).not.toContain(JSON.parse(session).state.token)
+    await other.close()
+  })
+
+  test('blocks an email after five wrong passwords, and says to wait', async ({ page }) => {
+    const account = await registeredAccount(page)
+    await signOut(page)
+    await page.goto('login')
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await signIn(page, { email: account.email, password: 'Wrong1234pass' })
+      await expect(page.getByRole('alert')).toHaveText('כתובת האימייל או הסיסמה שגויים')
+    }
+    await signIn(page, account)
+
+    await expect(page.getByRole('alert')).toContainText('יותר מדי ניסיונות')
+    await expectSignedOut(page)
   })
 
   test('sends a signed-in visitor away from the login and registration pages', async ({ page }) => {

@@ -42,6 +42,7 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
 
     if (known) {
       const body: ErrorBody = { error: { code: known.code, message: known.message } }
+      if (error instanceof HttpError) res.set(error.headers)
       res.status(known.status).json(body)
       return
     }

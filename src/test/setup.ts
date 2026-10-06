@@ -18,16 +18,17 @@ if (!HTMLDialogElement.prototype.showModal) {
   }
 }
 
-// `findBy*` and `waitFor` give up after 1 s by default. Registering hashes the password (PBKDF2)
-// and several tests then wait for a redirect, which can take longer than that when all test files
-// run in parallel on a busy or small machine. Waiting longer only costs time when something is slow.
+// `findBy*` and `waitFor` give up after 1 s by default. Registering hashes the password (scrypt, in
+// the API the tests run) and several tests then wait for a redirect, which can take longer than
+// that when all test files run in parallel on a busy or small machine. Waiting longer only costs
+// time when something is slow.
 configure({ asyncUtilTimeout: 5000 })
 
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
   // Persisted stores outlive a test: reset their state, then wipe what they wrote to storage.
-  useAuthStore.setState({ users: [], currentUserId: null })
+  useAuthStore.setState({ token: null, expiresAt: null, user: null, status: 'anonymous' })
   useCartStore.setState({ items: [] })
   useFavoritesStore.setState({ ids: [] })
   localStorage.clear()

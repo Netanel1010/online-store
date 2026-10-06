@@ -41,7 +41,7 @@ array, ...). Duplicate lines are merged and quantities capped at `MAX_QUANTITY` 
 ## Not handled (yet)
 
 - **Cross-tab sync:** a change in one tab shows in another after a reload, not live.
-- **Per-user carts:** state is per browser. Associating it with an account belongs to the
-  authentication milestone.
+- **Per-user carts:** state is per browser, whoever is signed in. Keeping a cart with an account
+  needs a cart in the API, which does not exist yet.
 - **Schema migrations:** `version: 1` is in place, but no `migrate` function exists until a
   second version does.

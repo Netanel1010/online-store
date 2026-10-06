@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
 import { PageLoading } from '@/components/shared/StateMessages'
+import { useRestoreSession } from '@/features/auth/useRestoreSession'
 import { ToastProvider } from '@/features/notifications/ToastProvider'
 import { ShopStateReconciler } from '@/features/shop/ShopStateReconciler'
 
@@ -10,6 +11,8 @@ export function RootLayout() {
   const mainRef = useRef<HTMLElement>(null)
   const { pathname } = useLocation()
   const isFirstRender = useRef(true)
+  // Confirms the stored session with the API as soon as the site is on screen.
+  useRestoreSession()
 
   // BrowserRouter does not restore scroll or focus on navigation. Reset both so keyboard and
   // screen-reader users land at the start of the new page. Skipped on the initial load.

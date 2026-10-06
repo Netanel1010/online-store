@@ -4,8 +4,21 @@ import { FormAlert } from '@/components/shared/Notices'
 import { Button } from '@/components/ui/Button'
 import { TextField } from '@/components/ui/fields'
 import { useToast } from '@/features/notifications/toastContext'
+import type { AuthFailure } from './authService'
 import { useAuthStore } from './authStore'
 import { loginSchema, type LoginValues } from './schemas'
+
+function loginErrorMessage(reason: AuthFailure) {
+  switch (reason) {
+    case 'too-many-attempts':
+      return 'בוצעו יותר מדי ניסיונות כושלים. נסו שוב בעוד כמה דקות.'
+    case 'unavailable':
+      return 'לא הצלחנו להתחבר לשרת. בדקו את החיבור ונסו שוב.'
+    default:
+      // Deliberately vague: it does not say whether the email or the password was wrong.
+      return 'כתובת האימייל או הסיסמה שגויים'
+  }
+}
 
 /**
  * On success the signed-in state changes and the page redirects (see LoginPage), so this form
@@ -30,8 +43,7 @@ export function LoginForm() {
     if (result.ok) {
       toast.show({ message: 'התחברתם בהצלחה' })
     } else {
-      // Deliberately vague: it does not say whether the email or the password was wrong.
-      setError('root', { message: 'כתובת האימייל או הסיסמה שגויים' })
+      setError('root', { message: loginErrorMessage(result.reason) })
     }
   })
 

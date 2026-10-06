@@ -1,192 +1,297 @@
+import * as authService from './authService'
+import type { SignedIn } from './authService'
 import { useAuthStore } from './authStore'
 
-const state = () => useAuthStore.getState()
-const STORAGE_KEY = 'online-store:auth'
+const TOKEN = 'T'.repeat(43)
+const FUTURE = new Date(Date.now() + 3_600_000).toISOString()
+const signedIn: SignedIn = {
+  user: { id: 'u1', name: 'נתנאל', email: 'netanel@example.com' },
+  token: TOKEN,
+  expiresAt: FUTURE,
+}
 const GOOD = { name: 'נתנאל', email: 'netanel@example.com', password: 'Passw0rdOK' }
 
-const stored = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
+const store = () => useAuthStore.getState()
+const stored = () => JSON.parse(localStorage.getItem('online-store:session') ?? 'null')
 
-describe('demo auth store: registration', () => {
-  it('starts signed out with no accounts', () => {
-    expect(state().users).toEqual([])
-    expect(state().currentUserId).toBeNull()
+/** Starts as if the page had just loaded with this in storage. */
+async function loadWith(value: unknown) {
+  localStorage.setItem('online-store:session', JSON.stringify(value))
+  await useAuthStore.persist.rehydrate()
+}
+const withToken = { state: { token: TOKEN, expiresAt: FUTURE }, version: 1 }
+
+describe('registration', () => {
+  it('starts signed out', () => {
+    expect(store()).toMatchObject({ status: 'anonymous', token: null, user: null })
   })
 
-  it('registers an account and signs it in', async () => {
-    const result = await state().register(GOOD)
+  it('signs the visitor in with what the API answers, and keeps only the token', async () => {
+    const register = vi
+      .spyOn(authService, 'registerAccount')
+      .mockResolvedValue({ ok: true, value: signedIn })
 
-    expect(result).toEqual({ ok: true })
-    expect(state().users).toHaveLength(1)
-    expect(state().currentUserId).toBe(state().users[0]?.id)
+    expect(await store().register(GOOD)).toEqual({ ok: true })
+
+    expect(register).toHaveBeenCalledWith(GOOD)
+    expect(store()).toMatchObject({ status: 'authenticated', token: TOKEN, user: signedIn.user })
+    expect(stored().state).toEqual({ token: TOKEN, expiresAt: FUTURE })
   })
 
-  it('normalises the email and trims the name', async () => {
-    await state().register({ ...GOOD, name: '  נתנאל  ', email: '  Netanel@Example.COM ' })
+  it('never keeps the password, or the account, in storage', async () => {
+    vi.spyOn(authService, 'registerAccount').mockResolvedValue({ ok: true, value: signedIn })
 
-    expect(state().users[0]).toMatchObject({ name: 'נתנאל', email: 'netanel@example.com' })
+    await store().register(GOOD)
+
+    const raw = localStorage.getItem('online-store:session')!
+    expect(raw).not.toContain(GOOD.password)
+    expect(raw).not.toContain(GOOD.email)
+    expect(raw).not.toContain('user')
+    expect(JSON.stringify(Object.entries(localStorage))).not.toContain(GOOD.password)
   })
 
-  it('never keeps the password in readable form', async () => {
-    await state().register(GOOD)
+  it.each(['email-taken', 'invalid-input', 'unavailable'] as const)(
+    'reports "%s" and stays signed out',
+    async (reason) => {
+      vi.spyOn(authService, 'registerAccount').mockResolvedValue({ ok: false, reason })
 
-    const user = state().users[0]!
-    expect(user.passwordHash).toMatch(/^[0-9a-f]{64}$/)
-    expect(user.salt).toMatch(/^[0-9a-f]{32}$/)
-    expect(JSON.stringify(user)).not.toContain(GOOD.password)
-    expect(localStorage.getItem(STORAGE_KEY)).not.toContain(GOOD.password)
+      expect(await store().register(GOOD)).toEqual({ ok: false, reason })
+
+      expect(store()).toMatchObject({ status: 'anonymous', token: null, user: null })
+      expect(localStorage.getItem('online-store:session') ?? '').not.toContain(TOKEN)
+    },
+  )
+})
+
+describe('login', () => {
+  const credentials = { email: GOOD.email, password: GOOD.password }
+
+  it('signs the visitor in', async () => {
+    vi.spyOn(authService, 'loginAccount').mockResolvedValue({ ok: true, value: signedIn })
+
+    expect(await store().login(credentials)).toEqual({ ok: true })
+
+    expect(store()).toMatchObject({ status: 'authenticated', token: TOKEN, user: signedIn.user })
+    expect(stored().state.token).toBe(TOKEN)
   })
 
-  it('rejects an email that is already registered, ignoring case', async () => {
-    await state().register(GOOD)
-    state().logout()
+  it.each(['invalid-credentials', 'too-many-attempts', 'invalid-input', 'unavailable'] as const)(
+    'reports "%s" and stays signed out',
+    async (reason) => {
+      vi.spyOn(authService, 'loginAccount').mockResolvedValue({ ok: false, reason })
 
-    const result = await state().register({ ...GOOD, email: 'NETANEL@example.com' })
+      expect(await store().login(credentials)).toEqual({ ok: false, reason })
 
-    expect(result).toEqual({ ok: false, reason: 'email-taken' })
-    expect(state().users).toHaveLength(1)
-    expect(state().currentUserId).toBeNull()
-  })
+      expect(store()).toMatchObject({ status: 'anonymous', token: null })
+    },
+  )
 
-  it('does not create two accounts when the same email is registered at once', async () => {
-    const results = await Promise.all([state().register(GOOD), state().register(GOOD)])
+  it('keeps an earlier session when a later attempt fails', async () => {
+    vi.spyOn(authService, 'loginAccount').mockResolvedValueOnce({ ok: true, value: signedIn })
+    await store().login(credentials)
+    vi.spyOn(authService, 'loginAccount').mockResolvedValue({
+      ok: false,
+      reason: 'invalid-credentials',
+    })
 
-    expect(results.filter((result) => result.ok)).toHaveLength(1)
-    expect(state().users).toHaveLength(1)
-  })
+    await store().login(credentials)
 
-  it('gives each account its own salt', async () => {
-    await state().register(GOOD)
-    await state().register({ ...GOOD, email: 'other@example.com' })
-
-    const [a, b] = state().users
-    expect(a?.salt).not.toBe(b?.salt)
-    expect(a?.passwordHash).not.toBe(b?.passwordHash) // same password, different salt
+    expect(store()).toMatchObject({ status: 'authenticated', token: TOKEN })
   })
 })
 
-describe('demo auth store: login and logout', () => {
+describe('logout', () => {
   beforeEach(async () => {
-    await state().register(GOOD)
-    state().logout()
+    vi.spyOn(authService, 'loginAccount').mockResolvedValue({ ok: true, value: signedIn })
+    await store().login({ email: GOOD.email, password: GOOD.password })
   })
 
-  it('signs in with the right credentials, whatever the email case', async () => {
-    const result = await state().login({ email: 'NETANEL@example.com', password: GOOD.password })
+  it('signs out at once, removes the token from storage and asks the API to end the session', () => {
+    const end = vi.spyOn(authService, 'endSession').mockResolvedValue()
 
-    expect(result).toEqual({ ok: true })
-    expect(state().currentUserId).toBe(state().users[0]?.id)
+    store().logout()
+
+    expect(store()).toMatchObject({ status: 'anonymous', token: null, user: null, expiresAt: null })
+    expect(stored().state).toEqual({ token: null, expiresAt: null })
+    expect(end).toHaveBeenCalledWith(TOKEN)
   })
 
-  it('rejects a wrong password', async () => {
-    const result = await state().login({ email: GOOD.email, password: 'WrongPass1' })
+  it('does not wait for the API, and does not mind it failing', async () => {
+    vi.spyOn(authService, 'endSession').mockRejectedValue(new Error('down'))
+    const unhandled = vi.fn()
+    process.on('unhandledRejection', unhandled)
 
-    expect(result).toEqual({ ok: false, reason: 'invalid-credentials' })
-    expect(state().currentUserId).toBeNull()
+    store().logout()
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    process.off('unhandledRejection', unhandled)
+
+    expect(store().status).toBe('anonymous')
   })
 
-  it('gives the same answer for an unknown email as for a wrong password', async () => {
-    const unknown = await state().login({ email: 'nobody@example.com', password: GOOD.password })
-    const wrong = await state().login({ email: GOOD.email, password: 'WrongPass1' })
+  it('does nothing when nobody is signed in', () => {
+    store().logout()
+    const end = vi.spyOn(authService, 'endSession').mockResolvedValue()
 
-    expect(unknown).toEqual(wrong)
-    expect(state().currentUserId).toBeNull()
-  })
+    store().logout()
 
-  it('logs out but keeps the accounts', async () => {
-    await state().login({ email: GOOD.email, password: GOOD.password })
-
-    state().logout()
-
-    expect(state().currentUserId).toBeNull()
-    expect(state().users).toHaveLength(1)
+    expect(end).not.toHaveBeenCalled()
+    expect(store().status).toBe('anonymous')
   })
 })
 
-describe('demo auth persistence', () => {
-  const validUser = {
-    id: 'u1',
-    name: 'א',
-    email: 'a@b.co',
-    salt: 'a'.repeat(32),
-    passwordHash: 'b'.repeat(64),
-    createdAt: 'now',
-  }
+describe('restoring a session after a reload', () => {
+  it('asks the API who the stored token belongs to, and then knows the visitor', async () => {
+    const me = vi
+      .spyOn(authService, 'fetchCurrentUser')
+      .mockResolvedValue({ status: 'signed-in', user: signedIn.user })
+    await loadWith(withToken)
+    expect(store()).toMatchObject({ status: 'restoring', token: TOKEN, user: null })
 
-  it('persists the accounts and the session, as hashes', async () => {
-    await state().register(GOOD)
+    await store().restore()
 
-    const persisted = stored()
-    expect(persisted.version).toBe(1)
-    expect(persisted.state.currentUserId).toBe(state().users[0]?.id)
-    expect(Object.keys(persisted.state.users[0]).sort()).toEqual([
-      'createdAt',
-      'email',
-      'id',
-      'name',
-      'passwordHash',
-      'salt',
-    ])
+    expect(me).toHaveBeenCalledWith(TOKEN, expect.any(AbortSignal))
+    expect(store()).toMatchObject({ status: 'authenticated', user: signedIn.user, token: TOKEN })
   })
 
-  it('restores the session after a reload', async () => {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ version: 1, state: { users: [validUser], currentUserId: 'u1' } }),
+  it('does not ask when there is no token', async () => {
+    const me = vi.spyOn(authService, 'fetchCurrentUser')
+
+    await store().restore()
+
+    expect(me).not.toHaveBeenCalled()
+    expect(store().status).toBe('anonymous')
+  })
+
+  it('signs out, and forgets the token, when the API does not accept it any more', async () => {
+    vi.spyOn(authService, 'fetchCurrentUser').mockResolvedValue({ status: 'signed-out' })
+    await loadWith(withToken)
+
+    await store().restore()
+
+    expect(store()).toMatchObject({ status: 'anonymous', token: null, user: null })
+    expect(stored().state).toEqual({ token: null, expiresAt: null })
+  })
+
+  it('keeps the token, and says the API is unavailable, when it cannot be asked', async () => {
+    const me = vi
+      .spyOn(authService, 'fetchCurrentUser')
+      .mockResolvedValueOnce({ status: 'unavailable' })
+      .mockResolvedValue({ status: 'signed-in', user: signedIn.user })
+    await loadWith(withToken)
+
+    await store().restore()
+
+    expect(store()).toMatchObject({ status: 'unavailable', token: TOKEN, user: null })
+    expect(stored().state.token).toBe(TOKEN)
+
+    // Trying again once the API is back.
+    await store().restore()
+    expect(me).toHaveBeenCalledTimes(2)
+    expect(store()).toMatchObject({ status: 'authenticated', user: signedIn.user })
+  })
+
+  it('asks only once when it is called from several places at the same time', async () => {
+    let answer: (value: Awaited<ReturnType<typeof authService.fetchCurrentUser>>) => void = () => {}
+    const me = vi
+      .spyOn(authService, 'fetchCurrentUser')
+      .mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+    await loadWith(withToken)
+
+    const calls = [store().restore(), store().restore(), store().restore()]
+    answer({ status: 'signed-in', user: signedIn.user })
+    await Promise.all(calls)
+
+    expect(me).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not ask again once the visitor is known', async () => {
+    const me = vi
+      .spyOn(authService, 'fetchCurrentUser')
+      .mockResolvedValue({ status: 'signed-in', user: signedIn.user })
+    await loadWith(withToken)
+    await store().restore()
+
+    await store().restore()
+
+    expect(me).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not bring the visitor back when they signed out while the API was answering', async () => {
+    let answer: (value: Awaited<ReturnType<typeof authService.fetchCurrentUser>>) => void = () => {}
+    vi.spyOn(authService, 'fetchCurrentUser').mockImplementation(
+      () => new Promise((resolve) => (answer = resolve)),
     )
+    vi.spyOn(authService, 'endSession').mockResolvedValue()
+    await loadWith(withToken)
 
-    await useAuthStore.persist.rehydrate()
+    const pending = store().restore()
+    store().logout()
+    answer({ status: 'signed-in', user: signedIn.user })
+    await pending
 
-    expect(state().currentUserId).toBe('u1')
-    expect(state().users).toEqual([validUser])
+    expect(store()).toMatchObject({ status: 'anonymous', token: null, user: null })
   })
+})
 
-  it('drops a session whose account does not exist', async () => {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ version: 1, state: { users: [], currentUserId: 'ghost' } }),
-    )
-
-    await useAuthStore.persist.rehydrate()
-
-    expect(state().currentUserId).toBeNull()
-  })
-
-  it('removes duplicate accounts when restoring', async () => {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        version: 1,
-        state: { users: [validUser, { ...validUser, id: 'u2' }], currentUserId: 'u1' },
-      }),
-    )
-
-    await useAuthStore.persist.rehydrate()
-
-    expect(state().users).toHaveLength(1)
-  })
-
+describe('what is read back from storage', () => {
   it.each([
-    [
-      'a plaintext password field instead of a hash',
-      { users: [{ ...validUser, passwordHash: 'Passw0rd' }], currentUserId: null },
-    ],
-    ['a malformed salt', { users: [{ ...validUser, salt: 'xyz' }], currentUserId: null }],
-    ['users that are not an array', { users: 'oops', currentUserId: null }],
-    ['a non-string session', { users: [validUser], currentUserId: 5 }],
-    ['missing fields', {}],
-  ])('ignores stored data with %s', async (_label, data) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, state: data }))
+    ['nothing', null],
+    ['text that is not JSON', 'not json at all'],
+    ['an empty object', {}],
+    ['a token that is not text', { state: { token: 42, expiresAt: FUTURE }, version: 1 }],
+    ['a token that is far too short', { state: { token: 'x', expiresAt: FUTURE }, version: 1 }],
+    ['a date that is not a date', { state: { token: TOKEN, expiresAt: 'soon' }, version: 1 }],
+    ['a token without a date', { state: { token: TOKEN, expiresAt: null }, version: 1 }],
+    ['the accounts of the old demo, which are not a session', { users: [], currentUserId: 'x' }],
+  ])('starts signed out for %s', async (_name, value) => {
+    if (typeof value === 'string') localStorage.setItem('online-store:session', value)
+    else if (value !== null) localStorage.setItem('online-store:session', JSON.stringify(value))
 
     await useAuthStore.persist.rehydrate()
 
-    expect(state().users).toEqual([])
-    expect(state().currentUserId).toBeNull()
+    expect(store()).toMatchObject({ status: 'anonymous', token: null, user: null })
   })
 
-  it('survives non-JSON garbage in storage', async () => {
-    localStorage.setItem(STORAGE_KEY, '{nope')
+  it('drops a session whose end has already passed, without asking the API', async () => {
+    const me = vi.spyOn(authService, 'fetchCurrentUser')
 
-    await expect(useAuthStore.persist.rehydrate()).resolves.not.toThrow()
-    expect(state().currentUserId).toBeNull()
+    await loadWith({
+      state: { token: TOKEN, expiresAt: new Date(Date.now() - 1000).toISOString() },
+      version: 1,
+    })
+    await store().restore()
+
+    expect(store().status).toBe('anonymous')
+    expect(me).not.toHaveBeenCalled()
+  })
+
+  it('does not take a user, a status or a role from storage', async () => {
+    await loadWith({
+      state: {
+        token: TOKEN,
+        expiresAt: FUTURE,
+        user: { id: 'x', name: 'Admin', email: 'a@b.co' },
+        status: 'authenticated',
+        role: 'admin',
+      },
+      version: 1,
+    })
+
+    expect(store()).toMatchObject({ status: 'restoring', user: null })
+    expect(store()).not.toHaveProperty('role')
+  })
+})
+
+describe('the accounts of the old demo', () => {
+  it('are removed from the browser when the site loads', async () => {
+    localStorage.setItem(
+      'online-store:auth',
+      JSON.stringify({ users: [{ id: 'x', passwordHash: 'abc' }], currentUserId: 'x' }),
+    )
+
+    vi.resetModules()
+    await import('./authStore')
+
+    expect(localStorage.getItem('online-store:auth')).toBeNull()
   })
 })

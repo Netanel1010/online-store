@@ -7,8 +7,8 @@ life cycle, and a read-only **Products API** that serves the catalog from MongoD
 filtering, sorting and paging of the product listings done in MongoDB.
 
 The storefront loads its products from this API, in production (hosted on Render, with MongoDB
-Atlas) and in development. Accounts, cart, favorites and orders still live in the frontend:
-authentication, a server cart and orders are later steps. How the API is deployed and checked is in
+Atlas) and in development. Accounts and sessions are in the API ([Authentication](#authentication));
+the cart, favorites and orders still live in the frontend: a server cart and orders are later steps. How the API is deployed and checked is in
 [`docs/deployment.md`](../docs/deployment.md).
 
 It is an npm workspace of this repository, so one `npm install` at the root installs everything and
@@ -207,6 +207,96 @@ specification filters apply, ranking, the filter options) and what a missing pro
 `repository.ts` is the only code that knows MongoDB (the `products` collection and its queries,
 built in `productFilter.ts` and `searchFields.ts`, and its index).
 
+## Authentication
+
+Accounts and sessions live in MongoDB (`users` and `sessions`) and are served by the API under
+`/api/auth`. There is one kind of account: a signed-in visitor is the only thing the API tells
+apart, and the only protected resource so far is `GET /api/auth/me`. Future features (a server cart,
+orders) put `createRequireAuth` in front of their routes (see [Protecting a route](#protecting-a-route)).
+No roles exist, because nothing in the store needs them yet.
+
+| Endpoint                   | Needs a token | What it does                                                                                                   |
+| -------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------- |
+| `POST /api/auth/register`  | no            | Creates the account and signs it in. `201` with `{ user, token, expiresAt }`.                                  |
+| `POST /api/auth/login`     | no            | Checks the credentials. `200` with `{ user, token, expiresAt }`.                                               |
+| `GET /api/auth/me`         | yes           | `200` with `{ user }`: who the token belongs to.                                                               |
+| `POST /api/auth/logout`    | no (uses it)  | Ends the session of the token it is sent. Always `204`, also for a token that is not a session (nothing is revealed). |
+
+```bash
+curl -X POST http://localhost:3001/api/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Dana","email":"dana@example.com","password":"<a password with a letter and a digit>"}'
+# {"user":{"id":"…","name":"Dana","email":"dana@example.com"},"token":"<43 characters>","expiresAt":"…"}
+
+curl http://localhost:3001/api/auth/me -H 'Authorization: Bearer <token>'
+# {"user":{"id":"…","name":"Dana","email":"dana@example.com"}}
+```
+
+**Why bearer tokens and not cookies.** The site (`github.io`) and the API (`onrender.com`) are
+different _sites_, so a session cookie would be a third-party cookie, which Safari and a growing
+number of browser settings block: sign-in would silently fail for those visitors. A token that the
+page sends in `Authorization: Bearer <token>` works the same everywhere, needs no CSRF protection (a
+request from another site cannot add the header), and needs no `credentials` in CORS. The price is
+that the token is kept in the page's `localStorage`, where a script that ran in the page (an XSS
+bug) could read it; the answer to that is the short life of a session, its revocation on sign-out,
+and a storefront that renders all text as text, never as HTML.
+
+**Sessions.** A token is 256 random bits (no JWT, nothing to sign, so **no secret to configure**).
+The API stores only its SHA-256 digest, with the account, and the moment it ends: 7 days after the
+sign-in. A token is valid only while that session exists, so signing out really ends it, on the
+server, and a copy of the database cannot be used to sign in. MongoDB removes expired sessions by
+itself (a TTL index, about once a minute); the API checks the end date too, because that removal is
+not instant. Every sign-in is a session of its own: two browsers do not affect each other.
+
+**Passwords.** At least 8 and at most 128 characters, with a letter and a digit (the form checks the
+same rules, from `src/features/auth/rules.ts`, to help the visitor; the API checks them again).
+They are hashed with **scrypt**, which ships with Node (`N=2^15, r=8, p=3`, 32 MiB, a random salt per
+account, the parameters written into the hash so they can be raised later) and compared in constant
+time. A password is never stored, logged, returned or put in a URL, and neither is the hash.
+An unknown email is checked against a decoy hash, so it takes as long as a wrong password.
+
+**Errors** use the usual shape. `400 invalid_input` (the message names the field, never the value),
+`401 invalid_credentials` (the same for an unknown email and a wrong password),
+`401 unauthorized` (no token, or one that is malformed, unknown, expired or ended; with
+`WWW-Authenticate: Bearer`), `409 email_taken` (registration), `429 too_many_attempts` (with
+`Retry-After`). Every `/api/auth` answer has `Cache-Control: no-store`.
+
+**Limits and trade-offs worth knowing**
+
+- **Failed sign-ins are limited per email**: five failures within fifteen minutes block that email
+  for fifteen minutes, whether or not the account exists. It is kept in the process's memory (see
+  `auth/throttle.ts`): it starts again with the process, and every instance would count on its own.
+  The cost of scrypt is the other half of the defence. A shared store is the next step if the API
+  ever runs on several instances.
+- **Registration says that an email is taken.** Without an email to confirm the address by, there
+  is no other honest answer; sign-in, which is what an attacker would try, never says.
+- There is **no password reset, no email confirmation, no change of password and no account page**
+  yet: none of them was asked for.
+- An account is identified by its `id` (a UUID). The email is stored in lower case, with a unique
+  index.
+
+### Protecting a route
+
+```ts
+import { createRequireAuth, getAuth } from '../auth/middleware.ts'
+
+router.get('/', createRequireAuth(authService), (_req, res) => {
+  const { user } = getAuth(res) // { id, name, email }
+  res.json(/* what belongs to user.id */)
+})
+```
+
+A request without a live session never reaches the route: it gets `401 unauthorized`. This is the
+security boundary. The storefront also hides the checkout from signed-out visitors, but that is only
+the experience; the API decides, with the same token, on every request.
+
+### Running it locally
+
+Nothing to configure: authentication needs no environment variable. It needs the database (without
+`MONGODB_URI` every `/api/auth` endpoint answers `503 database_not_configured`), and it creates its
+two collections and their indexes when the API starts. In development the storefront already finds
+the API at `http://localhost:3001`, and the API already allows the Vite dev server's origin.
+
 ## Seed the products
 
 `npm run seed:products` copies `public/data/products.json` to the `products` collection of the
@@ -279,7 +369,8 @@ production `CORS_ORIGINS` (the site's origin) and `MONGODB_URI` are required, an
 string is entered in the Render dashboard, never committed. Render uses `/api/health` as its health
 check, and `/api/health/ready` is the check that includes the database. Configuration, how a
 change is released, verification commands and troubleshooting are in
-[`docs/deployment.md`](../docs/deployment.md).
+[`docs/deployment.md`](../docs/deployment.md). Authentication needs **no new variable and no
+secret** (see [Authentication](#authentication)).
 
 ## Structure
 
@@ -290,6 +381,8 @@ server/
 │   ├── app.ts           createApp(): CORS, JSON parsing, routes, 404, error handler
 │   ├── config.ts        Environment variables, validated with Zod
 │   ├── db/              database.ts (MongoClient, connect, ping, close) and errors.ts
+│   ├── auth/            The authentication feature: routes, service, middleware, user and session
+│   │                    repositories, passwords (scrypt), tokens, the sign-in limit, schemas
 │   ├── products/        The products feature: routes, query parsing, service, repository, filters
 │   │                    and search text, filter options, schemas, seed
 │   ├── routes/          One router per feature, mounted under /api in routes/index.ts
@@ -314,8 +407,14 @@ listens on to check the failure path, and the entry point is started as a real p
 that a bad configuration or an unreachable database stops it with exit code 1. The products
 service, routes and seed are tested over an in-memory repository, and the real repository is
 checked for the exact queries it sends. The search patterns and filters are also evaluated on the
-real catalog and compared with the storefront's own search. The seed command is started as a real process too, to
-check that invalid data stops it before the database is contacted.
+real catalog and compared with the storefront's own search. The seed command is started as a real
+process too, to check that invalid data stops it before the database is contacted.
+
+Authentication is tested at each level: the password hashing and the tokens, the request
+validation, the sign-in limit (with a clock the test moves), the service (registration, sign-in,
+sessions that expire and end), the middleware and the routes over HTTP with in-memory repositories
+(including that no answer contains a password, a hash or a token that was not just issued), the
+exact queries of the repositories, and CORS for the `Authorization` header.
 
 An **optional integration test** talks to a real MongoDB. It is skipped unless `MONGODB_TEST_URI`
 is set (a local instance or an Atlas cluster you can write to):
@@ -330,7 +429,9 @@ It covers what mocks cannot: the unique index, upserts that insert, update and l
 that nothing is deleted, paging and counts, the search text and its backfill, and the API over HTTP,
 against the real server. It also asks the API over MongoDB and the API over the in-memory repository
 the same questions (searches, filters, sorts, pages, filter options) and expects the same answers.
-It works
+A second file does the same for accounts and sessions: the unique indexes (also when five
+registrations of one email arrive at once), the index that expires sessions, that a password is
+stored only as a hash, and registration, sign-in, `me` and sign-out over HTTP. They work
 in a database of its own named `online_store_test_<random>` and drops it at the end. It never uses
 `MONGODB_URI` and never touches your development data.
 
@@ -341,8 +442,10 @@ in a database of its own named `online_store_test_<random>` and drops it at the 
   logged with its stack and the client only gets `500 internal_error`, so internals never leak.
 - **Unknown routes** get a JSON `404`, also outside `/api`, and malformed JSON gets `400 invalid_json`.
 - **CORS** is an allow-list. A browser origin that is not listed gets no CORS headers, so the browser
-  blocks it. Requests without an `Origin` (curl, server to server) are not affected. Credentials
-  are not enabled yet; they are added together with authentication.
+  blocks it. Requests without an `Origin` (curl, server to server) are not affected. Credentials are
+  deliberately not enabled: authentication uses an `Authorization` header, not cookies, so a page
+  of another origin cannot ride on a visitor's session (a request with that header is first
+  checked by the browser with a preflight, which the same allow-list answers).
 - **Request bodies** are limited to 100 kB.
 - **One client**: the process has a single `MongoClient`, which owns the connection pool. It is
   never created per request.

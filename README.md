@@ -22,11 +22,11 @@
 
 A Hebrew, right-to-left online store for PC components, built with **React 19 and TypeScript**.
 
-The project covers the shopping experience in the browser — from discovering products and filtering the catalog to managing a cart, saving favorites, signing in to a demo account and completing a demo checkout.
+The project covers the shopping experience in the browser — from discovering products and filtering the catalog to managing a cart, saving favorites, signing in to a real account and completing a demo checkout.
 
-The **product catalog is served by a real backend**: an Express API on Render that reads the products from MongoDB Atlas. The site, hosted on GitHub Pages, loads its products from that API, and the **search, filtering and sorting of the product listings run in the API**, as MongoDB queries.
+The **product catalog is served by a real backend**: an Express API on Render that reads the products from MongoDB Atlas. The site, hosted on GitHub Pages, loads its products from that API, and the **search, filtering and sorting of the product listings run in the API**, as MongoDB queries. **Accounts and sessions live in the API too**: registration, sign-in and sign-out are real, with the passwords stored only as hashes in MongoDB.
 
-> 🎯 **Portfolio project:** a frontend-first store with a first backend feature (the Products API) in production.
+> 🎯 **Portfolio project:** a frontend-first store with its first backend features (the Products API and authentication) in production.
 
 > **Scope:** the API serves products only. Accounts, cart, favorites and checkout are demo features that run in the browser, and there are no real payments. See [Scope & Limitations](#-scope--limitations).
 
@@ -43,7 +43,7 @@ Browser ── GitHub Pages (React site) ──► Render (Express API) ──�
 | ------------ | ---------------------------------- | ------------------------------------------------------------------------ |
 | 🖥️ Site      | GitHub Pages                       | React + Vite single-page app, built and deployed by GitHub Actions       |
 | 🔌 API       | Render (free web service)          | Express 5 + TypeScript in [`server/`](server/README.md), deployed from `main` |
-| 🗄️ Database  | MongoDB Atlas                      | The `products` collection, filled by `npm run seed:products`             |
+| 🗄️ Database  | MongoDB Atlas                      | The `products` collection (filled by `npm run seed:products`), and the `users` and `sessions` collections of the accounts |
 
 The products, search, category and filtered pages ask `GET /api/products` for the products that match what the visitor typed, ticked and sorted (and for the filter options with their counts), and a product page asks `GET /api/products/:id`. The API does the searching, filtering, sorting and paging in MongoDB.
 
@@ -63,7 +63,7 @@ How it is deployed, configured and checked: [`docs/deployment.md`](docs/deployme
 | 🎛️  | **Filters & Sorting**   | Brand and specification filters with result counts, filtered and sorted by the API, with URL state |
 | 🛒  | **Shopping Cart**       | Add, remove and update quantities with calculated totals and savings                            |
 | ❤️  | **Favorites**           | Save products and access them from a dedicated favorites page                                   |
-| 👤  | **Demo Authentication** | Register, log in and log out with protected checkout                                            |
+| 👤  | **Authentication**      | Real accounts: register, log in and log out against the API, with server-side sessions and a protected checkout |
 | 💳  | **Demo Checkout**       | Validated delivery form followed by a demo order confirmation                                   |
 | 💾  | **Persistence**         | Cart, favorites and session survive browser reloads                                             |
 | 📱  | **Responsive UI**       | Mobile navigation and responsive layouts                                                        |
@@ -93,7 +93,7 @@ How it is deployed, configured and checked: [`docs/deployment.md`](docs/deployme
 
 ## 🎯 Scope & Limitations
 
-This is a **portfolio application**. The product catalog has a real backend; everything else is intentionally a client-side demo.
+This is a **portfolio application**. The product catalog and the accounts have a real backend; the cart, favorites and the checkout are intentionally a browser-side demo.
 
 ### What is included
 
@@ -101,7 +101,7 @@ This is a **portfolio application**. The product catalog has a real backend; eve
 - A read-only API: `GET /api/products` (paginated, with search, category, brand, specification and sort parameters), `GET /api/products/:id`, `GET /api/health` and `GET /api/health/ready`
 - A seed command that copies [`public/data/products.json`](public/data/products.json) to MongoDB
 - Zod validation of every product the site receives and every product the API reads
-- Client-side authentication flow
+- Authentication in the API: registration, sign-in, sign-out and "who am I", with scrypt-hashed passwords and revocable sessions (see [`server/README.md`](server/README.md#authentication)); the checkout pages need a signed-in visitor
 - Persistent cart and favorites
 - Demo checkout flow
 - Automated unit, API, E2E and accessibility testing
@@ -113,14 +113,14 @@ This is a **portfolio application**. The product catalog has a real backend; eve
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 🔍 **Listings Only**        | The API searches, filters and sorts the product listings. The header's search suggestions, and the cart, favorites and home sections, still work on the whole catalog loaded in the browser |
 | ✏️ **Read-Only API**        | The API cannot create, update or delete products. Changes to the catalog go through `products.json` and the seed command                                |
-| 🔐 **Demo Authentication**  | Accounts exist only in browser `localStorage`. There is no server-side authentication                                                                  |
+| 🔐 **No Roles**             | There is one kind of account. There are no administrators, no password reset, no email confirmation and no account page                                  |
 | 🛒 **No Server Cart**       | The cart and favorites are stored in the browser, not in the API                                                                                       |
 | 💳 **No Real Payments**     | Checkout does not charge money or send payment information                                                                                             |
 | 🗄️ **No Server Orders**     | Orders are demo-only and are not stored on a backend                                                                                                   |
 | 📦 **No Inventory System**  | Stock and availability are not managed                                                                                                                 |
 | 🚚 **No Shipping System**   | Shipping and tax calculations are outside the project scope                                                                                            |
 
-> 🔒 Passwords in the demo authentication flow are stored as salted PBKDF2 hashes. This demonstrates the client-side flow, **not production-grade authentication**.
+> 🔒 The accounts of the first, browser-only version of the site were never stored on a server and are not carried over: visitors register again. Anything left of them in a browser is deleted when the site loads.
 
 > ⏱️ The API runs on a free Render plan, which sleeps when idle: the first visit after a pause can wait about a minute for the products to load.
 
