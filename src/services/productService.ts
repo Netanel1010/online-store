@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import type { CategoryId } from '@/features/products/categories'
+import { listingFacetsSchema, type ListingFacets } from '@/features/products/listing/facets'
+import { SPEC_PREFIX, type ListingState } from '@/features/products/listing/query'
 import { productSchema, productsSchema, type Product } from '@/features/products/schema'
 import { apiUrl } from '@/lib/api'
 
@@ -88,4 +91,77 @@ export async function fetchProduct(id: string, signal?: AbortSignal): Promise<Pr
   if (response.status === 404 || response.status === 400) return null
   requireOk(response)
   return validate(productSchema, await readJson(response))
+}
+
+/** What a listing page asks the API for: the visitor's search, filters and sort, in a category or not. */
+export interface ListingRequest extends ListingState {
+  category?: CategoryId
+}
+
+/** The products of a listing, how many there are, and the filter options to show next to them. */
+export interface ProductListing {
+  products: Product[]
+  total: number
+  facets: ListingFacets
+}
+
+/**
+ * The address of one page of a listing. The search text and the selections are encoded by
+ * URLSearchParams, so whatever the visitor typed stays a value and cannot add a parameter. The
+ * filter options (`facets`) are asked for once, with the first page: they do not depend on the page.
+ */
+export function listingPath(request: ListingRequest, page: number, withFacets: boolean): string {
+  const params = new URLSearchParams()
+  if (request.q !== '') params.set('q', request.q)
+  if (request.category) params.set('category', request.category)
+  for (const brand of request.brands) params.append('brand', brand)
+  for (const [label, values] of request.specs) {
+    for (const value of values) params.append(`${SPEC_PREFIX}${label}`, value)
+  }
+  if (request.sort !== 'default') params.set('sort', request.sort)
+  if (withFacets) params.set('facets', 'true')
+  params.set('page', String(page))
+  params.set('limit', String(PAGE_SIZE))
+  return `/api/products?${params}`
+}
+
+const listingPageSchema = pageSchema.extend({
+  total: z.number().int().min(0),
+  facets: listingFacetsSchema.optional(),
+})
+
+/**
+ * Loads one listing from `GET /api/products`: the products that match the request, in the order
+ * the API gives them (the order of the sort, or the best match first for a search), following the
+ * pagination until the last page. The searching, filtering and sorting all happen in the API.
+ */
+export async function fetchProductListing(
+  request: ListingRequest,
+  signal?: AbortSignal,
+): Promise<ProductListing> {
+  const fetchPage = async (page: number) => {
+    const response = await get(listingPath(request, page, page === 1), signal)
+    requireOk(response)
+    return validate(listingPageSchema, await readJson(response))
+  }
+
+  const first = await fetchPage(1)
+  if (first.facets === undefined) {
+    throw new ProductDataError('Product listing has no filter options')
+  }
+  if (first.totalPages > MAX_PAGES) {
+    throw new ProductDataError(`Product catalog has too many pages (${first.totalPages})`)
+  }
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(first.totalPages - 1, 0) }, (_, index) => fetchPage(index + 2)),
+  )
+
+  return {
+    products: validate(
+      productsSchema,
+      [first, ...rest].flatMap((page) => page.items),
+    ),
+    total: first.total,
+    facets: first.facets,
+  }
 }

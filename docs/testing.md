@@ -48,6 +48,23 @@ started as real processes to check their failure paths. An optional integration 
 real MongoDB and is skipped unless `MONGODB_TEST_URI` is set. Details:
 [`server/README.md`](../server/README.md#tests).
 
+The search, filters, sorting and filter options of the listings are covered at three levels: the
+query parser (`listQuery.test.ts`), the service over the real catalog and small hand-checked
+products (`service.listing.test.ts`, `facets.test.ts`), and over HTTP (`routes.test.ts`). The MongoDB
+filters are evaluated on the real catalog without a database (`productFilter.test.ts`,
+`searchFields.test.ts`), and the exact queries sent to the driver are checked in
+`repository.test.ts`.
+
+## Listing pages in the component tests
+
+The products, category and search pages ask the API for what they show, so their component tests
+(`renderApp` in `src/test`) answer them with `fakeListingApi`: the **real API code** (the query
+parser, the search, the filters, the sort and the filter options) over the products of the test, in
+memory, reached through the storefront's own request path. These tests therefore check what the
+page sends and what it gets back, not a script, and the filtering rules are written only once.
+`src/services/productService.listing.test.ts` and `src/features/products/useProductListing.test.tsx`
+cover the request, the answer's validation and the loading, refreshing and error states.
+
 ## Accessibility tests
 
 Automated checks (axe-core, WCAG 2.0/2.1 A and AA rules) find only part of the problems.

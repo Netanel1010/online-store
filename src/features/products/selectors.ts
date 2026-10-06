@@ -5,10 +5,6 @@ export function findProduct(products: readonly Product[], id: string | undefined
   return id === undefined ? undefined : products.find((product) => product.id === id)
 }
 
-export function productsInCategory(products: readonly Product[], category: CategoryId) {
-  return products.filter((product) => product.category === category)
-}
-
 export function recommendedProducts(products: readonly Product[]) {
   return products.filter((product) => product.isRecommended)
 }

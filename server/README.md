@@ -3,7 +3,8 @@
 The backend of the online store: **Node.js**, **Express 5** and **TypeScript**. It is the
 foundation with a first feature. It has health checks, JSON parsing, CORS, validated
 configuration, central error handling, a **MongoDB** connection (the official driver) with a managed
-life cycle, and a read-only **Products API** that serves the catalog from MongoDB.
+life cycle, and a read-only **Products API** that serves the catalog from MongoDB, with the search,
+filtering, sorting and paging of the product listings done in MongoDB.
 
 The storefront loads its products from this API, in production (hosted on Render, with MongoDB
 Atlas) and in development. Accounts, cart, favorites and orders still live in the frontend:
@@ -95,7 +96,7 @@ answer `503 database_not_configured`.
 
 | Endpoint                            | Returns                                                         |
 | ----------------------------------- | --------------------------------------------------------------- |
-| `GET /api/products?page=1&limit=20` | One page of products, with the numbers to build a pager         |
+| `GET /api/products`                 | One page of the products that match the query, with the numbers to build a pager (and, on request, the filter options) |
 | `GET /api/products/:id`             | One product, by its id (the manufacturer SKU, e.g. `CC-9011240-WW`) |
 
 ```json
@@ -121,14 +122,90 @@ answer `503 database_not_configured`.
   trimmed. MongoDB's own `_id` is never part of a response.
 - **Errors** use the usual `{ "error": { "code", "message" } }` shape. A database failure is a
   generic `500 internal_error`: the details stay in the server log.
-- **The storefront uses this API.** It reads the whole catalog with `GET /api/products?limit=100`,
-  following the pages until the last, and a product page reads `GET /api/products/:id`. Search,
-  filtering and sorting happen in the browser: there is no search or filter endpoint yet. A `400` or
-  `404` for a product means "no such product" to the storefront; any other failure is an error.
+- **The storefront uses this API.** The products, category and search pages send the search text,
+  the filters and the sort and read the matching products (following the pages until the last) and
+  the filter options; a product page reads `GET /api/products/:id`. The whole catalog is also read
+  (`GET /api/products?limit=100`) for what needs every product: the cart and favorites, the home
+  page sections, the category links and the search suggestions. A `400` or `404` for a product
+  means "no such product" to the storefront; any other failure is an error.
 
-Three layers, each with one job: `routes.ts` reads the request and sends the answer, `service.ts`
-holds the paging rules and what a missing product means, and `repository.ts` is the only code that
-knows MongoDB (the `products` collection, its queries and its index).
+### Search, filters and sorting
+
+All parameters are optional and combine: a product has to pass every one of them. A parameter that
+is not valid is `400 invalid_query`, in the usual error shape, with a message that names the
+parameter and does not repeat what was sent. The paging errors keep their own code,
+`invalid_pagination`.
+
+| Parameter       | Meaning                                                                                                                                                                                                                                        |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `q`             | Search text, up to 100 characters (after trimming). Empty or blank means no search. May not be repeated.                                                                                                                                       |
+| `category`      | One of the storefront's category ids (`cpu`, `gpu`, ...).                                                                                                                                                                                      |
+| `brand`         | A brand id (`amd`, `intel`, ...), repeated for several: a product has one brand, so they are OR-ed.                                                                                                                                            |
+| `s.<label>`     | A specification filter: the label (for example `s.תושבת מעבד`, URL-encoded) with the selected value, repeated per value. Values of one label are OR-ed, different labels are AND-ed. Labels and values are up to 100 characters, 60 values in all. |
+| `sort`          | `default` (by `id`, or the best match first when there is a search), `price-asc`, `price-desc`, `name-asc` or `name-desc`.                                                                                                                      |
+| `facets`        | `true` adds `facets`, the filter options with their counts (see below). `false` is the default.                                                                                                                                                |
+| `page`, `limit` | As above.                                                                                                                                                                                                                                      |
+
+These are the filters the storefront has always had (there is no price range, for example), and
+the same words, brands and specifications give the same products as before, in the same order.
+
+- **Search.** The text is normalized (lower case, no accents or niqqud, punctuation is only a
+  separator) and split into at most 8 words; every word has to match. A word of one or two
+  characters matches the start of a word, a longer one any part of a word ("4070" finds
+  "N4070GAMING"), and a single word of four or more characters also matches across a space
+  ("rtx4070" finds "RTX 4070"). It looks at the name, SKU, brand and category first, and only when
+  nothing in the category matches there at all, at the specification values and feature lines too.
+  The rules are the storefront's own (`src/features/products/listing/search.ts`), which the API
+  shares. MongoDB cannot normalize Hebrew text while it searches, so each product is stored with the
+  normalized text of those fields in a `search` object (never returned), and a search is one
+  pattern per word on it. The typed text is reduced to letters and digits and escaped, so it cannot
+  become a pattern of its own, and the number of words is capped.
+- **Ranking.** Without a `sort`, a search lists the best match first (a whole word in the name beats
+  a part of a word in the specifications, and so on). That needs every match, so the API reads the
+  matches (only those) and pages them itself. With a `sort`, MongoDB sorts and pages.
+- **Sorting.** MongoDB sorts with a Hebrew collation in which numbers compare as numbers ("GTX 970"
+  before "GTX 1070"); a price sort breaks ties by name, and every sort ends with the `id`, so pages
+  never overlap. The values of specification filters are compared as exact text, not with that
+  collation, which would take `08GB` for `8GB`.
+- **Specification filters** exist within a category, and only for the options that are offered
+  there (see below). A selection that is not (an unknown label or value, a label that is not worth a
+  filter, or no `category` at all) is ignored instead of returning no products.
+- **`total` and `totalPages`** count the products that match, not the whole catalog. Nothing
+  matching is `200` with `items: []` and `total: 0`.
+- **No new indexes.** The queries filter on small, bounded values of a catalog this size and search
+  with unanchored patterns, which no index can serve; the unique index on `id` keeps serving the
+  default order and `GET /api/products/:id`.
+
+#### Filter options (`facets=true`)
+
+The filter panel of the storefront, computed by the API with grouped queries so that the counts
+agree with the results:
+
+```json
+{
+  "facets": {
+    "brands": [
+      { "value": "amd", "count": 3 },
+      { "value": "intel", "count": 8 }
+    ],
+    "specs": [{ "label": "תושבת מעבד", "options": [{ "value": "AM5", "count": 3 }] }]
+  }
+}
+```
+
+- The options that exist depend on the category and the search text, not on what is ticked: the
+  brands of those products (none when there is no choice, unless a brand is ticked) and, within a
+  category, the specification labels that are worth a filter (see `SPEC_FACET_RULES` in
+  `facets.ts`: a label shared by everyone, or with a different value on almost every product, is
+  left out). Groups and options are in alphabetical order.
+- A `count` answers "how many products would I get if I ticked this?": the other groups' selections
+  apply, the option's own group does not, so an option with `0` can be shown as unavailable.
+
+Three layers, each with one job: `routes.ts` reads the request (`listQuery.ts` validates the query
+string) and sends the answer, `service.ts` holds the rules (paging, where a search looks, which
+specification filters apply, ranking, the filter options) and what a missing product means, and
+`repository.ts` is the only code that knows MongoDB (the `products` collection and its queries,
+built in `productFilter.ts` and `searchFields.ts`, and its index).
 
 ## Seed the products
 
@@ -158,8 +235,11 @@ Database: online-store
 - **A different file:** `npm run seed:products -- path/to/products.json`.
 
 `id` is the stable identifier of a product (the manufacturer SKU, as in the storefront's URLs).
-MongoDB's `_id` stays internal. The API also creates the index when it starts, which does nothing
-when it exists.
+MongoDB's `_id` stays internal. The seed also stores each product's `search` text (see above), and
+the API does the same when it starts for any product that has none or an older version of it: a
+database seeded before the search existed becomes searchable just by starting the API (the log
+says `Search text stored for N product(s)`). It also creates the index when it starts. Both do
+nothing when there is nothing to do, and the API needs permission to write for them.
 
 ## Scripts
 
@@ -210,7 +290,8 @@ server/
 │   ├── app.ts           createApp(): CORS, JSON parsing, routes, 404, error handler
 │   ├── config.ts        Environment variables, validated with Zod
 │   ├── db/              database.ts (MongoClient, connect, ping, close) and errors.ts
-│   ├── products/        The products feature: routes, service, repository, schemas, seed
+│   ├── products/        The products feature: routes, query parsing, service, repository, filters
+│   │                    and search text, filter options, schemas, seed
 │   ├── routes/          One router per feature, mounted under /api in routes/index.ts
 │   ├── scripts/         Commands run from a checkout (seedProducts.ts)
 │   ├── middleware/      notFound and the central errorHandler
@@ -232,7 +313,8 @@ replaced by a stand-in for the life-cycle tests, a real driver is pointed at an 
 listens on to check the failure path, and the entry point is started as a real process to check
 that a bad configuration or an unreachable database stops it with exit code 1. The products
 service, routes and seed are tested over an in-memory repository, and the real repository is
-checked for the exact queries it sends. The seed command is started as a real process too, to
+checked for the exact queries it sends. The search patterns and filters are also evaluated on the
+real catalog and compared with the storefront's own search. The seed command is started as a real process too, to
 check that invalid data stops it before the database is contacted.
 
 An **optional integration test** talks to a real MongoDB. It is skipped unless `MONGODB_TEST_URI`
@@ -245,7 +327,10 @@ MONGODB_TEST_URI=mongodb://localhost:27017 npm run test:server
 On PowerShell: `$env:MONGODB_TEST_URI="mongodb://localhost:27017"; npm run test:server`.
 
 It covers what mocks cannot: the unique index, upserts that insert, update and leave unchanged,
-that nothing is deleted, paging and counts, and the API over HTTP, against the real server. It works
+that nothing is deleted, paging and counts, the search text and its backfill, and the API over HTTP,
+against the real server. It also asks the API over MongoDB and the API over the in-memory repository
+the same questions (searches, filters, sorts, pages, filter options) and expects the same answers.
+It works
 in a database of its own named `online_store_test_<random>` and drops it at the end. It never uses
 `MONGODB_URI` and never touches your development data.
 

@@ -2,10 +2,7 @@ import { useParams } from 'react-router'
 import { paths } from '@/app/paths'
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
 import { findCategory } from '@/features/products/categories'
-import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
-import { ProductGridSkeleton } from '@/features/products/components/ProductGrid'
 import { ProductListing } from '@/features/products/components/ProductListing'
-import { productsInCategory } from '@/features/products/selectors'
 import { NotFoundPage } from './NotFoundPage'
 import { PageMeta } from '@/components/shared/PageMeta'
 import { categoryMeta } from '@/lib/seo'
@@ -27,16 +24,8 @@ export function CategoryPage() {
         ]}
       />
       <h1 className="mb-6 text-3xl font-bold">{category.label}</h1>
-      <CatalogBoundary loading={<ProductGridSkeleton />}>
-        {(products) => (
-          <ProductListing
-            allProducts={products}
-            scopeProducts={productsInCategory(products, category.id)}
-            mode="category"
-            activeCategory={category.id}
-          />
-        )}
-      </CatalogBoundary>
+      {/* Keyed by the category, so moving to another one starts a listing of its own. */}
+      <ProductListing key={category.id} mode="category" category={category.id} />
     </>
   )
 }

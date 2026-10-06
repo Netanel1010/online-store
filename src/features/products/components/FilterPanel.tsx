@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/Button'
-import type { Facet } from '../listing/filtering'
+import type { Facet } from '../listing/facets'
 
 interface FilterPanelProps {
   facets: readonly Facet[]

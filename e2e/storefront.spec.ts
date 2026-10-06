@@ -163,6 +163,46 @@ test.describe('products from the API', () => {
     await expect(page.getByRole('heading', { level: 1, name: PSU.fullName })).toBeVisible()
   })
 
+  test('the search page asks the API to search, and shows what it answers', async ({ page }) => {
+    const searchRequest = page.waitForRequest((request) => {
+      const { pathname, searchParams } = new URL(request.url())
+      return pathname === '/api/products' && searchParams.get('q') === 'intel'
+    })
+
+    await page.goto('search?q=intel')
+
+    const params = new URL((await searchRequest).url()).searchParams
+    expect(params.get('category')).toBeNull()
+    expect(params.get('facets')).toBe('true')
+    const intel = catalog.filter((product) => product.brand === 'intel')
+    await expect(page.getByRole('article')).toHaveCount(intel.length)
+  })
+
+  test('a category page asks the API for its category, and a filter or sort asks again', async ({
+    page,
+  }) => {
+    const first = page.waitForRequest((request) => {
+      const { pathname, searchParams } = new URL(request.url())
+      return pathname === '/api/products' && searchParams.get('category') === 'cpu'
+    })
+    await page.goto('category/cpu')
+    expect(new URL((await first).url()).searchParams.getAll('brand')).toEqual([])
+
+    const filtered = page.waitForRequest((request) => {
+      const { pathname, searchParams } = new URL(request.url())
+      return pathname === '/api/products' && searchParams.getAll('brand').join() === 'intel'
+    })
+    await page.getByRole('group', { name: 'מותג' }).getByRole('checkbox', { name: /Intel/ }).click()
+    expect(new URL((await filtered).url()).searchParams.get('category')).toBe('cpu')
+
+    const sorted = page.waitForRequest((request) => {
+      const { pathname, searchParams } = new URL(request.url())
+      return pathname === '/api/products' && searchParams.get('sort') === 'price-desc'
+    })
+    await page.getByRole('combobox', { name: 'מיון' }).selectOption('price-desc')
+    expect(new URL((await sorted).url()).searchParams.getAll('brand')).toEqual(['intel'])
+  })
+
   test('the API answers with the same products the data file holds', async ({ request }) => {
     const response = await request.get(
       `http://localhost:${process.env.E2E_API_PORT ?? 4174}/api/products?limit=100`,
