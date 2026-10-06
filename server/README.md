@@ -274,6 +274,27 @@ An unknown email is checked against a decoy hash, so it takes as long as a wrong
   `auth/throttle.ts`): it starts again with the process, and every instance would count on its own.
   The cost of scrypt is the other half of the defence. A shared store is the next step if the API
   ever runs on several instances.
+- **Sign-in and registration are limited per address** (`middleware/rateLimit.ts`, the numbers in
+  `auth/routes.ts`): 30 sign-in attempts per 15 minutes and 10 registrations per hour from one
+  address, whether they succeed or not, because what is being protected is the cost of hashing.
+  Past the limit the answer is `429 rate_limited` with a `Retry-After`, and the request never
+  reaches the account or the hash. An IPv6 address is counted as its /64 network. `/me` and
+  `/logout` are cheap and are not limited. The limit is shared by everyone behind one address (a
+  school, an office), which is why it is not smaller.
+- **Hashing is limited in how many run at once** (`lib/concurrencyGate.ts`): two at a time, eight
+  more waiting; beyond that a sign-in or registration is answered `503 server_busy` with a
+  `Retry-After` at once. Without it a burst of requests would hash in parallel (32 MiB and a lot of
+  CPU each) on a small host and slow or crash every other route, the products included.
+- **Which address is counted** depends on `TRUST_PROXY_HOPS`, the number of proxies in front of the
+  server (default `2` in production: Cloudflare, then Render's load balancer; `0` elsewhere). Too
+  few and every visitor looks like the proxy and shares one limit; too many and a visitor could
+  name any address in `X-Forwarded-For` and escape it. Check it after a deployment: see
+  [deployment](../docs/deployment.md#client-addresses-and-rate-limits).
+- **All of these limits are in the memory of the process.** They start again whenever it restarts
+  (a free Render service sleeps and restarts), each instance of a scaled-out API would count on its
+  own, and a determined attacker with many addresses is not stopped, only slowed. They are meant to
+  make guessing and hashing in bulk impractical for one address on one small host. A shared store
+  (such as Redis) is the next step if the API ever runs on several instances; it is not needed now.
 - **Registration says that an email is taken.** Without an email to confirm the address by, there
   is no other honest answer; sign-in, which is what an attacker would try, never says.
 - There is **no password reset, no email confirmation, no change of password and no account page**
@@ -362,6 +383,7 @@ to change them; `.env` is git-ignored.
 | -------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
 | `NODE_ENV`     | `development`                                    | `development`, `test` or `production`                                                                     |
 | `PORT`         | `3001`                                           | Port to listen on                                                                                         |
+| `TRUST_PROXY_HOPS` | `0` (`2` in production)                       | How many proxies are in front of the server, so the limits count the visitor (0 to 5)                 |
 | `CORS_ORIGINS` | `http://localhost:5173,http://localhost:4173`    | Browser origins allowed to call the API, comma separated, with no path. **Required in production.**       |
 | `MONGODB_URI`  | not set                                          | MongoDB connection string (`mongodb://` or `mongodb+srv://`). It holds the password. **Required in production.** Not set: the API runs without a database. |
 | `MONGODB_DB_NAME` | `online-store`                                | Database to use: 1 to 38 letters, digits, `_` or `-`. Use a different one per environment.               |

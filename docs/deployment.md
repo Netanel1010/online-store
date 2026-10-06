@@ -41,6 +41,9 @@ Environment variables of the service:
 | `CORS_ORIGINS`    | `https://netanel1010.github.io` | `render.yaml`. Scheme and host only: no path, no trailing slash                   |
 | `MONGODB_URI`     | the Atlas connection string     | **Render dashboard only** (`sync: false`). It holds the password: never commit it |
 
+`TRUST_PROXY_HOPS` is optional (default `2` in production) and is not in `render.yaml`: see
+[Client addresses and rate limits](#client-addresses-and-rate-limits).
+
 In production the server refuses to start without `CORS_ORIGINS` and `MONGODB_URI`, and it connects
 to MongoDB before it listens. All variables are described in [`server/README.md`](../server/README.md#configuration).
 
@@ -148,6 +151,27 @@ To check it by hand against the deployed API (use a throwaway address; the accou
 curl -s -X POST "$API_URL/api/auth/register" -H 'Content-Type: application/json' \n  -d '{"name":"Check","email":"check-1@example.com","password":"<a password with a letter and a digit>"}'
 curl -s "$API_URL/api/auth/me" -H "Authorization: Bearer <the token of the answer>"
 ```
+
+## Client addresses and rate limits
+
+Sign-in and registration are limited per client address (see
+[the server README](../server/README.md#authentication)). The address the server sees is the one in
+`X-Forwarded-For`, read from the right past the proxies it trusts: `TRUST_PROXY_HOPS`, default 2 in
+production for Cloudflare and Render's load balancer.
+
+Check it once after a deployment, because the right number depends on Render's setup and cannot be
+tested from here. Make a request, then look for `"ip"` in its line in the Render logs (see
+[Troubleshooting with the logs](#troubleshooting-with-the-logs)) and compare it with your own public
+address (for example `curl https://api.ipify.org`):
+
+- it is your address: the setting is right;
+- it is an address that is not yours and is the same for every request (a Cloudflare or Render
+  address): too few proxies are trusted, so every visitor shares one limit. Raise `TRUST_PROXY_HOPS`;
+- it is whatever you put in an `X-Forwarded-For` header you sent yourself: too many are trusted.
+  Lower it.
+
+Set it in the Render dashboard (Environment). The limits are in the memory of the process, so they
+start again when the free service sleeps or restarts.
 
 ## Operating notes
 

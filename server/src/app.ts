@@ -12,13 +12,16 @@ import { createApiRouter } from './routes/index.ts'
  * `server.ts` and handed in: the app never opens a connection of its own.
  */
 export function createApp(
-  config: Pick<Config, 'corsOrigins'>,
+  config: Pick<Config, 'corsOrigins'> & Partial<Pick<Config, 'trustProxyHops'>>,
   logger: Logger = console,
   database: Database | null = null,
 ) {
   const app = express()
 
   app.disable('x-powered-by')
+  // Behind the host's proxies the visitor's address is in X-Forwarded-For: read it from the right,
+  // past exactly as many proxies as there are, so a header the visitor sends cannot choose it.
+  if (config.trustProxyHops) app.set('trust proxy', config.trustProxyHops)
 
   app.use(
     cors({

@@ -9,9 +9,10 @@
 import { readFileSync } from 'node:fs'
 import cors from 'cors'
 import express from 'express'
-import { createAuthRouter } from '../../server/src/auth/routes.ts'
+import { createAuthRouter, NO_AUTH_RATE_LIMITS } from '../../server/src/auth/routes.ts'
 import { createAuthService } from '../../server/src/auth/service.ts'
 import { createLoginThrottle } from '../../server/src/auth/throttle.ts'
+import { createConcurrencyGate } from '../../server/src/lib/concurrencyGate.ts'
 import { errorHandler } from '../../server/src/middleware/errorHandler.ts'
 import { notFound } from '../../server/src/middleware/notFound.ts'
 import { createProductsRouter } from '../../server/src/products/routes.ts'
@@ -43,7 +44,10 @@ app.use(
       users: createMemoryUserRepository().repository,
       sessions: createMemorySessionRepository().repository,
       throttle: createLoginThrottle(),
+      // Many tests register at once from one address: no per-address limits and a roomy hash line.
+      hashGate: createConcurrencyGate({ maxConcurrent: 4, maxQueued: 256 }),
     }),
+    NO_AUTH_RATE_LIMITS,
   ),
 )
 app.use(notFound)

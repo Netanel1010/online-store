@@ -9,6 +9,7 @@ describe('loadConfig', () => {
       nodeEnv: 'development',
       port: 3001,
       corsOrigins: ['http://localhost:5173', 'http://localhost:4173'],
+      trustProxyHops: 0,
       mongodb: null,
     })
   })
@@ -47,6 +48,32 @@ describe('loadConfig', () => {
     expect(() =>
       loadConfig({ NODE_ENV: 'production', MONGODB_URI: 'mongodb://localhost:27017' }),
     ).toThrow(/CORS_ORIGINS is required/)
+  })
+})
+
+describe('loadConfig: TRUST_PROXY_HOPS', () => {
+  const production = {
+    NODE_ENV: 'production',
+    CORS_ORIGINS: 'https://shop.example.com',
+    MONGODB_URI: 'mongodb://localhost:27017',
+  }
+
+  it('is 0 outside production: there is no proxy in front of the local server', () => {
+    expect(loadConfig({}).trustProxyHops).toBe(0)
+    expect(loadConfig({ NODE_ENV: 'test' }).trustProxyHops).toBe(0)
+  })
+
+  it('is 2 in production by default: Cloudflare and then the load balancer of Render', () => {
+    expect(loadConfig(production).trustProxyHops).toBe(2)
+  })
+
+  it('can be set, including to 0', () => {
+    expect(loadConfig({ ...production, TRUST_PROXY_HOPS: '1' }).trustProxyHops).toBe(1)
+    expect(loadConfig({ ...production, TRUST_PROXY_HOPS: '0' }).trustProxyHops).toBe(0)
+  })
+
+  it.each(['-1', '6', '1.5', 'many'])('refuses %s', (value) => {
+    expect(() => loadConfig({ TRUST_PROXY_HOPS: value })).toThrow(/TRUST_PROXY_HOPS/)
   })
 })
 

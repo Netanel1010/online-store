@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { createConcurrencyGate, type ConcurrencyGate } from '../lib/concurrencyGate.ts'
 import { HttpError } from '../lib/httpError.ts'
 import { hashPassword, verifyPassword } from './passwords.ts'
 import type { LoginInput, RegisterInput } from './schemas.ts'
@@ -24,6 +25,8 @@ interface Dependencies {
   users: UserRepository
   sessions: SessionRepository
   throttle: LoginThrottle
+  /** Limits how many passwords are hashed at once (the default suits one small host). */
+  hashGate?: ConcurrencyGate
   now?: () => Date
 }
 
@@ -42,6 +45,7 @@ export function createAuthService({
   users,
   sessions,
   throttle,
+  hashGate = createConcurrencyGate({ maxConcurrent: 2, maxQueued: 8 }),
   now = () => new Date(),
 }: Dependencies): AuthService {
   async function startSession(user: User): Promise<SignedIn> {
@@ -64,7 +68,7 @@ export function createAuthService({
         id: randomUUID(),
         name,
         email,
-        passwordHash: await hashPassword(password),
+        passwordHash: await hashGate.run(() => hashPassword(password)),
         createdAt: now(),
       }
       try {
@@ -90,7 +94,7 @@ export function createAuthService({
 
       const user = await users.findByEmail(email)
       // An unknown email is checked against a decoy, so it takes as long as a wrong password.
-      const valid = await verifyPassword(password, user?.passwordHash ?? null)
+      const valid = await hashGate.run(() => verifyPassword(password, user?.passwordHash ?? null))
       if (!user || !valid) {
         throttle.failed(email)
         throw invalidCredentials()
