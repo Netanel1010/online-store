@@ -159,6 +159,9 @@ export function OrderPage() {
         <Link to={paths.products} className={buttonStyles()}>
           המשך קנייה
         </Link>
+        <Link to={paths.orders} className={buttonStyles({ variant: 'secondary' })}>
+          ההזמנות שלי
+        </Link>
         <Link to={paths.home} className={buttonStyles({ variant: 'secondary' })}>
           לדף הבית
         </Link>

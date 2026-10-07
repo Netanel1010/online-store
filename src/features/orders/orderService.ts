@@ -3,7 +3,7 @@ import type { CartItem } from '@/features/cart/cartStore'
 import type { DeliveryDetails } from '@/features/checkout/delivery'
 import { apiUrl } from '@/lib/api'
 import { fetchWithRetry } from '@/lib/fetchWithRetry'
-import { orderSchema, type Order } from './orderSchema'
+import { orderPageSchema, orderSchema, type Order, type OrderPage } from './orderSchema'
 
 /** Why an order was not placed, in the terms the checkout cares about. */
 export type PlaceOrderFailure =
@@ -136,4 +136,29 @@ export async function fetchOrder(
   if (!response.ok) return { status: 'unavailable' }
   const parsed = orderSchema.safeParse(await response.json().catch(() => null))
   return parsed.success ? { status: 'ok', order: parsed.data } : { status: 'unavailable' }
+}
+
+export type FetchOrdersOutcome =
+  { status: 'ok'; page: OrderPage } | { status: 'unauthorized' } | { status: 'unavailable' }
+
+/** One page of the signed-in account's orders, the newest first, as the API orders them. */
+export async function fetchOrders(
+  token: string,
+  page: number,
+  signal?: AbortSignal,
+): Promise<FetchOrdersOutcome> {
+  let response: Response
+  try {
+    response = await fetchWithRetry(apiUrl(`/api/orders?page=${page}`), signal, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  } catch (error) {
+    // The page was left: nobody is waiting for an answer.
+    if (signal?.aborted) throw error
+    return { status: 'unavailable' }
+  }
+  if (response.status === 401) return { status: 'unauthorized' }
+  if (!response.ok) return { status: 'unavailable' }
+  const parsed = orderPageSchema.safeParse(await response.json().catch(() => null))
+  return parsed.success ? { status: 'ok', page: parsed.data } : { status: 'unavailable' }
 }
