@@ -21,9 +21,16 @@ export class EmptyOrderError extends Error {
   }
 }
 
+const ORDER_ID_RANGE = 1_000_000
+// 2^32 is not a whole multiple of the range: the draws above this limit would make the low numbers
+// slightly more likely, so they are thrown away and drawn again.
+const ORDER_ID_DRAW_LIMIT = Math.floor(2 ** 32 / ORDER_ID_RANGE) * ORDER_ID_RANGE
+
 function createOrderId() {
-  const number = crypto.getRandomValues(new Uint32Array(1))[0]! % 1_000_000
-  return `DEMO-${String(number).padStart(6, '0')}`
+  const draw = new Uint32Array(1)
+  do crypto.getRandomValues(draw)
+  while (draw[0]! >= ORDER_ID_DRAW_LIMIT)
+  return `DEMO-${String(draw[0]! % ORDER_ID_RANGE).padStart(6, '0')}`
 }
 
 export function placeDemoOrder({
