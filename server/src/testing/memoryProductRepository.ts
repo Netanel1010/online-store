@@ -108,6 +108,11 @@ export function createMemoryProductRepository(initial: readonly Product[] = []) 
       return Promise.resolve(stored.get(id) ?? null)
     },
 
+    findByIds(ids) {
+      const wanted = new Set(ids)
+      return Promise.resolve([...stored.values()].filter((product) => wanted.has(product.id)))
+    },
+
     upsertMany(products) {
       calls.push('upsertMany')
       const result = { inserted: 0, updated: 0, unchanged: 0 }

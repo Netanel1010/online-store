@@ -18,6 +18,9 @@ failing.get('/with-headers', () => {
     'Retry-After': '9',
   })
 })
+failing.get('/with-details', () => {
+  throw new HttpError(409, 'conflict', 'No', {}, { productIds: ['A', 'B'], total: 5 })
+})
 failing.get('/bug', () => {
   throw new Error('database password is hunter2')
 })
@@ -53,6 +56,17 @@ describe('errorHandler', () => {
     expect(response.status).toBe(418)
     expect(await response.json()).toEqual({ error: { code: 'teapot', message: 'I am a teapot' } })
     expect(logger.error).not.toHaveBeenCalled()
+  })
+
+  it('sends the details an HttpError carries, and no details key when it has none', async () => {
+    const response = await fetch(`${failingApi.url}/with-details`)
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({
+      error: { code: 'conflict', message: 'No', details: { productIds: ['A', 'B'], total: 5 } },
+    })
+    const plain = (await (await fetch(`${failingApi.url}/teapot`)).json()) as ErrorBody
+    expect(plain.error).not.toHaveProperty('details')
   })
 
   it('answers any other error with a generic 500 and logs the real one', async () => {

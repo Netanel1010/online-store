@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { createRequireAuth } from '../auth/middleware.ts'
 import { createAuthRouter } from '../auth/routes.ts'
 import { createAuthService } from '../auth/service.ts'
 import { createSessionRepository } from '../auth/sessionRepository.ts'
@@ -6,6 +7,9 @@ import { createLoginThrottle } from '../auth/throttle.ts'
 import { createUserRepository } from '../auth/userRepository.ts'
 import type { Database } from '../db/database.ts'
 import { HttpError } from '../lib/httpError.ts'
+import { createOrderRepository } from '../orders/repository.ts'
+import { createOrdersRouter } from '../orders/routes.ts'
+import { createOrderService } from '../orders/service.ts'
 import { createProductRepository } from '../products/repository.ts'
 import { createProductsRouter } from '../products/routes.ts'
 import { createProductService } from '../products/service.ts'
@@ -21,29 +25,36 @@ const databaseNotConfigured = () => {
   )
 }
 
-/** Everything under /api. New feature routers (cart, orders) are mounted here. */
+/** Everything under /api. New feature routers (cart) are mounted here. */
 export function createApiRouter(database: Database | null) {
   const router = Router()
 
   router.use(createHealthRouter(database))
 
-  router.use(
-    '/products',
-    database
-      ? createProductsRouter(createProductService(createProductRepository(database)))
-      : databaseNotConfigured,
-  )
+  const products = database ? createProductRepository(database) : null
+  const auth = database
+    ? createAuthService({
+        users: createUserRepository(database),
+        sessions: createSessionRepository(database),
+        // One for the whole process: it is what counts the failed sign-ins.
+        throttle: createLoginThrottle(),
+      })
+    : null
 
   router.use(
-    '/auth',
-    database
-      ? createAuthRouter(
-          createAuthService({
-            users: createUserRepository(database),
-            sessions: createSessionRepository(database),
-            // One for the whole process: it is what counts the failed sign-ins.
-            throttle: createLoginThrottle(),
-          }),
+    '/products',
+    products ? createProductsRouter(createProductService(products)) : databaseNotConfigured,
+  )
+
+  router.use('/auth', auth ? createAuthRouter(auth) : databaseNotConfigured)
+
+  // The same authentication service as /auth, so a session is one thing for every route.
+  router.use(
+    '/orders',
+    database && products && auth
+      ? createOrdersRouter(
+          createOrderService({ orders: createOrderRepository(database), products }),
+          createRequireAuth(auth),
         )
       : databaseNotConfigured,
   )
