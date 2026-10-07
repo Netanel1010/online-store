@@ -111,11 +111,11 @@ test.describe('request failures in the safety net', () => {
     page,
   }) => {
     const failures = await trackRequestFailures(page)
-    let requests = 0
     await page.route('**/probe/twice', (route) => {
-      requests += 1
-      // The first request is left in flight for the page to cancel; the second is cut off from outside.
-      if (requests > 1) return route.abort('aborted')
+      // The request the page cancels is left in flight (the browser may even cancel it before this
+      // handler hears of it, so it is not counted on). Only the one marked as the second is cut
+      // off from outside.
+      if (route.request().headers()['x-probe'] === 'second') return route.abort('aborted')
     })
     await page.goto('')
 
@@ -125,7 +125,9 @@ test.describe('request failures in the safety net', () => {
       controller.abort()
     })
     await expect.poll(() => failures.failureCount()).toBe(1)
-    await page.evaluate(() => fetch('/probe/twice').catch(() => undefined))
+    await page.evaluate(() =>
+      fetch('/probe/twice', { headers: { 'x-probe': 'second' } }).catch(() => undefined),
+    )
 
     await expect.poll(() => failures.failureCount()).toBe(2)
     expect(failures.problems()).toEqual([

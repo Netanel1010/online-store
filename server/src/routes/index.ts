@@ -5,6 +5,9 @@ import { createAuthService } from '../auth/service.ts'
 import { createSessionRepository } from '../auth/sessionRepository.ts'
 import { createLoginThrottle } from '../auth/throttle.ts'
 import { createUserRepository } from '../auth/userRepository.ts'
+import { createCartRepository } from '../cart/repository.ts'
+import { createCartRouter } from '../cart/routes.ts'
+import { createCartService } from '../cart/service.ts'
 import type { Database } from '../db/database.ts'
 import { HttpError } from '../lib/httpError.ts'
 import { createOrderRepository } from '../orders/repository.ts'
@@ -25,7 +28,7 @@ const databaseNotConfigured = () => {
   )
 }
 
-/** Everything under /api. New feature routers (cart) are mounted here. */
+/** Everything under /api. New feature routers are mounted here. */
 export function createApiRouter(database: Database | null) {
   const router = Router()
 
@@ -54,6 +57,16 @@ export function createApiRouter(database: Database | null) {
     database && products && auth
       ? createOrdersRouter(
           createOrderService({ orders: createOrderRepository(database), products }),
+          createRequireAuth(auth),
+        )
+      : databaseNotConfigured,
+  )
+
+  router.use(
+    '/cart',
+    database && products && auth
+      ? createCartRouter(
+          createCartService({ carts: createCartRepository(database), products }),
           createRequireAuth(auth),
         )
       : databaseNotConfigured,

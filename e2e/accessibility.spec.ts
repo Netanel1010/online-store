@@ -439,6 +439,20 @@ test.describe('keyboard', () => {
     expect(await page.evaluate(() => window.scrollY)).toBe(0)
   })
 
+  test('going back moves the focus to the content too, even with text in the search box', async ({
+    page,
+  }) => {
+    await page.goto('products')
+    await page.getByRole('link', { name: PSU.name, exact: true }).click()
+    await expect(page.getByRole('heading', { level: 1, name: PSU.fullName })).toBeVisible()
+    await header(page).getByRole('searchbox', { name: 'חיפוש מוצרים' }).pressSequentially('intel')
+
+    await page.goBack()
+
+    await expect(page).toHaveURL(/\/online-store\/products\/?$/)
+    await expect(page.locator('main')).toBeFocused()
+  })
+
   test('the quantity stepper in the cart is operable by keyboard', async ({ page }) => {
     await addToCartFromProductPage(page, PSU)
     await page.goto('cart')

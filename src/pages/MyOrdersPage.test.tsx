@@ -70,7 +70,10 @@ describe('the orders of the account', () => {
     expect(within(newest).getByText('התקבלה')).toBeInTheDocument()
     expect(within(newest).getByText(/משלוח אל באר שבע/)).toBeInTheDocument()
     expect(within(newest).getByText(/נתנאל כהן/)).toBeInTheDocument()
-    expect(within(newest).getByText(/\d{4}/)).toBeInTheDocument() // the date
+    // The date: the order number is random and can contain four digits too, so ask the time element.
+    const date = newest.querySelector('time')
+    expect(date).toHaveAttribute('datetime', third.createdAt)
+    expect(date).toHaveTextContent(/\d{4}/)
     expect(within(items[2]!).getByText('פריט אחד')).toBeInTheDocument()
     expect(screen.getByText('3 הזמנות, מהחדשה לישנה.')).toBeInTheDocument()
   })
