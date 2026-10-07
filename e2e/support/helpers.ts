@@ -36,9 +36,14 @@ export function productCard(page: Page, product: CatalogProduct): Locator {
   return page.getByRole('article').filter({ has: page.getByRole('link', { name: product.name }) })
 }
 
-/** The product names on the page, in display order. Waits until the cards have rendered. */
+/**
+ * The product names on the page, in display order. Waits until the cards have rendered, and until
+ * the listing is no longer loading: while a changed search or filter loads, the previous results
+ * stay on screen (marked aria-busy), and those are not the answer to the question that was asked.
+ */
 export async function cardNames(page: Page): Promise<string[]> {
   await page.getByRole('article').first().waitFor()
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0)
   const names = await page.getByRole('article').getByRole('heading').allTextContents()
   return names.map((name) => name.trim())
 }
