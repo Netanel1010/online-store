@@ -38,6 +38,12 @@ export interface ProductFilter {
   brands: readonly BrandId[]
   /** Selected values per specification label: a product has one of them, for every label. */
   specs: ReadonlyMap<string, readonly string[]>
+  /** Only these products, by `id` (a lookup). Left out, every product qualifies. */
+  ids?: readonly string[]
+  /** Only the products that are on sale (they have an original price). */
+  onSale?: boolean
+  /** Only the recommended products. */
+  recommended?: boolean
 }
 
 /** The order and the part of the matching products a page shows. */
@@ -45,6 +51,12 @@ export interface ProductRange {
   sort: SortKey
   skip: number
   limit: number
+}
+
+/** The number of products in a category (only the categories that have some). */
+export interface CategoryCount {
+  category: CategoryId
+  count: number
 }
 
 export interface BrandCount {

@@ -1,23 +1,21 @@
-import { useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { paths } from '@/app/paths'
 import { CloseIcon, SearchIcon } from '@/components/icons'
 import { BRANDS } from '@/features/products/brands'
 import { findCategory } from '@/features/products/categories'
-import { suggestProducts } from '@/features/products/listing/search'
-import { useLoadedCatalog } from '@/features/products/useProductCatalog'
+import { useProductSuggestions } from '@/features/products/useProductSuggestions'
 import { assetUrl } from '@/lib/assets'
 import { formatPrice } from '@/lib/format'
 import { IMAGE_SIZE } from '@/lib/imageSizes'
-
-const MAX_SUGGESTIONS = 5
 
 /**
  * Product search box. It submits to the search results page, and while that page is open the box
  * mirrors the text from the URL, so it always matches what the results are for (also after the
  * browser's back and forward buttons).
  *
- * While typing it also lists up to five matching products (the same search as the results page).
+ * While typing it also lists up to five matching products, which the API finds with the same
+ * search as the results page.
  * The focus never leaves the box: the arrow keys move a highlight through the list
  * (`aria-activedescendant`), Enter opens the highlighted product, or searches when nothing is
  * highlighted, and Escape closes the list. The input stays a `searchbox`, so it keeps its role and
@@ -30,7 +28,6 @@ export function SearchForm({ className = 'flex' }: { className?: string }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [params] = useSearchParams()
-  const products = useLoadedCatalog()
   const urlText = pathname === paths.search ? (params.get('q') ?? '') : ''
 
   const [draft, setDraft] = useState(urlText)
@@ -48,10 +45,8 @@ export function SearchForm({ className = 'flex' }: { className?: string }) {
     if (urlText !== submittedText) setDraft(urlText)
   }
 
-  const suggestions = useMemo(
-    () => (products ? suggestProducts(products, draft, MAX_SUGGESTIONS) : []),
-    [products, draft],
-  )
+  // Asked of the API (the search of the results page itself), a moment after the typing pauses.
+  const suggestions = useProductSuggestions(draft)
   const listOpen = open && suggestions.length > 0
   // The last row of the list leads to the full results.
   const optionCount = suggestions.length + 1

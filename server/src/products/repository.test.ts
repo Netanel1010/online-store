@@ -442,6 +442,56 @@ describe('brandCounts', () => {
   })
 })
 
+describe('categoryCounts', () => {
+  it('groups the whole collection by category, in the database', async () => {
+    fake.cursor.toArray.mockResolvedValue([
+      { _id: 'cpu', count: 4 },
+      { _id: 'gpu', count: 6 },
+    ])
+
+    const counts = await createProductRepository(database).categoryCounts()
+
+    expect(fake.collection.aggregate).toHaveBeenCalledWith([
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+    ])
+    expect(counts).toEqual([
+      { category: 'cpu', count: 4 },
+      { category: 'gpu', count: 6 },
+    ])
+  })
+
+  it('leaves out a category the storefront does not know', async () => {
+    fake.cursor.toArray.mockResolvedValue([
+      { _id: 'cpu', count: 4 },
+      { _id: 'toaster', count: 1 },
+    ])
+
+    expect(await createProductRepository(database).categoryCounts()).toEqual([
+      { category: 'cpu', count: 4 },
+    ])
+  })
+})
+
+describe('the lookup, sale and recommended filters', () => {
+  it('are plain conditions in the query of a page', async () => {
+    fake.cursor.toArray.mockResolvedValue([])
+    fake.collection.countDocuments.mockResolvedValue(0)
+
+    await createProductRepository(database).list(
+      { ...plain, ids: ['A-1', 'B-2'], onSale: true, recommended: true },
+      { sort: 'default', skip: 0, limit: 100 },
+    )
+
+    expect(fake.collection.find.mock.calls[0]?.[0]).toEqual({
+      $and: [
+        { id: { $in: ['A-1', 'B-2'] } },
+        { 'price.original': { $exists: true } },
+        { isRecommended: true },
+      ],
+    })
+  })
+})
+
 describe('specValueCounts', () => {
   it('groups the matching products by specification value, counting a product once per value', async () => {
     fake.cursor.toArray.mockResolvedValue([

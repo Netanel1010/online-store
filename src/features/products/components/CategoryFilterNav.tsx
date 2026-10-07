@@ -1,11 +1,10 @@
 import { Link } from 'react-router'
 import { paths } from '@/app/paths'
 import { CATEGORIES, type CategoryId } from '../categories'
-import type { Product } from '../schema'
-import { countByCategory } from '../selectors'
 
 interface CategoryFilterNavProps {
-  products: readonly Product[]
+  /** The number of products of each category (only the categories that have some). */
+  counts: ReadonlyMap<CategoryId, number>
   /** Undefined means "all products". */
   active?: CategoryId
 }
@@ -19,8 +18,8 @@ function chipClass(isActive: boolean) {
 }
 
 /** Category links with product counts. Only categories that have products are listed. */
-export function CategoryFilterNav({ products, active }: CategoryFilterNavProps) {
-  const counts = countByCategory(products)
+export function CategoryFilterNav({ counts, active }: CategoryFilterNavProps) {
+  const total = [...counts.values()].reduce((sum, count) => sum + count, 0)
 
   return (
     <nav aria-label="סינון לפי קטגוריה" className="mb-6">
@@ -31,7 +30,7 @@ export function CategoryFilterNav({ products, active }: CategoryFilterNavProps) 
             aria-current={active === undefined ? 'page' : undefined}
             className={chipClass(active === undefined)}
           >
-            הכל <span className="opacity-80">({products.length})</span>
+            הכל <span className="opacity-80">({total})</span>
           </Link>
         </li>
         {CATEGORIES.filter((category) => counts.has(category.id)).map((category) => (

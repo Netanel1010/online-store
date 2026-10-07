@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { CATEGORIES } from '@/features/products/categories'
 import { ToastProvider } from '@/features/notifications/ToastProvider'
-import { resetProductCatalog } from '@/features/products/useProductCatalog'
+import { rememberProducts } from '@/features/products/productCache'
 import { RootLayout } from '@/layouts/RootLayout'
 import { makeProduct } from '@/test/fixtures'
 import type { Product } from '@/features/products/schema'
@@ -11,11 +11,14 @@ import { useCartStore } from '@/features/cart/cartStore'
 import * as productService from '@/services/productService'
 import { MobileNav } from './MobileNav'
 
-// The layout loads the catalog (to reconcile cart and favorites), so mock it and let the load
-// settle inside act().
+// The layout asks the API about the ids in the cart and the favorites (to drop the ones with no
+// product), so mock that and let it settle inside act(). The pages here are placeholders, so the
+// products the real page in front of the visitor would have loaded are put in the cache by hand.
 async function renderLayout(path = '/', catalog: Product[] = []) {
-  resetProductCatalog()
-  vi.spyOn(productService, 'fetchProducts').mockResolvedValue(catalog)
+  rememberProducts(catalog)
+  vi.spyOn(productService, 'fetchProductsByIds').mockImplementation((ids) =>
+    Promise.resolve(catalog.filter((product) => ids.includes(product.id))),
+  )
   await act(async () => {
     render(
       <MemoryRouter initialEntries={[path]}>

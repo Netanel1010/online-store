@@ -168,8 +168,7 @@ describe('checkout with an empty cart', () => {
       return inner(input, init)
     })
 
-    const { fetchProducts } = renderApp('/checkout', catalog)
-    await waitFor(() => expect(fetchProducts).toHaveBeenCalled())
+    renderApp('/checkout', catalog)
     await act(async () => {})
     expect(screen.queryByText('העגלה ריקה')).not.toBeInTheDocument()
 

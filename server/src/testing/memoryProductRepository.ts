@@ -8,7 +8,10 @@ const collator = new Intl.Collator('he', { numeric: true })
 
 /** The selection of a filter, as plain data: a product has to pass every part of it. */
 function matches(product: Product, filter: ProductFilter): boolean {
+  if (filter.ids !== undefined && !filter.ids.includes(product.id)) return false
   if (filter.category !== undefined && product.category !== filter.category) return false
+  if (filter.onSale && product.price.original === undefined) return false
+  if (filter.recommended && !product.isRecommended) return false
   if (filter.brands.length > 0 && !filter.brands.includes(product.brand)) return false
   for (const [label, values] of filter.specs) {
     if (values.length === 0) continue
@@ -102,6 +105,14 @@ export function createMemoryProductRepository(initial: readonly Product[] = []) 
         }
       }
       return Promise.resolve([...counts.values()])
+    },
+
+    categoryCounts() {
+      const counts = new Map<Product['category'], number>()
+      for (const product of stored.values()) {
+        counts.set(product.category, (counts.get(product.category) ?? 0) + 1)
+      }
+      return Promise.resolve([...counts].map(([category, count]) => ({ category, count })))
     },
 
     findById(id) {

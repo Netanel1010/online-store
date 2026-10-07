@@ -1,6 +1,6 @@
 /**
  * Evaluates the few MongoDB query operators the products repository uses, on a plain document:
- * equality, `$in`, `$regex`, `$elemMatch`, `$and` and `$or`, on dotted paths. It lets the tests
+ * equality, `$in`, `$regex`, `$elemMatch`, `$exists`, `$and` and `$or`, on dotted paths. It lets the tests
  * check what a filter selects without a database. It supports nothing else and throws on any other
  * operator, so a new operator in a filter cannot go unchecked.
  */
@@ -25,6 +25,8 @@ function conditionMatches(value: unknown, condition: unknown): boolean {
         return (argument as unknown[]).includes(value)
       case '$regex':
         return typeof value === 'string' && new RegExp(argument as string, 'u').test(value)
+      case '$exists':
+        return (value !== undefined) === Boolean(argument)
       case '$elemMatch':
         return Array.isArray(value) && value.some((item) => matchesFilter(item, argument as Filter))
       default:

@@ -17,7 +17,7 @@ import { buildCartLines, summarizeCart } from '@/features/cart/summary'
 import { CheckoutForm, type SubmitOutcome } from '@/features/checkout/CheckoutForm'
 import type { CheckoutValues } from '@/features/checkout/schema'
 import { submitOrder } from '@/features/orders/submitOrder'
-import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
+import { ProductsBoundary } from '@/features/products/components/ProductsBoundary'
 import type { Product } from '@/features/products/schema'
 import { formatPrice } from '@/lib/format'
 import { noindexMeta } from '@/lib/seo'
@@ -156,7 +156,7 @@ export function CheckoutPage() {
       />
       <h1 className="mb-6 text-3xl font-bold">סיום הזמנה</h1>
 
-      <CatalogBoundary loading={<CheckoutSkeleton />}>
+      <ProductsBoundary ids={items.map((item) => item.productId)} loading={<CheckoutSkeleton />}>
         {(products) => {
           const lines = buildCartLines(items, products)
 
@@ -210,7 +210,7 @@ export function CheckoutPage() {
             </div>
           )
         }}
-      </CatalogBoundary>
+      </ProductsBoundary>
     </>
   )
 }

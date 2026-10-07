@@ -221,6 +221,12 @@ describe.skipIf(!uri)('products on a real MongoDB (integration, needs MONGODB_TE
           limit: 100,
         },
       ],
+      ['a lookup by id', { ids: [catalog[0]!.id, catalog[4]!.id, 'DOES-NOT-EXIST'], limit: 100 }],
+      ['the products on sale', { sale: true, limit: 100, facets: true }],
+      ['the recommended products', { recommended: true, limit: 100 }],
+      ['the sale and the recommended together', { sale: true, recommended: true, limit: 100 }],
+      ['the sale in a category, sorted', { sale: true, category: 'gpu', sort: 'price-asc' }],
+      ['a search among the products on sale', { sale: true, q: 'rtx', limit: 100 }],
       [
         'a specification that does not exist',
         { category: 'cpu', specs: new Map([['fake', ['x']]]), limit: 100 },
@@ -236,6 +242,38 @@ describe.skipIf(!uri)('products on a real MongoDB (integration, needs MONGODB_TE
 
       expect(actual).toEqual(expected)
     })
+  })
+
+  it('counts the products of each category like the in-memory repository does', async () => {
+    const expected = await createProductService(
+      createMemoryProductRepository(catalog).repository,
+    ).categoryCounts()
+
+    const actual = await createProductService(repository).categoryCounts()
+
+    expect(actual).toEqual(expected)
+    expect(actual.reduce((sum, entry) => sum + entry.count, 0)).toBe(catalog.length)
+  })
+
+  it('serves the lookup, the sale and the category counts over HTTP from MongoDB', async () => {
+    const wanted = [catalog[2]!.id, catalog[7]!.id]
+    const lookup = (await (
+      await fetch(`${api.url}/api/products?ids=${wanted.join(',')}&limit=100`)
+    ).json()) as ProductPage
+    const sale = (await (
+      await fetch(`${api.url}/api/products?sale=true&limit=100`)
+    ).json()) as ProductPage
+    const counts = (await (await fetch(`${api.url}/api/categories`)).json()) as {
+      items: { id: string; count: number }[]
+    }
+    const empty = await fetch(`${api.url}/api/products?ids=`)
+
+    expect(lookup.items.map((product) => product.id).sort()).toEqual([...wanted].sort())
+    expect(sale.total).toBe(
+      catalog.filter((product) => product.price.original !== undefined).length,
+    )
+    expect(counts.items.reduce((sum, entry) => sum + entry.count, 0)).toBe(catalog.length)
+    expect(empty.status).toBe(400)
   })
 
   it('treats a search text as text: a pattern in it matches nothing special', async () => {

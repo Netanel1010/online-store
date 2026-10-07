@@ -13,11 +13,16 @@ import { favoriteProducts } from '@/features/favorites/favoriteProducts'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 import { ProductSection } from '@/features/home/components/ProductSection'
 import { useToast } from '@/features/notifications/toastContext'
-import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
+import { ProductsBoundary } from '@/features/products/components/ProductsBoundary'
 import { ProductGrid, ProductGridSkeleton } from '@/features/products/components/ProductGrid'
 import type { Product } from '@/features/products/schema'
-import { recommendedProducts } from '@/features/products/selectors'
+import { useRecommendedProducts } from '@/features/products/useHomeProducts'
 import { noindexMeta } from '@/lib/seo'
+
+/** Something to start from when there are no favorites: the products the store recommends. */
+function RecommendedSection() {
+  return <ProductSection title="מומלצים" products={useRecommendedProducts()} />
+}
 
 export function FavoritesPage() {
   const ids = useFavoritesStore((state) => state.ids)
@@ -49,7 +54,7 @@ export function FavoritesPage() {
         {removedMessage}
       </p>
 
-      <CatalogBoundary loading={<ProductGridSkeleton count={4} />}>
+      <ProductsBoundary ids={ids} loading={<ProductGridSkeleton count={4} />}>
         {(products) => {
           const favorites = favoriteProducts(ids, products)
 
@@ -67,8 +72,7 @@ export function FavoritesPage() {
                 >
                   סמנו מוצרים בלב כדי לשמור אותם כאן.
                 </EmptyState>
-                {/* Something to start from: the products the store recommends. */}
-                <ProductSection title="מומלצים" products={recommendedProducts(products)} />
+                <RecommendedSection />
               </>
             )
           }
@@ -121,7 +125,7 @@ export function FavoritesPage() {
             </>
           )
         }}
-      </CatalogBoundary>
+      </ProductsBoundary>
     </>
   )
 }

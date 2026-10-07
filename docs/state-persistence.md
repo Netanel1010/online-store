@@ -26,11 +26,14 @@ Both use `version: 1`. The cart has a third small key, `online-store:cart-sync`,
 
 **Consequences**
 
-- Screens that show cart or favorites need the catalog loaded. They use `CatalogBoundary`, so
-  they get the same loading and error states as the rest of the app.
-- A stored id can outlive its product. Once the catalog loads, `ShopStateReconciler` removes
-  unknown ids from both stores, so badges and pages never count products that cannot be shown. For
-  a signed-in visitor the removal is sent to the account like any other change.
+- Screens that show cart or favorites ask the API for the products with the ids in the store
+  (`useProductsByIds`, `ProductsBoundary`), not for the whole catalog, so they get the same loading
+  and error states as the rest of the app. A store with no ids asks for nothing.
+- A stored id can outlive its product. When the site opens, and again once the account's cart has
+  arrived, `ShopStateReconciler` asks the API about the ids of both stores and removes the ones it has
+  no product for, so badges and pages never count products that cannot be shown. What is added later
+  was just shown by the API, so it is not asked about again. For a signed-in visitor the removal is
+  sent to the account like any other change.
 - Totals are derived (`features/cart/summary.ts`), not stored.
 
 ## Stored data is untrusted

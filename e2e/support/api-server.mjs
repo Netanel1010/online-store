@@ -1,4 +1,4 @@
-// The API for the E2E tests (products, authentication, orders and carts), without a database.
+// The API for the E2E tests (products, categories, authentication, orders and carts), without a database.
 //
 // It is the real API code (routes, service, validation, paging, hashing, sessions, error format)
 // over the in-memory repositories the server's own tests use. The products are the same catalog
@@ -20,7 +20,7 @@ import { createCartRouter, NO_CART_RATE_LIMITS } from '../../server/src/cart/rou
 import { createCartService } from '../../server/src/cart/service.ts'
 import { createOrdersRouter, NO_ORDER_RATE_LIMITS } from '../../server/src/orders/routes.ts'
 import { createOrderService } from '../../server/src/orders/service.ts'
-import { createProductsRouter } from '../../server/src/products/routes.ts'
+import { createCategoriesRouter, createProductsRouter } from '../../server/src/products/routes.ts'
 import { validateCatalog } from '../../server/src/products/seed.ts'
 import { createProductService } from '../../server/src/products/service.ts'
 import {
@@ -43,7 +43,9 @@ const app = express()
 // The site and the API are on different ports, like the site and the API of `npm run dev`.
 app.use(cors({ origin: [`http://localhost:${sitePort}`] }))
 app.use(express.json({ limit: '100kb' }))
-app.use('/api/products', createProductsRouter(createProductService(repository)))
+const products = createProductService(repository)
+app.use('/api/products', createProductsRouter(products))
+app.use('/api/categories', createCategoriesRouter(products))
 const auth = createAuthService({
   users: createMemoryUserRepository().repository,
   sessions: createMemorySessionRepository().repository,

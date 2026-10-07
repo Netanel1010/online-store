@@ -12,14 +12,18 @@ const exactly = (texts: readonly string[]) =>
   String.raw`^(?:${texts.map(escapeRegExp).join('|')})(?![\s\S])`
 
 /**
- * The MongoDB condition for a `ProductFilter`: all of its parts have to hold. The category and the
- * brands are plain equalities; each specification label must have one of the selected values;
+ * The MongoDB condition for a `ProductFilter`: all of its parts have to hold. The ids, the category
+ * and the brands are plain equalities, and so are the two flags (a sale price exists, the product is
+ * recommended); each specification label must have one of the selected values;
  * the search is a pattern per word on the stored search text (see searchFields.ts).
  */
 export function toMongoFilter(filter: ProductFilter): Record<string, unknown> {
   const conditions: Record<string, unknown>[] = []
 
+  if (filter.ids !== undefined) conditions.push({ id: { $in: [...filter.ids] } })
   if (filter.category !== undefined) conditions.push({ category: filter.category })
+  if (filter.onSale) conditions.push({ 'price.original': { $exists: true } })
+  if (filter.recommended) conditions.push({ isRecommended: true })
   if (filter.brands.length > 0) conditions.push({ brand: { $in: [...filter.brands] } })
   if (filter.search !== undefined) {
     const search = searchFilter(filter.search.query, filter.search.deep)

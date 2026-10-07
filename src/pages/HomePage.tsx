@@ -6,11 +6,33 @@ import { CategoryTiles } from '@/features/home/components/CategoryTiles'
 import { HeroCarousel } from '@/features/home/components/HeroCarousel'
 import { ProductSection } from '@/features/home/components/ProductSection'
 import { HERO_SLIDES } from '@/features/home/heroSlides'
-import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
+import { SlowLoadNotice } from '@/components/shared/SlowLoadNotice'
+import { ErrorState } from '@/components/shared/StateMessages'
 import { ProductGridSkeleton } from '@/features/products/components/ProductGrid'
-import { recommendedProducts, saleProducts } from '@/features/products/selectors'
+import { useHomeProducts } from '@/features/products/useHomeProducts'
 import { PageMeta } from '@/components/shared/PageMeta'
 import { homeMeta } from '@/lib/seo'
+
+/** The sale and recommended sections: asked of the API, with the usual loading and error states. */
+function HomeProductSections() {
+  const home = useHomeProducts()
+
+  if (home.status === 'loading') {
+    return (
+      <>
+        <ProductGridSkeleton count={4} />
+        <SlowLoadNotice />
+      </>
+    )
+  }
+  if (home.status === 'error') return <ErrorState onRetry={home.retry} />
+  return (
+    <>
+      <ProductSection title="מבצעים" products={home.sale} />
+      <ProductSection title="מומלצים" products={home.recommended} />
+    </>
+  )
+}
 
 export function HomePage() {
   return (
@@ -32,14 +54,7 @@ export function HomePage() {
       <HeroCarousel slides={HERO_SLIDES} />
       <CategoryTiles />
 
-      <CatalogBoundary loading={<ProductGridSkeleton count={4} />}>
-        {(products) => (
-          <>
-            <ProductSection title="מבצעים" products={saleProducts(products)} />
-            <ProductSection title="מומלצים" products={recommendedProducts(products)} />
-          </>
-        )}
-      </CatalogBoundary>
+      <HomeProductSections />
 
       <BrandStrip />
     </>

@@ -58,6 +58,48 @@ describe('toMongoFilter', () => {
     ).toEqual({})
   })
 
+  it('selects the products with these ids, and only those that exist', () => {
+    const wanted = [catalog[3]!.id, catalog[0]!.id, 'NOT-IN-THE-CATALOG']
+
+    expect(toMongoFilter(filterOf({ ids: wanted }))).toEqual({
+      $and: [{ id: { $in: wanted } }],
+    })
+    expect(idsOf(filterOf({ ids: wanted })).sort()).toEqual([catalog[0]!.id, catalog[3]!.id].sort())
+  })
+
+  it('selects no product for an empty list of ids, which is not the same as no list', () => {
+    expect(idsOf(filterOf({ ids: [] }))).toEqual([])
+    expect(idsOf(filterOf({}))).toHaveLength(catalog.length)
+  })
+
+  it('treats an id that looks like a query as plain text', () => {
+    expect(idsOf(filterOf({ ids: ['$ne', '{"$gt":""}'] }))).toEqual([])
+  })
+
+  it('selects the products on sale: those with an original price', () => {
+    const onSale = idsOf(filterOf({ onSale: true }))
+
+    expect(onSale).toEqual(expectedIds((product) => product.price.original !== undefined))
+    expect(onSale.length).toBeGreaterThan(0)
+    expect(onSale.length).toBeLessThan(catalog.length)
+  })
+
+  it('selects the recommended products', () => {
+    const recommended = idsOf(filterOf({ recommended: true }))
+
+    expect(recommended).toEqual(expectedIds((product) => product.isRecommended))
+    expect(recommended.length).toBeGreaterThan(0)
+    expect(recommended.length).toBeLessThan(catalog.length)
+  })
+
+  it('needs every part to hold: the ids, the sale and the category together', () => {
+    const everyId = catalog.map((product) => product.id)
+
+    expect(idsOf(filterOf({ ids: everyId, onSale: true, category: 'gpu' }))).toEqual(
+      expectedIds((product) => product.price.original !== undefined && product.category === 'gpu'),
+    )
+  })
+
   it('selects the products of a category', () => {
     expect(idsOf(filterOf({ category: 'gpu' }))).toEqual(
       expectedIds((product) => product.category === 'gpu'),

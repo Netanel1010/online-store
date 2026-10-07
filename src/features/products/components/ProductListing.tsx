@@ -17,7 +17,7 @@ import {
   type ListingState,
 } from '../listing/query'
 import { useListingState } from '../listing/useListingState'
-import { useLoadedCatalog } from '../useProductCatalog'
+import { useCategoryCounts } from '../useCategoryCounts'
 import { useProductListing } from '../useProductListing'
 import { ActiveFilters } from './ActiveFilters'
 import { CategoryFilterNav } from './CategoryFilterNav'
@@ -58,11 +58,11 @@ export function ProductListing({ mode, category }: ProductListingProps) {
   const { state, update } = useListingState({ search, sanitize: ignoreSpecs })
   const [filtersOpen, setFiltersOpen] = useState(false)
 
-  const catalog = useLoadedCatalog()
+  const categoryCounts = useCategoryCounts()
   const loaded = useProductListing({ ...state, category: includeSpecs ? category : undefined })
 
-  const nav = catalog && mode !== 'search' && (
-    <CategoryFilterNav products={catalog} active={includeSpecs ? category : undefined} />
+  const nav = categoryCounts && mode !== 'search' && (
+    <CategoryFilterNav counts={categoryCounts} active={includeSpecs ? category : undefined} />
   )
 
   if (loaded.status === 'loading') {

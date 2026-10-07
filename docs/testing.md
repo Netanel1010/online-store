@@ -67,10 +67,11 @@ filters are evaluated on the real catalog without a database (`productFilter.tes
 
 ## Listing pages in the component tests
 
-The products, category and search pages ask the API for what they show, so their component tests
-(`renderApp` in `src/test`) answer them with `fakeListingApi`: the **real API code** (the query
-parser, the search, the filters, the sort and the filter options) over the products of the test, in
-memory, reached through the storefront's own request path. These tests therefore check what the
+The pages ask the API for what they show, so their component tests (`renderApp` in `src/test`)
+answer them with `fakeCatalogApi`: the **real API code** (the query parser, the search, the filters,
+the sort, the filter options, the lookup by id, the sale and recommended lists, the category counts
+and the suggestions) over the products of the test, in memory, reached through the storefront's own
+request paths. These tests therefore check what the
 page sends and what it gets back, not a script, and the filtering rules are written only once.
 `src/services/productService.listing.test.ts` and `src/features/products/useProductListing.test.tsx`
 cover the request, the answer's validation and the loading, refreshing and error states.

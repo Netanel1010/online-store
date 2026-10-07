@@ -11,7 +11,7 @@ import { useCartIsLoading } from '@/features/cart/cartSyncStatus'
 import { CartLineItem } from '@/features/cart/CartLineItem'
 import { OrderSummary } from '@/features/cart/OrderSummary'
 import { buildCartLines, summarizeCart } from '@/features/cart/summary'
-import { CatalogBoundary } from '@/features/products/components/CatalogBoundary'
+import { ProductsBoundary } from '@/features/products/components/ProductsBoundary'
 import { PageMeta } from '@/components/shared/PageMeta'
 import { noindexMeta } from '@/lib/seo'
 
@@ -51,7 +51,7 @@ export function CartPage() {
         {removedMessage}
       </p>
 
-      <CatalogBoundary loading={<CartSkeleton />}>
+      <ProductsBoundary ids={items.map((item) => item.productId)} loading={<CartSkeleton />}>
         {(products) => {
           const lines = buildCartLines(items, products)
 
@@ -105,7 +105,7 @@ export function CartPage() {
             </div>
           )
         }}
-      </CatalogBoundary>
+      </ProductsBoundary>
     </>
   )
 }

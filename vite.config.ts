@@ -2,16 +2,14 @@ import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
-import { catalogPagePath } from './src/lib/catalogRequest.ts'
-import { escapeHtmlAttribute } from './src/lib/htmlAttribute.ts'
 
 /**
  * Tells the browser, from the first bytes of the HTML, about the API the page is going to call:
- * open the connection (DNS, TCP, TLS) and start the catalog request now, instead of after the
- * scripts have downloaded and run. The catalog is what every page waits for, and it is the request
- * that also wakes a sleeping API host, so starting it early is the biggest saving available on the
- * site's side. Without `VITE_API_URL` (development, or an API on the site's own host) there is
- * nothing to add.
+ * open the connection (DNS, TCP, TLS) now, instead of after the scripts have downloaded and run. No
+ * request is started early any more: every page asks for its own products (the home page for its
+ * sections, a product page for its product, a listing for its listing), so there is no one request
+ * that all pages share. Without `VITE_API_URL` (development, or an API on the site's own host)
+ * there is nothing to add.
  */
 const HINTS_MARKER = '<!-- api-hints -->'
 
@@ -22,13 +20,10 @@ function apiHints(apiUrl: string | undefined): Plugin {
       const base = apiUrl?.replace(/\/+$/, '')
       if (!base || !URL.canParse(base)) return html.replace(HINTS_MARKER + '\n    ', '')
       const origin = new URL(base).origin
-      // "anonymous": the app's fetch sends no credentials, and a connection or a preload made with
-      // other credentials settings would not be the one it uses.
-      const tags = [
-        `<link rel="preconnect" href="${origin}" crossorigin="anonymous" />`,
-        `<link rel="preload" as="fetch" href="${escapeHtmlAttribute(base + catalogPagePath(1))}" crossorigin="anonymous" />`,
-      ].join('\n    ')
-      return html.replace(HINTS_MARKER, tags)
+      // "anonymous": the app's fetch sends no credentials, and a connection made with other
+      // credentials settings would not be the one it uses.
+      const tag = `<link rel="preconnect" href="${origin}" crossorigin="anonymous" />`
+      return html.replace(HINTS_MARKER, tag)
     },
   }
 }

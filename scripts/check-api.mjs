@@ -10,14 +10,20 @@
 //                 (default 300: a free host can take about a minute)
 //
 //  - STRICT_HARDENING=1  also fail (not just warn) when the HTTP hardening of the API is not in
-//                 place: security headers, CORS, caching (see apiHardening.mjs). The deploy job
-//                 runs this against the API that is deployed *now*, which is the version before
-//                 the one being deployed, so by default a missing header is only reported.
-//                 Run it with STRICT_HARDENING=1 by hand once the new API is live.
+//                 place: security headers, CORS, caching (see apiHardening.mjs), or when the
+//                 catalog the API serves differs from public/data/products.json (see
+//                 catalogDrift.mjs). The deploy job runs this against the API that is deployed
+//                 *now*, which is the version before the one being deployed, and before a
+//                 changed products.json has been seeded, so by default a difference is only
+//                 reported. Run it with STRICT_HARDENING=1 by hand once the new API is live and
+//                 the seed has run.
 //
 // Only public, read-only addresses are used, and nothing secret is read or printed.
 
+import { readFileSync } from 'node:fs'
 import { hardeningProblems } from './apiHardening.mjs'
+import { productsSchema } from '../src/features/products/schema.ts'
+import { catalogDrift } from './catalogDrift.mjs'
 
 const api = (process.env.API_URL ?? '').replace(/\/+$/, '')
 const origin = process.env.SITE_ORIGIN
@@ -141,5 +147,29 @@ for (const problem of problems) {
 }
 if (problems.length === 0)
   console.log('ok    HTTP hardening: headers, CORS and caching are as expected')
+
+// 7. One catalog. The file is the source of the static pages, the sitemap and the structured data
+// of the site, and the seed copies it to the API: the two have to be the same products.
+// Read through the schema, as the seed reads it: that is what trims the text of a product.
+const fileCatalog = productsSchema.parse(
+  JSON.parse(readFileSync(new URL('../public/data/products.json', import.meta.url), 'utf8')),
+)
+const served = []
+for (let page = 1, pages = 1; page <= pages; page++) {
+  const { response, body } = await get(`/api/products?page=${page}&limit=100`, { Origin: origin })
+  if (response.status !== 200 || !Array.isArray(body?.items)) {
+    fail(`GET /api/products?page=${page}&limit=100 did not answer a page of products`)
+  }
+  served.push(...body.items)
+  pages = Math.min(body.totalPages, 50)
+}
+const drift = catalogDrift(fileCatalog, served)
+for (const problem of drift) {
+  if (process.env.STRICT_HARDENING === '1') fail(problem)
+  console.log(`warn  ${problem}`)
+}
+if (drift.length === 0) {
+  console.log(`ok    the API serves the catalog of products.json (${served.length} products)`)
+}
 
 console.log('\nThe API is ready for the site.')

@@ -9,7 +9,8 @@ import {
   type SortKey,
 } from '../../../src/features/products/listing/query.ts'
 import { HttpError } from '../lib/httpError.ts'
-import { parsePaginationQuery } from './schemas.ts'
+import { parsePaginationQuery, productIdSchema } from './schemas.ts'
+import { MAX_LIMIT } from './service.ts'
 
 /** The longest specification label or value the API reads. */
 const MAX_SPEC_TEXT_LENGTH = 100
@@ -32,10 +33,32 @@ export interface ProductListQuery {
   sort: SortKey
   /** Whether the answer also carries the filter options with their counts. */
   facets: boolean
+  /** Only these products (a lookup by id), in no particular order. Empty means every product. */
+  ids: string[]
+  /** Only the products that are on sale. */
+  sale: boolean
+  /** Only the recommended products. */
+  recommended: boolean
 }
 
 /** A parameter that may be repeated (`brand=amd&brand=intel`) reaches us as a string or an array. */
 const oneOrMore = z.union([z.string(), z.array(z.string())]).transform((value) => [value].flat())
+
+const flag = z
+  .enum(['true', 'false'])
+  .transform((value) => value === 'true')
+  .default(false)
+
+/**
+ * `?ids=A-1,B-2`, or the parameter repeated. At most as many as a page holds, so one request can
+ * always answer; an empty list is refused, because "no ids" must never be read as "every product".
+ */
+const idsSchema = oneOrMore
+  .transform((values) => values.flatMap((value) => value.split(',')))
+  .pipe(z.array(productIdSchema).min(1))
+  .transform((ids) => [...new Set(ids)])
+  .pipe(z.array(z.string()).max(MAX_LIMIT))
+  .default([])
 
 const listQuerySchema = z.object({
   q: z
@@ -46,10 +69,10 @@ const listQuerySchema = z.object({
   category: z.enum(CATEGORY_IDS).optional(),
   brand: oneOrMore.pipe(z.array(z.enum(BRAND_IDS))).default([]),
   sort: z.enum(SORT_KEYS).default('default'),
-  facets: z
-    .enum(['true', 'false'])
-    .transform((value) => value === 'true')
-    .default(false),
+  facets: flag,
+  ids: idsSchema,
+  sale: flag,
+  recommended: flag,
 })
 
 const invalidQuery = (parameter: string) =>
@@ -89,7 +112,7 @@ export function parseProductListQuery(query: unknown): ProductListQuery {
     const parameter = result.error.issues[0]?.path[0]
     throw invalidQuery(typeof parameter === 'string' ? parameter : 'query')
   }
-  const { q, category, brand, sort, facets } = result.data
+  const { q, category, brand, sort, facets, ids, sale, recommended } = result.data
 
   return {
     ...pagination,
@@ -99,5 +122,8 @@ export function parseProductListQuery(query: unknown): ProductListQuery {
     specs: parseSpecs(source),
     sort,
     facets,
+    ids,
+    sale,
+    recommended,
   }
 }
