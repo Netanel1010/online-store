@@ -537,7 +537,9 @@ describe('placing the order', () => {
     await fillValidForm()
     await userEvent.click(submitButton())
 
-    const note = await screen.findByRole('complementary', { name: 'הערה' })
+    // Wait for the order page first: until then the note on the screen is the checkout's own.
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    const note = screen.getByRole('complementary', { name: 'הערה' })
     expect(note).toHaveTextContent('לא בוצע חיוב')
     expect(note).toHaveTextContent('נשמרו בחשבון שלכם')
     expect(note).not.toHaveTextContent('אינה נשמרת')
