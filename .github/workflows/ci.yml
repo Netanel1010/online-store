@@ -138,6 +138,12 @@ jobs:
         if: vars.API_URL != ''
         with:
           node-version-file: .nvmrc
+      # check-api.mjs reads the schema of the products (src/features/products/schema.ts) to compare
+      # the API's catalog with products.json, and that imports zod. Only what is shipped, and no
+      # install scripts: nothing here builds or tests.
+      - name: Install the dependencies of the check
+        if: vars.API_URL != ''
+        run: npm ci --omit=dev --ignore-scripts
       - name: Check the production API
         if: vars.API_URL != ''
         # The site's origin is its GitHub Pages host, <owner>.github.io, which a browser sends in
