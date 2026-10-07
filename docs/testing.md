@@ -36,6 +36,11 @@ the GitHub Pages base path. Vitest ignores `e2e/`; Playwright ignores `src/`.
 - **Safety net:** `e2e/support/test.ts` fails any test on an uncaught error, console error, failed
   request or failing asset. Only the console echo of a deep link's own `404.html` response is
   ignored.
+  A request the page cancels on purpose (a filter changes while the listing loads) is the one
+  exception, and it is not recognised by its error text: the page reports every request whose
+  `AbortSignal` it aborts, and only an `ERR_ABORTED` fetch for an address the page itself
+  cancelled is excused (`e2e/support/requestFailures.ts`, tested by `e2e/safety-net.spec.ts`).
+  Any other failure, including an abort the page did not cause, still fails the test.
 - URL-driven pages apply navigation a moment after a click, so tests wait for the URL (or use
   auto-retrying assertions) before reading the page, rather than sleeping.
 
@@ -45,7 +50,8 @@ the GitHub Pages base path. Vitest ignores `e2e/`; Playwright ignores `src/`.
 no credentials**, so CI runs it as it is: the driver is replaced by a stand-in, the products
 service and routes run over an in-memory repository, and the entry point and the seed command are
 started as real processes to check their failure paths. An optional integration suite talks to a
-real MongoDB and is skipped unless `MONGODB_TEST_URI` is set. Details:
+real MongoDB; `npm run test:server` skips it (it stays quick and needs nothing), and CI runs it with
+`npm run test:integration` against a throwaway MongoDB (below). Details:
 [`server/README.md`](../server/README.md#tests).
 
 The search, filters, sorting and filter options of the listings are covered at three levels: the
@@ -90,17 +96,45 @@ management and the mobile menu dialog.
 
 ## CI
 
-`.github/workflows/ci.yml` runs two parallel jobs on every pull request and push to `main`:
+`.github/workflows/ci.yml` runs three parallel jobs on every pull request and push to `main`:
 
 1. **verify**: `npm ci`, format check, lint, typecheck, unit tests, API tests, the site build (with
    `VITE_API_URL` from the `API_URL` repository variable) and the API build.
-2. **e2e**: `npm ci`, install Chromium, build and serve the site and the stub API, run the
+2. **integration**: the tests of the code that talks to MongoDB (queries, unique indexes, sorting,
+   the index that expires sessions) against a real MongoDB 8 that exists only for the job: a
+   GitHub Actions service container, so Docker is not a dependency of the project. The job sets
+   `MONGODB_TEST_URI=mongodb://localhost:27017`; no secret and no production address is available
+   to it, and the tests only use databases named `online_store_test_<random>`, which they drop.
+   `npm run test:integration` refuses to start without that address, so these tests can never pass
+   by being skipped, and a failing test fails the job.
+3. **e2e**: `npm ci`, install Chromium, build and serve the site and the stub API, run the
    Playwright suite. On failure the HTML report, screenshots and traces are kept as an artifact
    for 7 days (`playwright-report/` and `test-results/` are git-ignored and never committed).
 
-On pushes to `main`, a third job, **deploy**, runs only if both succeeded: it checks the production
+On pushes to `main`, a fourth job, **deploy**, runs only if all three succeeded: it checks the production
 API (`npm run check:api`) and then publishes the site to GitHub Pages. See
 [`deployment.md`](deployment.md).
+
+## Dependencies and security checks
+
+Separate from the deployment gate, so that a newly published advisory can never stop a deploy:
+
+- **`.github/workflows/security.yml`** runs `npm audit --omit=dev --audit-level=high` (only the
+  packages that are shipped; a high or critical advisory fails the job) and CodeQL (JavaScript and
+  TypeScript) on pull requests, on pushes to `main` and once a week, which is what finds a problem that
+  appears while nothing changes.
+- **`.github/dependabot.yml`** opens one pull request a week for the npm packages (minor and patch
+  updates grouped, a major update on its own) and one for the GitHub Actions.
+- **Actions are pinned to a commit** (`uses: owner/action@<sha> # v4.4.0`), so a moved or hijacked tag
+  cannot change what runs; Dependabot moves the pin and the comment together.
+- **`.nvmrc`** is the one place for the Node version: `nvm use` and every job of CI read it.
+- **No credential-shaped text in the repository** (`scripts/secretShapes.test.mjs`, part of
+  `npm test`): a MongoDB Atlas connection string with a password, cloud and token keys and private
+  keys are looked for in every tracked file, and the test says which file, never the value. Test data
+  that needs a password uses an obviously fake one and a host that cannot exist (`.invalid`), so
+  neither this test nor GitHub's secret scanning reports a fixture.
+- **`.github/pull_request_template.md`** asks for an English summary, the checks that were run (and
+  what was not) and that no secret is in the diff.
 
 A test that only passes on its retry is reported as **flaky** in the log and the HTML report, so
 it is visible rather than hidden. In CI Playwright retries a failed test once and gives assertions

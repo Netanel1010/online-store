@@ -208,6 +208,42 @@ test.describe('authentication', () => {
     await other.close()
   })
 
+  test('signs out everywhere: every browser of the account is signed out, another account is not', async ({
+    page,
+    browser,
+  }) => {
+    const account = await registeredAccount(page)
+    const phone = await browser.newContext({ locale: 'he-IL' })
+    const phonePage = await phone.newPage()
+    await phonePage.goto('login')
+    await signIn(phonePage, account)
+    await expectSignedIn(phonePage)
+    const stranger = await browser.newContext({ locale: 'he-IL' })
+    const strangerPage = await stranger.newPage()
+    await register(strangerPage, newAccount())
+    await expectSignedIn(strangerPage)
+
+    // The wide header has the button; one click ends every session of the account.
+    await header(page).getByRole('button', { name: 'התנתקות מכל המכשירים' }).click()
+
+    await expectSignedOut(page)
+    await expect(toasts(page).getByText('התנתקתם מכל המכשירים')).toBeVisible()
+    // The other browser is signed out at its next request, not only when it signs out itself...
+    await phonePage.reload()
+    await expectSignedOut(phonePage)
+    expect(
+      await phonePage.evaluate(() => localStorage.getItem('online-store:session')),
+    ).not.toMatch(/[A-Za-z0-9_-]{43}/)
+    // ...and the account can sign in again, while somebody else's session was never touched.
+    await phonePage.goto('login')
+    await signIn(phonePage, account)
+    await expectSignedIn(phonePage)
+    await strangerPage.reload()
+    await expectSignedIn(strangerPage)
+    await phone.close()
+    await stranger.close()
+  })
+
   test('ends the session on the server when signing out: the token stops working', async ({
     page,
     request,

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { z } from 'zod'
 import {
+  endAllSessions,
   endSession,
   fetchCurrentUser,
   loginAccount,
@@ -42,6 +43,12 @@ interface AuthState {
   login: (input: { email: string; password: string }) => Promise<AuthResult>
   /** Signs out here at once, and asks the API to end the session (best effort). */
   logout: () => void
+  /**
+   * Asks the API to end every session of the account, on every device. It does not sign out here:
+   * the caller does that once this says `true`. `false` means the API could not be asked, so
+   * nothing is known to have ended and the visitor stays signed in to try again.
+   */
+  endAllSessions: () => Promise<boolean>
   /** Asks the API whether the stored token is still good. Safe to call from many places. */
   restore: () => Promise<void>
 }
@@ -95,6 +102,12 @@ export const useAuthStore = create<AuthState>()(
           const { token } = get()
           set({ ...SIGNED_OUT, status: 'anonymous' })
           if (token) void endSession(token)
+        },
+
+        endAllSessions: async () => {
+          const { token } = get()
+          if (!token) return false
+          return (await endAllSessions(token)) !== 'unavailable'
         },
 
         restore: () => {

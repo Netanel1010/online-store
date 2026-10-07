@@ -65,17 +65,17 @@ export async function signIn(page: Page, account: Pick<TestAccount, 'email' | 'p
 }
 
 export async function signOut(page: Page) {
-  await header(page).getByRole('button', { name: 'התנתקות' }).click()
+  await header(page).getByRole('button', { name: 'התנתקות', exact: true }).click()
 }
 
 export async function expectSignedIn(page: Page) {
-  await expect(header(page).getByRole('button', { name: 'התנתקות' })).toBeVisible()
+  await expect(header(page).getByRole('button', { name: 'התנתקות', exact: true })).toBeVisible()
   await expect(header(page).getByRole('link', { name: 'התחברות' })).toHaveCount(0)
 }
 
 export async function expectSignedOut(page: Page) {
   await expect(header(page).getByRole('link', { name: 'התחברות' })).toBeVisible()
-  await expect(header(page).getByRole('button', { name: 'התנתקות' })).toHaveCount(0)
+  await expect(header(page).getByRole('button', { name: 'התנתקות', exact: true })).toHaveCount(0)
 }
 
 /* ------------------------------------------------------------------------- cart, favorites */

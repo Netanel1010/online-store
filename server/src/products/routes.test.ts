@@ -205,12 +205,12 @@ describe('what a browser may keep', () => {
     expect(PRODUCT_CACHE_CONTROL).toMatch(/stale-while-revalidate=\d+/)
   })
 
-  it('never lets an error be kept', async () => {
+  it('never lets an error be kept: it is marked no-store', async () => {
     for (const path of ['/NOPE-404', '/bad%20id', '?page=0', '?category=nope', '?limit=1000']) {
       const response = await get(path)
 
       expect(response.status, path).toBeGreaterThanOrEqual(400)
-      expect(response.headers.get('cache-control'), path).toBeNull()
+      expect(response.headers.get('cache-control'), path).toBe('no-store')
     }
   })
 })
@@ -294,12 +294,19 @@ describe('through the application', () => {
     const text = await response.text()
 
     expect(response.status).toBe(500)
-    expect(JSON.parse(text)).toEqual({
-      error: { code: 'internal_error', message: 'Internal server error' },
+    const { error } = JSON.parse(text) as ErrorBody
+    // The generic answer, and the id of the request: what to look for in the log.
+    expect(error).toEqual({
+      code: 'internal_error',
+      message: 'Internal server error',
+      requestId: response.headers.get('x-request-id'),
     })
+    expect(error.requestId).toMatch(/^[0-9a-f-]{36}$/)
     expect(text).not.toContain('s3cret')
     expect(text).not.toContain('db.example.com')
     expect(logger.error).toHaveBeenCalledTimes(1)
+    // The log line for it carries the same id.
+    expect(logger.error.mock.calls[0]?.[1]).toEqual({ requestId: error.requestId })
   })
 
   it('answers a database failure on a single product with the same generic 500', async () => {
@@ -331,6 +338,7 @@ describe('through the application', () => {
       error: {
         code: 'database_not_configured',
         message: 'This endpoint needs a database, and none is configured',
+        requestId: list.headers.get('x-request-id'),
       },
     })
   })

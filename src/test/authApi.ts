@@ -1,7 +1,8 @@
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest'
-import { createAuthRouter } from '../../server/src/auth/routes'
+import { createAuthRouter, NO_AUTH_RATE_LIMITS } from '../../server/src/auth/routes'
 import { createAuthService } from '../../server/src/auth/service'
 import { createLoginThrottle } from '../../server/src/auth/throttle'
+import { createConcurrencyGate } from '../../server/src/lib/concurrencyGate'
 import { errorHandler } from '../../server/src/middleware/errorHandler'
 import { notFound } from '../../server/src/middleware/notFound'
 import { listen } from '../../server/src/testing/listen'
@@ -34,6 +35,7 @@ export function setUpAuthApi() {
       users: users.repository,
       sessions: sessions.repository,
       throttle: createLoginThrottle(),
+      hashGate: createConcurrencyGate({ maxConcurrent: 4, maxQueued: 256 }),
     })
   }
 
@@ -41,12 +43,16 @@ export function setUpAuthApi() {
   app.use(express.json())
   app.use(
     '/api/auth',
-    createAuthRouter({
-      register: (input) => service.register(input),
-      login: (input) => service.login(input),
-      authenticate: (token) => service.authenticate(token),
-      logout: (token) => service.logout(token),
-    }),
+    createAuthRouter(
+      {
+        register: (input) => service.register(input),
+        login: (input) => service.login(input),
+        authenticate: (token) => service.authenticate(token),
+        logout: (token) => service.logout(token),
+        logoutAll: (userId) => service.logoutAll(userId),
+      },
+      NO_AUTH_RATE_LIMITS,
+    ),
   )
   app.use(notFound)
   app.use(errorHandler({ error: () => {} }))

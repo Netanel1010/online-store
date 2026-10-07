@@ -39,6 +39,8 @@ const envSchema = z.object({
     })
     .default('online-store'),
   MONGODB_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(100).max(60_000).default(5_000),
+  // How many proxies stand between the internet and the server (see Config.trustProxyHops).
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).optional(),
 })
 
 export interface Config {
@@ -46,6 +48,13 @@ export interface Config {
   port: number
   /** Browser origins that may call the API. */
   corsOrigins: string[]
+  /**
+   * How many proxies sit in front of the server, so that `req.ip` is the visitor and not the proxy.
+   * On Render a request passes Cloudflare and then Render's load balancer: 2. With too few, every
+   * visitor looks like the proxy and shares one rate limit; with too many, a visitor could name any
+   * address in `X-Forwarded-For` and escape it. Locally there is no proxy: 0.
+   */
+  trustProxyHops: number
   /** The database connection, or null when no `MONGODB_URI` is set (development and test only). */
   mongodb: MongoConfig | null
 }
@@ -67,8 +76,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (!result.success) {
     throw new Error(`Invalid environment configuration:\n${z.prettifyError(result.error)}`)
   }
-  const { NODE_ENV, PORT, CORS_ORIGINS, MONGODB_URI, MONGODB_DB_NAME, MONGODB_CONNECT_TIMEOUT_MS } =
-    result.data
+  const {
+    NODE_ENV,
+    PORT,
+    CORS_ORIGINS,
+    MONGODB_URI,
+    MONGODB_DB_NAME,
+    MONGODB_CONNECT_TIMEOUT_MS,
+    TRUST_PROXY_HOPS,
+  } = result.data
 
   // The development defaults are the local Vite servers. They must never be what a deployed API
   // silently falls back to, so production has to name its frontend.
@@ -86,6 +102,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     nodeEnv: NODE_ENV,
     port: PORT,
     corsOrigins: CORS_ORIGINS,
+    trustProxyHops: TRUST_PROXY_HOPS ?? (NODE_ENV === 'production' ? 2 : 0),
     mongodb:
       MONGODB_URI === undefined
         ? null

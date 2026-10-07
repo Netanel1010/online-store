@@ -1,0 +1,53 @@
+name: Security
+
+# Two checks that are not part of the deployment gate, so a newly published advisory can never stop a
+# deploy: the packages the site and the API ship are checked against known vulnerabilities, and the
+# code is analysed by CodeQL. Both run when the dependencies or the workflows change, on every push
+# to main, and once a week, which is what finds a problem that appears while nothing changes.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Only the packages that are shipped (`--omit=dev`): the tools used to build and test are not part
+  # of what visitors or the server run. A high or critical advisory fails the job; lower ones are
+  # shown in the log.
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      # Audits the lockfile; nothing is installed or run.
+      - run: npm audit --omit=dev --audit-level=high
+
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: github/codeql-action/init@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3.38.2
+        with:
+          languages: javascript-typescript
+          # TypeScript needs no build.
+          build-mode: none
+      - uses: github/codeql-action/analyze@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3.38.2
+        with:
+          category: /language:javascript-typescript

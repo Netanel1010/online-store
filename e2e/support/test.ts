@@ -1,4 +1,5 @@
 import { expect, test as base } from '@playwright/test'
+import { trackRequestFailures } from './requestFailures'
 
 /**
  * `test` with a safety net: any uncaught error, console error, failed request or failing asset
@@ -14,6 +15,9 @@ import { expect, test as base } from '@playwright/test'
  * Authentication has answers that are not failures but the point of the feature: 401 for a wrong
  * password or a session that has ended, 409 for an email that is taken, 429 for too many attempts
  * (`/api/auth/login`, `/register` and `/me`). The same goes for the echoes of those.
+ *
+ * A request the page cancels on purpose (see requestFailures.ts) is not a failure either; one that
+ * fails for any other reason, or is cut off without the page having cancelled it, still is.
  *
  * Playwright gives every test its own browser context, so the accounts, cart, favorites and
  * session of one test are never visible to another.
@@ -34,9 +38,7 @@ export const test = base.extend<{ problems: string[] }>({
           problems.push(`console error: ${message.text()}`)
         }
       })
-      page.on('requestfailed', (request) =>
-        problems.push(`request failed: ${request.url()} (${request.failure()?.errorText})`),
-      )
+      const requestFailures = await trackRequestFailures(page)
       page.on('response', (response) => {
         if (response.status() < 400) return
         const type = response.request().resourceType()
@@ -54,6 +56,8 @@ export const test = base.extend<{ problems: string[] }>({
       })
 
       await use(problems)
+
+      problems.push(...requestFailures.problems())
 
       for (const { text, url } of failedResourceEchoes) {
         if (!expectedNotFound.has(url)) problems.push(`console error: ${text} (${url})`)

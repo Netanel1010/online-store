@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 import { productById } from './support/catalog'
-import { header } from './support/helpers'
+import { expectSignedIn, header, newAccount, register } from './support/helpers'
 import { expect, test } from './support/test'
 
 /** The shape of every banner: the carousel frame has it at every width. */
@@ -176,4 +176,32 @@ test.describe('the header on a small screen', () => {
     await page.setViewportSize({ width: 812, height: 375 })
     expect(await position()).toBe('static')
   })
+})
+
+test.describe('the header of a signed-in visitor on a desktop', () => {
+  for (const width of [768, 1024, 1279, 1280, 1366, 1920]) {
+    test(`fits, and leaves the search box usable, at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 })
+      await register(page, newAccount())
+      await expectSignedIn(page)
+
+      expect(await hasHorizontalScroll(page), 'the page scrolls sideways').toBe(false)
+      const everywhere = header(page).getByRole('button', { name: 'התנתקות מכל המכשירים' })
+      // The extra button is for the wide header only (xl, 1280px): the menu has it everywhere.
+      await (width >= 1280 ? expect(everywhere).toBeVisible() : expect(everywhere).toBeHidden())
+      if (width >= 768) {
+        const search = (await header(page).getByRole('searchbox').boundingBox())!
+        expect(search.width, 'the search box was squeezed').toBeGreaterThanOrEqual(180)
+        expect(search.x).toBeGreaterThanOrEqual(0)
+        expect(search.x + search.width).toBeLessThanOrEqual(width)
+      }
+      // Every control of the header is inside the screen.
+      for (const control of await header(page).getByRole('button').all()) {
+        const box = await control.boundingBox()
+        if (!box) continue
+        expect(box.x).toBeGreaterThanOrEqual(0)
+        expect(box.x + box.width).toBeLessThanOrEqual(width)
+      }
+    })
+  }
 })

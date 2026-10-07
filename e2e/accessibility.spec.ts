@@ -16,7 +16,7 @@ const toasts = (page: Page) => page.getByRole('region', { name: 'התראות' }
 
 async function signedInWithCart(page: Page) {
   await register(page, newAccount())
-  await expect(header(page).getByRole('button', { name: 'התנתקות' })).toBeVisible()
+  await expect(header(page).getByRole('button', { name: 'התנתקות', exact: true })).toBeVisible()
   await addToCartFromProductPage(page, PSU)
 }
 
@@ -614,11 +614,11 @@ test.describe('mobile menu (dialog)', () => {
     await expect(page).toHaveURL(/\/online-store\/$/)
     await toggle(page).click()
     await expect(menu(page).getByText('שלום,')).toBeVisible()
-    await menu(page).getByRole('button', { name: 'התנתקות' }).click()
+    await menu(page).getByRole('button', { name: 'התנתקות', exact: true }).click()
 
     // Signed out: the (still open) menu now offers to sign in again.
     await expect(menu(page).getByRole('link', { name: 'התחברות' })).toBeVisible()
-    await expect(menu(page).getByRole('button', { name: 'התנתקות' })).toHaveCount(0)
+    await expect(menu(page).getByRole('button', { name: 'התנתקות', exact: true })).toHaveCount(0)
   })
 
   test('has no automated WCAG A/AA violations while open', async ({ page }) => {

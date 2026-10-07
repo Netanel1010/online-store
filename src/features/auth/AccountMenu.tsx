@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import { paths } from '@/app/paths'
 import { LogoutIcon, UserIcon } from '@/components/icons'
@@ -23,24 +23,31 @@ export function AccountMenu({ variant }: { variant: 'header' | 'drawer' }) {
   const user = useCurrentUser()
   const status = useAuthStatus()
   const logout = useAuthStore((state) => state.logout)
+  const endAllSessions = useAuthStore((state) => state.endAllSessions)
+  const [endingEverywhere, setEndingEverywhere] = useState(false)
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const toast = useToast()
   const labelClass = variant === 'header' ? 'hidden sm:inline' : ''
-  const signOutAfterLeaving = useRef(false)
+  // The message of a sign-out that waits until the visitor has left a protected page.
+  const signOutAfterLeaving = useRef<string | null>(null)
 
-  const finishSignOut = useCallback(() => {
-    logout()
-    toast.show({ message: 'התנתקתם מהחשבון' })
-  }, [logout, toast])
+  const finishSignOut = useCallback(
+    (message: string) => {
+      logout()
+      toast.show({ message })
+    },
+    [logout, toast],
+  )
 
   // Signing out while on a protected page: the sign-out waits until the visitor has actually
   // left it. Signing out first would make the page's guard redirect to the login page before the
   // navigation to the home page lands (navigation updates are applied with lower priority).
   useEffect(() => {
-    if (signOutAfterLeaving.current && !isProtectedPath(pathname)) {
-      signOutAfterLeaving.current = false
-      finishSignOut()
+    const message = signOutAfterLeaving.current
+    if (message !== null && !isProtectedPath(pathname)) {
+      signOutAfterLeaving.current = null
+      finishSignOut(message)
     }
   }, [pathname, finishSignOut])
 
@@ -63,13 +70,25 @@ export function AccountMenu({ variant }: { variant: 'header' | 'drawer' }) {
     )
   }
 
-  const signOut = () => {
+  const signOut = (message = 'התנתקתם מהחשבון') => {
     if (isProtectedPath(pathname)) {
-      signOutAfterLeaving.current = true
+      signOutAfterLeaving.current = message
       navigate(paths.home)
     } else {
-      finishSignOut()
+      finishSignOut(message)
     }
+  }
+
+  // Ends the account's sessions on the API first, and signs out here only once that is known to have
+  // worked: if it could not be asked, the visitor stays signed in (and is told) instead of believing
+  // that other devices were signed out when nothing is known about them.
+  const signOutEverywhere = async () => {
+    if (endingEverywhere) return
+    setEndingEverywhere(true)
+    const ended = await endAllSessions()
+    setEndingEverywhere(false)
+    if (ended) signOut('התנתקתם מכל המכשירים')
+    else toast.show({ message: 'לא הצלחנו להתנתק מכל המכשירים. בדקו את החיבור ונסו שוב.' })
   }
 
   return (
@@ -79,9 +98,23 @@ export function AccountMenu({ variant }: { variant: 'header' | 'drawer' }) {
       <p className={`px-3 text-sm text-muted ${variant === 'header' ? 'hidden lg:block' : 'py-2'}`}>
         שלום, <bdi className="font-semibold text-ink">{user.name}</bdi>
       </p>
-      <button type="button" aria-label="התנתקות" onClick={signOut} className={buttonClass}>
+      <button type="button" aria-label="התנתקות" onClick={() => signOut()} className={buttonClass}>
         <LogoutIcon />
         <span className={labelClass}>התנתקות</span>
+      </button>
+      {/* In the header there is room for this one only on wide screens; the menu always has it. */}
+      <button
+        type="button"
+        onClick={signOutEverywhere}
+        disabled={endingEverywhere}
+        // In the header the base `inline-flex` is replaced, so `hidden` and `xl:inline-flex` never compete with it.
+        className={
+          variant === 'header'
+            ? buttonClass.replace('inline-flex', 'hidden xl:inline-flex')
+            : buttonClass
+        }
+      >
+        <span className={variant === 'drawer' ? 'ps-7' : ''}>התנתקות מכל המכשירים</span>
       </button>
     </div>
   )

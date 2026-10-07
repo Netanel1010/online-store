@@ -9,7 +9,15 @@
 //  - WAIT_SECONDS how long to wait for a sleeping host to wake up and reach its database
 //                 (default 300: a free host can take about a minute)
 //
+//  - STRICT_HARDENING=1  also fail (not just warn) when the HTTP hardening of the API is not in
+//                 place: security headers, CORS, caching (see apiHardening.mjs). The deploy job
+//                 runs this against the API that is deployed *now*, which is the version before
+//                 the one being deployed, so by default a missing header is only reported.
+//                 Run it with STRICT_HARDENING=1 by hand once the new API is live.
+//
 // Only public, read-only addresses are used, and nothing secret is read or printed.
+
+import { hardeningProblems } from './apiHardening.mjs'
 
 const api = (process.env.API_URL ?? '').replace(/\/+$/, '')
 const origin = process.env.SITE_ORIGIN
@@ -105,5 +113,33 @@ expect(
   missing.response.status === 404 && missing.body?.error?.code === 'product_not_found',
   'an unknown product answers 404 product_not_found',
 )
+
+// 6. HTTP hardening: what a browser is told about the answers. Reported as warnings unless
+// STRICT_HARDENING=1, so deploying the change that adds them is not blocked by their absence.
+const preflight = await fetch(`${api}/api/auth/login`, {
+  method: 'OPTIONS',
+  headers: {
+    Origin: origin,
+    'Access-Control-Request-Method': 'POST',
+    'Access-Control-Request-Headers': 'authorization,content-type',
+  },
+  signal: AbortSignal.timeout(30_000),
+})
+expect(
+  preflight.status === 204 && preflight.headers.get('access-control-allow-origin') === origin,
+  'the preflight of a sign-in request is allowed for the site',
+)
+const problems = hardeningProblems({
+  product: list.response.headers,
+  missing: missing.response.headers,
+  preflight: preflight.headers,
+  https: api.startsWith('https://'),
+})
+for (const problem of problems) {
+  if (process.env.STRICT_HARDENING === '1') fail(problem)
+  console.log(`warn  ${problem}`)
+}
+if (problems.length === 0)
+  console.log('ok    HTTP hardening: headers, CORS and caching are as expected')
 
 console.log('\nThe API is ready for the site.')

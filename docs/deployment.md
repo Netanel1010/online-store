@@ -41,6 +41,9 @@ Environment variables of the service:
 | `CORS_ORIGINS`    | `https://netanel1010.github.io` | `render.yaml`. Scheme and host only: no path, no trailing slash                   |
 | `MONGODB_URI`     | the Atlas connection string     | **Render dashboard only** (`sync: false`). It holds the password: never commit it |
 
+`TRUST_PROXY_HOPS` is optional (default `2` in production) and is not in `render.yaml`: see
+[Client addresses and rate limits](#client-addresses-and-rate-limits).
+
 In production the server refuses to start without `CORS_ORIGINS` and `MONGODB_URI`, and it connects
 to MongoDB before it listens. All variables are described in [`server/README.md`](../server/README.md#configuration).
 
@@ -104,6 +107,16 @@ $env:API_URL="https://online-store-api-9hz8.onrender.com"; $env:SITE_ORIGIN="htt
 
 `WAIT_SECONDS` (default 300) is how long it waits for a sleeping host to wake up and reach its database.
 
+`npm run check:api` also reports the HTTP hardening of the API (security headers, CORS, caching; see
+[the server README](../server/README.md#behaviour-worth-knowing)). In the deploy job these are
+**warnings**, because that job checks the API that is deployed at that moment, which is the one
+before the change being deployed. After Render has deployed a new API, run it by hand with
+`STRICT_HARDENING=1` to make a missing header an error:
+
+```bash
+STRICT_HARDENING=1 API_URL=https://online-store-api-9hz8.onrender.com SITE_ORIGIN=https://netanel1010.github.io npm run check:api
+```
+
 ## Updating the products
 
 The catalog lives in MongoDB and is served by the API, but its source is
@@ -131,7 +144,10 @@ Authentication ([`server/README.md`](../server/README.md#authentication)) needs 
 no new variable**: sessions are random tokens kept (as a digest) in MongoDB, not signed values.
 
 - When the API starts it creates the `users` and `sessions` collections' indexes (a unique email, a
-  unique token digest and the one that expires sessions). The database user needs the permission to
+  unique token digest, the one that expires sessions and `userId_createdAt` on the account of a
+  session). The last one is new and needs no data migration: the sessions that exist already have
+  both fields, an index on a collection this small builds at once, and an account that already has
+  more than ten sessions is trimmed at its next sign-in. The database user needs the permission to
   create indexes and to write, which it already needs for the seed and the product indexes.
 - The site sends the token in an `Authorization` header, so `CORS_ORIGINS` must name the site's
   origin exactly (it already does). No cookies are used, so nothing about cookies, `SameSite` or
@@ -149,6 +165,27 @@ curl -s -X POST "$API_URL/api/auth/register" -H 'Content-Type: application/json'
 curl -s "$API_URL/api/auth/me" -H "Authorization: Bearer <the token of the answer>"
 ```
 
+## Client addresses and rate limits
+
+Sign-in and registration are limited per client address (see
+[the server README](../server/README.md#authentication)). The address the server sees is the one in
+`X-Forwarded-For`, read from the right past the proxies it trusts: `TRUST_PROXY_HOPS`, default 2 in
+production for Cloudflare and Render's load balancer.
+
+Check it once after a deployment, because the right number depends on Render's setup and cannot be
+tested from here. Make a request, then look for `"ip"` in its line in the Render logs (see
+[Troubleshooting with the logs](#troubleshooting-with-the-logs)) and compare it with your own public
+address (for example `curl https://api.ipify.org`):
+
+- it is your address: the setting is right;
+- it is an address that is not yours and is the same for every request (a Cloudflare or Render
+  address): too few proxies are trusted, so every visitor shares one limit. Raise `TRUST_PROXY_HOPS`;
+- it is whatever you put in an `X-Forwarded-For` header you sent yourself: too many are trusted.
+  Lower it.
+
+Set it in the Render dashboard (Environment). The limits are in the memory of the process, so they
+start again when the free service sleeps or restarts.
+
 ## Operating notes
 
 - **Cold starts.** A free Render service sleeps after 15 minutes without a request, so the first
@@ -164,19 +201,64 @@ curl -s "$API_URL/api/auth/me" -H "Authorization: Bearer <the token of the answe
   this on purpose.
 - **Moving the site to another address** means changing `CORS_ORIGINS` (Render) and `SITE_URL`
   ([`src/lib/seo.ts`](../src/lib/seo.ts)).
-- **Logs** of the API are in the Render dashboard. They never contain the connection string, and a
-  client only gets a generic `500 internal_error`.
+- **Logs** of the API are in the Render dashboard (see
+  [Troubleshooting with the logs](#troubleshooting-with-the-logs)). They never contain the
+  connection string, a password or a token, and a client only gets a generic `500 internal_error`
+  with a `requestId` to quote.
+
+## Troubleshooting with the logs
+
+Every line the API writes is one JSON object (`level`, `time`, `msg` and fields), in the Render
+dashboard under **Logs**. Render's search box filters on text, so search for a field value, for
+example `"status":500` or a `requestId`.
+
+Each request ends with one line, `"msg":"request"`:
+
+```json
+{
+  "level": "warn",
+  "time": "2026-10-06T17:14:51.776Z",
+  "msg": "request",
+  "requestId": "5d0f…",
+  "method": "GET",
+  "path": "/api/products",
+  "status": 404,
+  "durationMs": 6.6,
+  "ip": "198.51.100.23"
+}
+```
+
+`info` is a success, `warn` a 4xx or 5xx (a 5xx also has `"outcome":"server error"`), and a request
+the client abandoned has `"aborted":true`. Successful `/api/health` checks are not logged (Render
+makes them every few seconds). The query string, headers, cookies, bodies, passwords and tokens are
+never logged, and a connection string's password is replaced by `***`.
+
+- **A visitor reports an error.** The API's answer to a server error is
+  `{"error":{"code":"internal_error","message":"...","requestId":"5d0f…"}}`, and every answer has an
+  `X-Request-Id` header (visible in the browser's network tab). Search the logs for that id: the
+  `"level":"error"` line has the message, the `stack` and the `cause`; the `request` line has the
+  status and the time it took.
+- **The site is slow.** Search `"durationMs"` and look for large values. The first request after a
+  quiet period is a cold start (see Operating notes), not a bug: the log starts with
+  `"msg":"API listening"` when the service has just booted.
+- **A request was refused.** `"status":429` is a rate limit (`rate_limited`, or `too_many_attempts`
+  for one email) and `"status":503` with `server_busy` or `request_timeout` is load.
+- **Is the client address right?** The `ip` of your own request should be your public address
+  (see [Client addresses and rate limits](#client-addresses-and-rate-limits)).
+- **A caller can name its own request.** An `X-Request-Id` of 8 to 64 letters, digits, `.`, `_` or
+  `-` is kept, so a request can be followed from the site to the API; anything else is replaced.
 
 ## Troubleshooting
 
-| Symptom                                                   | Likely cause and what to check                                                                                                                                                                                          |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The site shows its error state instead of products        | `/api/health/ready` first. Then the browser console: a CORS error means `CORS_ORIGINS` does not match the site's origin; a request to `github.io/api/...` means the site was built without `API_URL`.                   |
-| `/api/health/ready` answers `503` with `down`             | Atlas is unreachable: check the `MONGODB_URI` secret (special characters in the password must be URL-encoded) and Atlas _Network Access_, which must admit Render.                                                      |
-| `/api/products` answers `503 database_not_configured`     | `MONGODB_URI` is not set on the service.                                                                                                                                                                                |
-| `/api/products` answers `200` with no items               | The collection is empty: run `npm run seed:products` against that database.                                                                                                                                             |
-| The service does not start                                | The Render logs name the invalid variable. Production requires `CORS_ORIGINS` (origins without a path or trailing slash) and `MONGODB_URI`.                                                                             |
-| Sign-in or registration says the server cannot be reached | `/api/health/ready`; a request to `github.io/api/...` means the site was built without `API_URL`; a CORS error means `CORS_ORIGINS` does not match the site's origin. A host that is waking up can take about a minute. |
-| `/api/auth/*` answers `503 database_not_configured`       | `MONGODB_URI` is not set on the service.                                                                                                                                                                                |
-| Visitors are signed out after a deploy                    | They should not be: sessions are in MongoDB. Check that the `sessions` collection still has its documents and that `MONGODB_DB_NAME` did not change.                                                                    |
-| The deploy job fails at "Check the production API"        | The step prints which check failed. The same command can be run by hand (above).                                                                                                                                        |
+| Symptom                                                                           | Likely cause and what to check                                                                                                                                                                                                                                                                                             |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The site shows its error state instead of products                                | `/api/health/ready` first. Then the browser console: a CORS error means `CORS_ORIGINS` does not match the site's origin; a request to `github.io/api/...` means the site was built without `API_URL`.                                                                                                                      |
+| `/api/health/ready` answers `503` with `down`                                     | Atlas is unreachable: check the `MONGODB_URI` secret (special characters in the password must be URL-encoded) and Atlas _Network Access_, which must admit Render.                                                                                                                                                         |
+| `/api/products` answers `503 database_not_configured`                             | `MONGODB_URI` is not set on the service.                                                                                                                                                                                                                                                                                   |
+| `/api/products` answers `200` with no items                                       | The collection is empty: run `npm run seed:products` against that database.                                                                                                                                                                                                                                                |
+| The service does not start                                                        | The Render logs name the invalid variable. Production requires `CORS_ORIGINS` (origins without a path or trailing slash) and `MONGODB_URI`.                                                                                                                                                                                |
+| Sign-in or registration says the server cannot be reached                         | `/api/health/ready`; a request to `github.io/api/...` means the site was built without `API_URL`; a CORS error means `CORS_ORIGINS` does not match the site's origin. A host that is waking up can take about a minute.                                                                                                    |
+| A visitor sees "גרסה חדשה של האתר זמינה" (a new version of the site is available) | A page of the site could not be loaded, which is normal for someone who had the site open during a deployment: the file their old version asks for no longer exists. They reload the page (the button offers it) and it is fixed. If it happens to everyone, the deployment of the site is broken: check the Pages deploy. |
+| `/api/auth/*` answers `503 database_not_configured`                               | `MONGODB_URI` is not set on the service.                                                                                                                                                                                                                                                                                   |
+| Visitors are signed out after a deploy                                            | They should not be: sessions are in MongoDB. Check that the `sessions` collection still has its documents and that `MONGODB_DB_NAME` did not change.                                                                                                                                                                       |
+| The deploy job fails at "Check the production API"                                | The step prints which check failed. The same command can be run by hand (above).                                                                                                                                                                                                                                           |

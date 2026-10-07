@@ -227,6 +227,7 @@ No roles exist, because nothing in the store needs them yet.
 | `POST /api/auth/login`     | no            | Checks the credentials. `200` with `{ user, token, expiresAt }`.                                               |
 | `GET /api/auth/me`         | yes           | `200` with `{ user }`: who the token belongs to.                                                               |
 | `POST /api/auth/logout`    | no (uses it)  | Ends the session of the token it is sent. Always `204`, also for a token that is not a session (nothing is revealed). |
+| `POST /api/auth/logout-all` | yes          | Ends **every** session of the account, on every device, the one that asks included. `204`. A token that is not a live session gets `401`, so it cannot be used to end the others. |
 
 ```bash
 curl -X POST http://localhost:3001/api/auth/register \
@@ -254,6 +255,18 @@ server, and a copy of the database cannot be used to sign in. MongoDB removes ex
 itself (a TTL index, about once a minute); the API checks the end date too, because that removal is
 not instant. Every sign-in is a session of its own: two browsers do not affect each other.
 
+**Limits on sessions.** An account keeps at most **10** sessions (`MAX_SESSIONS_PER_USER` in
+`auth/service.ts`): signing in once more ends the oldest one, by the time of its sign-in, so a stolen
+or forgotten token cannot pile up and the collection does not grow without end for one account. The
+newest session is never the one that is ended, and neither are another account's. Ending the
+oldest runs after the new session exists; if that housekeeping fails the sign-in still works and the
+next sign-in does it again. `POST /api/auth/logout-all` ends all of them (the storefront offers it as
+"התנתקות מכל המכשירים" in the menu, and in the header from 1280 px); it only signs out here once the API
+has confirmed, so a visitor is never told other devices were signed out when that is not known.
+A session that was ended, has expired or whose account is gone is refused with the same `401` as
+a token that never existed, and an expired one is removed on the spot. An index on `sessions`
+(`userId`, `createdAt` descending: `userId_createdAt`) serves both of these.
+
 **Passwords.** At least 8 and at most 128 characters, with a letter and a digit (the form checks the
 same rules, from `src/features/auth/rules.ts`, to help the visitor; the API checks them again).
 They are hashed with **scrypt**, which ships with Node (`N=2^15, r=8, p=3`, 32 MiB, a random salt per
@@ -274,6 +287,27 @@ An unknown email is checked against a decoy hash, so it takes as long as a wrong
   `auth/throttle.ts`): it starts again with the process, and every instance would count on its own.
   The cost of scrypt is the other half of the defence. A shared store is the next step if the API
   ever runs on several instances.
+- **Sign-in and registration are limited per address** (`middleware/rateLimit.ts`, the numbers in
+  `auth/routes.ts`): 30 sign-in attempts per 15 minutes and 10 registrations per hour from one
+  address, whether they succeed or not, because what is being protected is the cost of hashing.
+  Past the limit the answer is `429 rate_limited` with a `Retry-After`, and the request never
+  reaches the account or the hash. An IPv6 address is counted as its /64 network. `/me` and
+  `/logout` are cheap and are not limited. The limit is shared by everyone behind one address (a
+  school, an office), which is why it is not smaller.
+- **Hashing is limited in how many run at once** (`lib/concurrencyGate.ts`): two at a time, eight
+  more waiting; beyond that a sign-in or registration is answered `503 server_busy` with a
+  `Retry-After` at once. Without it a burst of requests would hash in parallel (32 MiB and a lot of
+  CPU each) on a small host and slow or crash every other route, the products included.
+- **Which address is counted** depends on `TRUST_PROXY_HOPS`, the number of proxies in front of the
+  server (default `2` in production: Cloudflare, then Render's load balancer; `0` elsewhere). Too
+  few and every visitor looks like the proxy and shares one limit; too many and a visitor could
+  name any address in `X-Forwarded-For` and escape it. Check it after a deployment: see
+  [deployment](../docs/deployment.md#client-addresses-and-rate-limits).
+- **All of these limits are in the memory of the process.** They start again whenever it restarts
+  (a free Render service sleeps and restarts), each instance of a scaled-out API would count on its
+  own, and a determined attacker with many addresses is not stopped, only slowed. They are meant to
+  make guessing and hashing in bulk impractical for one address on one small host. A shared store
+  (such as Redis) is the next step if the API ever runs on several instances; it is not needed now.
 - **Registration says that an email is taken.** Without an email to confirm the address by, there
   is no other honest answer; sign-in, which is what an attacker would try, never says.
 - There is **no password reset, no email confirmation, no change of password and no account page**
@@ -362,6 +396,7 @@ to change them; `.env` is git-ignored.
 | -------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
 | `NODE_ENV`     | `development`                                    | `development`, `test` or `production`                                                                     |
 | `PORT`         | `3001`                                           | Port to listen on                                                                                         |
+| `TRUST_PROXY_HOPS` | `0` (`2` in production)                       | How many proxies are in front of the server, so the limits count the visitor (0 to 5)                 |
 | `CORS_ORIGINS` | `http://localhost:5173,http://localhost:4173`    | Browser origins allowed to call the API, comma separated, with no path. **Required in production.**       |
 | `MONGODB_URI`  | not set                                          | MongoDB connection string (`mongodb://` or `mongodb+srv://`). It holds the password. **Required in production.** Not set: the API runs without a database. |
 | `MONGODB_DB_NAME` | `online-store`                                | Database to use: 1 to 38 letters, digits, `_` or `-`. Use a different one per environment.               |
@@ -422,14 +457,22 @@ sessions that expire and end), the middleware and the routes over HTTP with in-m
 (including that no answer contains a password, a hash or a token that was not just issued), the
 exact queries of the repositories, and CORS for the `Authorization` header.
 
-An **optional integration test** talks to a real MongoDB. It is skipped unless `MONGODB_TEST_URI`
-is set (a local instance or an Atlas cluster you can write to):
+The **integration tests** (`*.integration.test.ts`: products, accounts and sessions, the connection)
+talk to a real MongoDB. `npm run test:server` skips them, so it is quick and needs nothing. Run them
+with `npm run test:integration`, which needs `MONGODB_TEST_URI` and **stops with an error without it**
+instead of passing by skipping (CI runs them this way, against a throwaway MongoDB 8 service
+container that exists only for the job):
 
 ```bash
-MONGODB_TEST_URI=mongodb://localhost:27017 npm run test:server
+MONGODB_TEST_URI=mongodb://localhost:27017 npm run test:integration
 ```
 
-On PowerShell: `$env:MONGODB_TEST_URI="mongodb://localhost:27017"; npm run test:server`.
+On PowerShell: `$env:MONGODB_TEST_URI="mongodb://localhost:27017"; npm run test:integration`.
+
+The tests only ever use databases named `online_store_test_<random>` and drop them. They never read
+`MONGODB_URI`, and `test:integration` refuses a MongoDB Atlas address (`mongodb+srv://` or
+`*.mongodb.net`) unless you set `MONGODB_TEST_ALLOW_ATLAS=1` on purpose, so the production cluster is
+not touched by accident. Use a MongoDB of your own for them (a local `mongod`, or a container).
 
 It covers what mocks cannot: the unique index, upserts that insert, update and leave unchanged,
 that nothing is deleted, paging and counts, the search text and its backfill, and the API over HTTP,
@@ -452,6 +495,23 @@ in a database of its own named `online_store_test_<random>` and drops it at the 
   deliberately not enabled: authentication uses an `Authorization` header, not cookies, so a page
   of another origin cannot ride on a visitor's session (a request with that header is first
   checked by the browser with a preflight, which the same allow-list answers).
+- **Logging:** every line is one JSON object (`lib/logger.ts`, no logging library). Each request
+  gets an id (`X-Request-Id`, kept if the caller sends a valid one) and one `request` line when it is
+  over (`middleware/requestLogging.ts`): method, path without the query string, status, duration
+  and client address. A server error's body carries the id as `requestId`, and its `error` line has
+  the same one. Passwords, tokens, headers, cookies, bodies and connection string credentials are
+  never written. See [deployment](../docs/deployment.md#troubleshooting-with-the-logs).
+- **Response headers** (`middleware/securityHeaders.ts`): `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy: no-referrer`, a `Content-Security-Policy` that allows nothing and no frames
+  (the API only answers JSON), `X-Frame-Options: DENY`, and `Strict-Transport-Security` only when
+  the request really came over HTTPS (see `TRUST_PROXY_HOPS`). No framework such as Helmet is used:
+  this is all an API that serves JSON needs. Every error answer is `Cache-Control: no-store`.
+- **CORS** offers only `GET`, `HEAD` and `POST`, the headers `Authorization` and `Content-Type`, lets a
+  page read `Retry-After`, and lets a browser keep a preflight answer for ten minutes.
+- **Timeouts:** an answer that takes longer than 25 seconds is replaced by `503 request_timeout`
+  (the work itself is not stopped). The server keeps idle connections for 65 seconds, longer than a
+  proxy keeps its own, so a reused connection is never closed under it (that race shows up as an
+  occasional `502`), and a client has two minutes at most to send a request.
 - **Request bodies** are limited to 100 kB.
 - **One client**: the process has a single `MongoClient`, which owns the connection pool. It is
   never created per request.

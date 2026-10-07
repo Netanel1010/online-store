@@ -8,7 +8,7 @@ import {
   createMemoryUserRepository,
 } from '../testing/memoryAuthRepositories.ts'
 import { createRequireAuth, getAuth } from './middleware.ts'
-import { createAuthRouter } from './routes.ts'
+import { createAuthRouter, NO_AUTH_RATE_LIMITS } from './routes.ts'
 import { createAuthService, SESSION_TTL_MS } from './service.ts'
 import { createLoginThrottle } from './throttle.ts'
 import { hashToken } from './tokens.ts'
@@ -34,12 +34,17 @@ const app = express()
 app.use(express.json({ limit: '100kb' }))
 app.use(
   '/api/auth',
-  createAuthRouter({
-    register: (input) => service.current.register(input),
-    login: (input) => service.current.login(input),
-    authenticate: (token) => service.current.authenticate(token),
-    logout: (token) => service.current.logout(token),
-  }),
+  createAuthRouter(
+    {
+      register: (input) => service.current.register(input),
+      login: (input) => service.current.login(input),
+      authenticate: (token) => service.current.authenticate(token),
+      logout: (token) => service.current.logout(token),
+      logoutAll: (userId) => service.current.logoutAll(userId),
+    },
+    // These tests sign in far more often than a person; the limits have tests of their own.
+    NO_AUTH_RATE_LIMITS,
+  ),
 )
 app.get(
   '/api/protected',

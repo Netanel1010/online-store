@@ -13,7 +13,9 @@ const fake = vi.hoisted(() => {
     insertOne: vi.fn(),
     deleteOne: vi.fn(),
     createIndex: vi.fn(),
-    // Never to be called: nothing here deletes many accounts or drops a collection.
+    find: vi.fn(),
+    // Only ever called for the sessions of one account: nothing here deletes accounts in bulk or
+    // drops a collection.
     deleteMany: vi.fn(),
     updateMany: vi.fn(),
     drop: vi.fn(),
@@ -48,7 +50,17 @@ beforeEach(() => {
   fake.collection.insertOne.mockResolvedValue({ acknowledged: true })
   fake.collection.deleteOne.mockResolvedValue({ deletedCount: 1 })
   fake.collection.createIndex.mockResolvedValue('ok')
+  fake.collection.deleteMany.mockResolvedValue({ deletedCount: 0 })
 })
+
+/** The cursor of `find().sort().skip().toArray()`, which answers `documents`. */
+function cursorOf(documents: unknown[]) {
+  const cursor = { sort: vi.fn(), skip: vi.fn(), toArray: vi.fn().mockResolvedValue(documents) }
+  cursor.sort.mockReturnValue(cursor)
+  cursor.skip.mockReturnValue(cursor)
+  fake.collection.find.mockReturnValue(cursor)
+  return cursor
+}
 
 describe('the users collection', () => {
   it('is "users", looked up when used and not when the repository is created', async () => {
@@ -202,10 +214,14 @@ describe('the sessions collection', () => {
     expect(fake.collectionOf).toHaveBeenCalledWith('sessions')
   })
 
-  it('has a unique index on the token digest, and one that removes a session when it expires', async () => {
+  it('has a unique index on the token digest, one that removes a session when it expires, and one on the account', async () => {
     await createSessionRepository(database).ensureIndexes()
 
-    expect(fake.collection.createIndex).toHaveBeenCalledTimes(2)
+    expect(fake.collection.createIndex).toHaveBeenCalledTimes(3)
+    expect(fake.collection.createIndex).toHaveBeenCalledWith(
+      { userId: 1, createdAt: -1 },
+      { name: 'userId_createdAt' },
+    )
     expect(fake.collection.createIndex).toHaveBeenCalledWith(
       { tokenHash: 1 },
       { unique: true, name: 'tokenHash_unique' },
@@ -254,6 +270,61 @@ describe('the sessions collection', () => {
     expect(fake.collection.deleteOne).toHaveBeenCalledWith({ tokenHash: session.tokenHash })
     expect(fake.collection.deleteMany).not.toHaveBeenCalled()
     expect(fake.collection.drop).not.toHaveBeenCalled()
+  })
+})
+
+describe('ending every session of an account', () => {
+  it('deletes the sessions of that account only, and says how many there were', async () => {
+    fake.collection.deleteMany.mockResolvedValue({ deletedCount: 3 })
+
+    const ended = await createSessionRepository(database).deleteAllForUser(user.id)
+
+    expect(ended).toBe(3)
+    expect(fake.collection.deleteMany).toHaveBeenCalledTimes(1)
+    expect(fake.collection.deleteMany).toHaveBeenCalledWith({ userId: user.id })
+  })
+
+  it('uses the account id as a value, never as part of the query', async () => {
+    await createSessionRepository(database).deleteAllForUser('{"$ne":""}')
+
+    expect(fake.collection.deleteMany).toHaveBeenCalledWith({ userId: '{"$ne":""}' })
+  })
+})
+
+describe('keeping the newest sessions of an account', () => {
+  it('asks for the sessions after the newest ones, newest first, and ends exactly those', async () => {
+    const cursor = cursorOf([{ tokenHash: 'old-1' }, { tokenHash: 'old-2' }])
+    fake.collection.deleteMany.mockResolvedValue({ deletedCount: 2 })
+
+    const ended = await createSessionRepository(database).trimToNewest(user.id, 10)
+
+    expect(ended).toBe(2)
+    expect(fake.collection.find).toHaveBeenCalledWith(
+      { userId: user.id },
+      { projection: { _id: 0, tokenHash: 1 } },
+    )
+    expect(cursor.sort).toHaveBeenCalledWith({ createdAt: -1, _id: -1 })
+    expect(cursor.skip).toHaveBeenCalledWith(10)
+    expect(fake.collection.deleteMany).toHaveBeenCalledWith({
+      userId: user.id,
+      tokenHash: { $in: ['old-1', 'old-2'] },
+    })
+  })
+
+  it('ends nothing, and does not ask to, when the account has no more than it may keep', async () => {
+    cursorOf([])
+
+    expect(await createSessionRepository(database).trimToNewest(user.id, 10)).toBe(0)
+    expect(fake.collection.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('can only end sessions of the account it was asked about', async () => {
+    cursorOf([{ tokenHash: 'x' }])
+
+    await createSessionRepository(database).trimToNewest(user.id, 1)
+
+    const [filter] = fake.collection.deleteMany.mock.calls[0] as [Record<string, unknown>]
+    expect(filter).toHaveProperty('userId', user.id)
   })
 })
 

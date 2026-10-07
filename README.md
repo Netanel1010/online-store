@@ -131,6 +131,7 @@ This is a **portfolio application**. The product catalog and the accounts have a
 ### Prerequisites
 
 - **Node.js 24** recommended, matching the CI environment (the API needs Node.js 22.9 or newer).
+  [`.nvmrc`](.nvmrc) names it for `nvm use`, and CI reads the version from the same file.
 - **A MongoDB database** to run the site locally, because the site reads its products from the API and the API reads them from MongoDB. A local MongoDB or a free MongoDB Atlas cluster of your own both work. The tests need none.
 
 ### Installation

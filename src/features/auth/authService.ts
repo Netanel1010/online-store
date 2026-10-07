@@ -101,6 +101,23 @@ export async function endSession(token: string): Promise<void> {
   await response?.text().catch(() => undefined)
 }
 
+/**
+ * Asks the API to end every session of the account, on every device. Unlike `endSession`, whether
+ * it worked matters to the visitor, so it says: `ended`, or `already-over` (the API did not know the
+ * token any more, so this browser has nothing to end), or `unavailable`, in which case nothing is
+ * known to have ended and the visitor should be told.
+ */
+export async function endAllSessions(
+  token: string,
+): Promise<'ended' | 'already-over' | 'unavailable'> {
+  const response = await post('/api/auth/logout-all', undefined, token)
+  if (response === null) return 'unavailable'
+  // Read to the end (it is empty): a response nobody reads is reported by browsers as aborted.
+  await response.text().catch(() => undefined)
+  if (response.status === 204) return 'ended'
+  return response.status === 401 ? 'already-over' : 'unavailable'
+}
+
 export type CurrentUserOutcome =
   | { status: 'signed-in'; user: CurrentUser }
   /** The API does not know this token (any more): it expired, ended or never was. */
