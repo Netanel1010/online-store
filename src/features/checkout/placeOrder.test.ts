@@ -86,3 +86,33 @@ describe('checkoutSuccessStateSchema', () => {
     expect(checkoutSuccessStateSchema.safeParse(state).success).toBe(false)
   })
 })
+
+describe('the demo reference number', () => {
+  const draws = (...values: number[]) => {
+    const queue = [...values]
+    vi.spyOn(crypto, 'getRandomValues').mockImplementation(((array: Uint32Array) => {
+      array[0] = queue.shift()!
+      return array
+    }) as typeof crypto.getRandomValues)
+    return queue
+  }
+  const order = () =>
+    placeDemoOrder({ items: [{ productId: 'A', quantity: 1 }], products, email: 'a@b.co' })
+
+  afterEach(() => vi.restoreAllMocks())
+
+  it('throws away random draws that would make some numbers more likely than others', () => {
+    // 4_294_000_000 and above are the leftover of 2^32 that is not a whole multiple of 1,000,000.
+    const left = draws(4_294_000_000, 4_294_967_295, 123_456)
+
+    expect(order().orderId).toBe('DEMO-123456')
+    expect(left).toHaveLength(0)
+  })
+
+  it('keeps every draw below the cut-off, padded to six digits', () => {
+    draws(4_293_999_999)
+    expect(order().orderId).toBe('DEMO-999999')
+    draws(5)
+    expect(order().orderId).toBe('DEMO-000005')
+  })
+})
