@@ -16,6 +16,10 @@ import { trackRequestFailures } from './requestFailures'
  * password or a session that has ended, 409 for an email that is taken, 429 for too many attempts
  * (`/api/auth/login`, `/register` and `/me`). The same goes for the echoes of those.
  *
+ * Orders have answers of the same kind: 409 for a product that is not available or a total that is not
+ * what was shown, 404 for an order that is not the account's, 401 for a session that has ended, and
+ * 503 for the host being busy, which the page repeats (`/api/orders` and `/api/orders/<number>`).
+ *
  * A request the page cancels on purpose (see requestFailures.ts) is not a failure either; one that
  * fails for any other reason, or is cut off without the page having cancelled it, still is.
  *
@@ -48,7 +52,15 @@ export const test = base.extend<{ problems: string[] }>({
           type === 'fetch' &&
           /^\/api\/auth\/(login|register|me)$/.test(pathname) &&
           [401, 409, 429].includes(response.status())
-        if (((type === 'document' || missingProduct) && response.status() === 404) || refusedAuth) {
+        const refusedOrder =
+          type === 'fetch' &&
+          /^\/api\/orders(\/[^/]+)?$/.test(pathname) &&
+          [401, 404, 409, 503].includes(response.status())
+        if (
+          ((type === 'document' || missingProduct) && response.status() === 404) ||
+          refusedAuth ||
+          refusedOrder
+        ) {
           expectedNotFound.add(response.url())
         } else {
           problems.push(`HTTP ${response.status()}: ${response.url()}`)

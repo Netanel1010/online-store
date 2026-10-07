@@ -342,8 +342,8 @@ test.describe('protected checkout', () => {
     await expect(page.getByRole('heading', { name: 'סיום הזמנה' })).toHaveCount(0)
   })
 
-  test('also protects the confirmation page', async ({ page }) => {
-    await page.goto('checkout/success')
+  test('also protects the order page', async ({ page }) => {
+    await page.goto('orders/DEMO-ABCDEFGH')
 
     await expect(page).toHaveURL(/\/online-store\/login$/)
   })
@@ -387,7 +387,9 @@ test.describe('protected checkout', () => {
 })
 
 test.describe('checkout', () => {
-  test('completes a demo order: confirmation appears and the cart is emptied', async ({ page }) => {
+  test('places an order with the API: the confirmation appears and the cart is emptied', async ({
+    page,
+  }) => {
     await page.goto('products')
     await page.getByRole('button', { name: `מועדפים: ${RAM.name}` }).click()
     await addToCartFromProductPage(page, PSU)
@@ -413,9 +415,9 @@ test.describe('checkout', () => {
     await fillDeliveryForm(page)
     await page.getByRole('button', { name: ORDER_BUTTON }).click()
 
-    await expect(page).toHaveURL(/\/online-store\/checkout\/success$/)
+    await expect(page).toHaveURL(/\/online-store\/orders\/DEMO-[0-9A-Z]{8}$/)
     await expect(page.getByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })).toBeVisible()
-    await expect(page.getByText(/DEMO-\d{6}/)).toBeVisible()
+    await expect(page.getByText(/DEMO-[0-9A-Z]{8}/).first()).toBeVisible()
     await expect(page.getByRole('complementary', { name: 'הערה' })).toContainText('לא בוצע חיוב')
     await expect(
       page.getByRole('list', { name: 'המוצרים שהוזמנו' }).getByRole('listitem'),
@@ -428,21 +430,6 @@ test.describe('checkout', () => {
     await expectSignedIn(page)
     await page.goto('cart')
     await expect(page.getByText('העגלה ריקה')).toBeVisible()
-  })
-
-  test('does not store the order or the delivery details', async ({ page }) => {
-    await registeredAccount(page)
-    await addToCartFromProductPage(page, PSU)
-    await page.goto('checkout')
-    await fillDeliveryForm(page)
-    await page.getByRole('button', { name: ORDER_BUTTON }).click()
-    await expect(page.getByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })).toBeVisible()
-
-    const stored = await page.evaluate(() => JSON.stringify({ ...localStorage }))
-
-    expect(stored).not.toContain('דיזנגוף')
-    expect(stored).not.toContain('1234567')
-    expect(stored).not.toContain('DEMO-')
   })
 
   test('rejects an invalid delivery form and places no order', async ({ page }) => {
@@ -481,12 +468,12 @@ test.describe('checkout', () => {
     await expect(page).toHaveURL(/\/online-store\/checkout$/)
   })
 
-  test('shows no confirmation when the confirmation page is opened directly', async ({ page }) => {
+  test('says so when the order that is opened does not exist', async ({ page }) => {
     await registeredAccount(page)
 
-    await page.goto('checkout/success')
+    await page.goto('orders/DEMO-ZZZZZZZZ')
 
-    await expect(page.getByRole('heading', { level: 1, name: 'אין הזמנה להצגה' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'ההזמנה לא נמצאה' })).toBeVisible()
   })
 })
 

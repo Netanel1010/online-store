@@ -1,7 +1,9 @@
 /**
- * How a read of the API is attempted. The API runs on a free host that falls asleep when it is not
+ * How a request to the API is attempted. The API runs on a free host that falls asleep when it is not
  * used: the first request after a pause can fail while it wakes up (a gateway error, or no answer
- * at all) or take a long time. Every read is a GET, so repeating one is safe.
+ * at all) or take a long time. A GET can always be repeated. Anything else may be repeated only when
+ * repeating it is safe: placing an order carries an Idempotency-Key, so a repeat of it can never make
+ * a second order.
  *
  * `delaysMs` are the pauses between attempts, so there is one more attempt than there are delays.
  * It is an object that tests change (src/test/setup.ts turns the retries off so a test of a failed
@@ -59,18 +61,23 @@ function attemptSignal(signal: AbortSignal | undefined, timeoutMs: number) {
 }
 
 /**
- * `fetch` for a GET that may be repeated: an attempt that fails to connect, runs out of time or is
- * answered with 502, 503 or 504 is tried again after a pause. Any other answer, including an
+ * `fetch` for a request that may be repeated (a GET, or a POST that carries an Idempotency-Key; `init`
+ * is the method, headers and body, sent unchanged with every attempt): an attempt that fails to
+ * connect, runs out of time or is answered with 502, 503 or 504 is tried again after a pause. Any other answer, including an
  * error such as 404 or 500, is returned as it is, and a request the caller cancels stops at once.
  * After the last attempt the last answer is returned, or the last failure is thrown.
  */
-export async function fetchWithRetry(url: string, signal?: AbortSignal): Promise<Response> {
+export async function fetchWithRetry(
+  url: string,
+  signal?: AbortSignal,
+  init: Omit<RequestInit, 'signal'> = {},
+): Promise<Response> {
   const { attemptTimeoutMs, delaysMs } = fetchPolicy
   for (let attempt = 0; ; attempt += 1) {
     const last = attempt >= delaysMs.length
     const current = attemptSignal(signal, attemptTimeoutMs)
     try {
-      const response = await fetch(url, { signal: current.signal })
+      const response = await fetch(url, { ...init, signal: current.signal })
       if (last || !RETRYABLE_STATUS.has(response.status)) return response
     } catch (error) {
       if (signal?.aborted || last) throw error

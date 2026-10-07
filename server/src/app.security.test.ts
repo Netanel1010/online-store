@@ -84,19 +84,21 @@ describe('what is not kept', () => {
 })
 
 describe('CORS', () => {
-  it('offers only what the storefront uses: reading, and signing in or out', async () => {
+  it('offers only what the storefront uses: reading, signing in or out, and placing orders', async () => {
     const response = await fetch(`${behindProxy.url}/api/auth/login`, {
       method: 'OPTIONS',
       headers: {
         Origin: SITE,
         'Access-Control-Request-Method': 'POST',
-        'Access-Control-Request-Headers': 'authorization,content-type',
+        'Access-Control-Request-Headers': 'authorization,content-type,idempotency-key',
       },
     })
 
     expect(response.headers.get('access-control-allow-origin')).toBe(SITE)
     expect(response.headers.get('access-control-allow-methods')).toBe('GET,HEAD,POST')
-    expect(response.headers.get('access-control-allow-headers')).toBe('Authorization,Content-Type')
+    expect(response.headers.get('access-control-allow-headers')).toBe(
+      'Authorization,Content-Type,Idempotency-Key',
+    )
     expect(Number(response.headers.get('access-control-max-age'))).toBeGreaterThanOrEqual(600)
   })
 
@@ -119,7 +121,9 @@ describe('CORS', () => {
       },
     })
 
-    expect(response.headers.get('access-control-allow-headers')).toBe('Authorization,Content-Type')
+    expect(response.headers.get('access-control-allow-headers')).toBe(
+      'Authorization,Content-Type,Idempotency-Key',
+    )
   })
 
   it('lets a page read Retry-After (how long to wait) and X-Request-Id (what to quote)', async () => {

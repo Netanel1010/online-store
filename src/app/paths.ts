@@ -12,5 +12,6 @@ export const paths = {
   login: '/login',
   register: '/register',
   checkout: '/checkout',
-  checkoutSuccess: '/checkout/success',
+  /** One order of the signed-in account, by its order number. */
+  order: (orderNumber: string) => `/orders/${encodeURIComponent(orderNumber)}`,
 } as const
