@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { catalogPagePath } from './src/lib/catalogRequest.ts'
+import { escapeHtmlAttribute } from './src/lib/htmlAttribute.ts'
 
 /**
  * Tells the browser, from the first bytes of the HTML, about the API the page is going to call:
@@ -25,7 +26,7 @@ function apiHints(apiUrl: string | undefined): Plugin {
       // other credentials settings would not be the one it uses.
       const tags = [
         `<link rel="preconnect" href="${origin}" crossorigin="anonymous" />`,
-        `<link rel="preload" as="fetch" href="${base}${catalogPagePath(1).replace('&', '&amp;')}" crossorigin="anonymous" />`,
+        `<link rel="preload" as="fetch" href="${escapeHtmlAttribute(base + catalogPagePath(1))}" crossorigin="anonymous" />`,
       ].join('\n    ')
       return html.replace(HINTS_MARKER, tags)
     },
