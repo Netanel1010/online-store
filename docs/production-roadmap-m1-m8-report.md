@@ -5,6 +5,9 @@ responsive-UX pull request). One commit per milestone, in order, then this repor
 milestone are in [production-roadmap-progress.md](production-roadmap-progress.md). Nothing was pushed,
 no pull request was opened, M9 (server cart, orders, order history) and later were not started.
 
+> **Later:** M9 (server cart, orders, order history) was done afterwards, one pull request per step. See
+> [m9-server-cart-and-orders.md](m9-server-cart-and-orders.md). The text below is the state at the end of M8.
+
 ## 1. Status
 
 | M   | Status      | Commit                                     | Message                                          |

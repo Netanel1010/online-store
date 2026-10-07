@@ -13,8 +13,9 @@ Browser ── GitHub Pages (React site) ──► Render (Express API) ──�
               static files                GET /api/products…       products collection
 ```
 
-The site only calls the API to read products. Accounts, cart, favorites and checkout stay in the
-browser (see the [README](../README.md#-scope--limitations)).
+The site calls the API for the products, the accounts, the signed-in visitor's cart and the orders.
+Only the favorites stay in the browser, and the checkout is a demo with no payment (see the
+[README](../README.md#-scope--limitations)).
 
 ## What is configured where
 
@@ -64,9 +65,9 @@ The site learns where the API is when it is **built**, from the `VITE_API_URL` v
 
 1. A pull request is merged into `main`.
 2. [`ci.yml`](../.github/workflows/ci.yml) runs the `verify` job (format, lint, typecheck, site and
-   API tests, site and API builds) and the `e2e` job (Playwright against the production build and a
-   stub API) in parallel.
-3. If both succeed, the `deploy` job runs. When `API_URL` is set it first runs
+   API tests, site and API builds), the `integration` job (the MongoDB tests, against a throwaway
+   MongoDB) and the `e2e` job (Playwright against the production build and a stub API) in parallel.
+3. If all three succeed, the `deploy` job runs. When `API_URL` is set it first runs
    [`scripts/check-api.mjs`](../scripts/check-api.mjs) against the production API, and only then
    publishes the site to GitHub Pages. A site whose products cannot be loaded is not published.
 4. Render redeploys the API for the same commit once the checks pass (`autoDeployTrigger:
@@ -74,6 +75,14 @@ checksPass`). The site and the API are deployed independently of each other: whe
    API parameters that the site starts to send (as the search and filters did), the site can be
    live a few minutes before the API has redeployed, and until then the older API ignores the
    parameters it does not know and lists every product.
+
+   The cart and the orders are the case where the order matters more. The site sends `PUT` and
+   `DELETE` for the cart and an `Idempotency-Key` header with an order, and the API only allows
+   them from a browser once it has the version that adds them to its CORS settings. Until Render has
+   redeployed, a signed-in visitor's cart is kept in the browser only (the site says once that it
+   could not be saved in the account, and tries again by itself) and placing an order shows the
+   message that the order could not be completed, with its reassurance that a repeat cannot create a
+   second order. Nothing is lost or placed twice; it clears up when the API is live. Check it with `STRICT_HARDENING=1 npm run check:api` (below).
 
 To roll back, revert the commit on `main`: CI redeploys both parts from the reverted state.
 
@@ -108,7 +117,9 @@ $env:API_URL="https://online-store-api-9hz8.onrender.com"; $env:SITE_ORIGIN="htt
 `WAIT_SECONDS` (default 300) is how long it waits for a sleeping host to wake up and reach its database.
 
 `npm run check:api` also reports the HTTP hardening of the API (security headers, CORS, caching; see
-[the server README](../server/README.md#behaviour-worth-knowing)). In the deploy job these are
+[the server README](../server/README.md#behaviour-worth-knowing)). Among them: a preflight answer
+that allows `GET`, `POST`, `PUT` and `DELETE` (and not `PATCH`), and the `Authorization` and
+`Idempotency-Key` headers. In the deploy job these are
 **warnings**, because that job checks the API that is deployed at that moment, which is the one
 before the change being deployed. After Render has deployed a new API, run it by hand with
 `STRICT_HARDENING=1` to make a missing header an error:
@@ -165,10 +176,41 @@ curl -s -X POST "$API_URL/api/auth/register" -H 'Content-Type: application/json'
 curl -s "$API_URL/api/auth/me" -H "Authorization: Bearer <the token of the answer>"
 ```
 
+## Carts and orders in production
+
+Carts ([`/api/cart`](../server/README.md#cart)) and orders ([`/api/orders`](../server/README.md#orders))
+need **no new secret and no new variable**. They use the same database and the same session token as
+authentication.
+
+- When the API starts it creates the indexes of two more collections: `carts` (a unique `userId`:
+  one cart per account) and `orders` (a unique `orderNumber`, a unique `{ userId, idempotencyKey }`,
+  and `{ userId, createdAt, _id }` for the order history). They need no data migration: the
+  collections start empty. The database user needs the same permission as before, to write and to
+  create indexes.
+- Both are protected by the session of the account: a request without a live session is `401`, and
+  an account can only ever see its own cart and its own orders.
+- Orders hold the delivery details that were typed in (a name, a phone number and an address).
+  There is no route that deletes an account or its orders yet. The checkout says that the order and
+  the details are kept in the account.
+- Nothing in the `products` collection is changed by a cart or an order. They only read it, to refuse
+  a product that is not there and to price an order.
+- The order and cart limits are in the memory of the process like the others (below).
+
+To check them by hand against the deployed API, with the token of a throwaway account:
+
+```bash
+curl -s "$API_URL/api/cart" -H "Authorization: Bearer <token>"
+# {"items":[],"updatedAt":null}
+curl -s "$API_URL/api/orders" -H "Authorization: Bearer <token>"
+# {"items":[],"page":1,"limit":...,"total":0,"totalPages":...}
+```
+
 ## Client addresses and rate limits
 
 Sign-in and registration are limited per client address (see
-[the server README](../server/README.md#authentication)). The address the server sees is the one in
+[the server README](../server/README.md#authentication)), and so are the routes that change data
+for a signed-in visitor: placing an order (20 an hour) and changing a cart (300 in 15 minutes), see
+[Carts and orders in production](#carts-and-orders-in-production). The address the server sees is the one in
 `X-Forwarded-For`, read from the right past the proxies it trusts: `TRUST_PROXY_HOPS`, default 2 in
 production for Cloudflare and Render's load balancer.
 
@@ -250,15 +292,16 @@ never logged, and a connection string's password is replaced by `***`.
 
 ## Troubleshooting
 
-| Symptom                                                                           | Likely cause and what to check                                                                                                                                                                                                                                                                                             |
-| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The site shows its error state instead of products                                | `/api/health/ready` first. Then the browser console: a CORS error means `CORS_ORIGINS` does not match the site's origin; a request to `github.io/api/...` means the site was built without `API_URL`.                                                                                                                      |
-| `/api/health/ready` answers `503` with `down`                                     | Atlas is unreachable: check the `MONGODB_URI` secret (special characters in the password must be URL-encoded) and Atlas _Network Access_, which must admit Render.                                                                                                                                                         |
-| `/api/products` answers `503 database_not_configured`                             | `MONGODB_URI` is not set on the service.                                                                                                                                                                                                                                                                                   |
-| `/api/products` answers `200` with no items                                       | The collection is empty: run `npm run seed:products` against that database.                                                                                                                                                                                                                                                |
-| The service does not start                                                        | The Render logs name the invalid variable. Production requires `CORS_ORIGINS` (origins without a path or trailing slash) and `MONGODB_URI`.                                                                                                                                                                                |
-| Sign-in or registration says the server cannot be reached                         | `/api/health/ready`; a request to `github.io/api/...` means the site was built without `API_URL`; a CORS error means `CORS_ORIGINS` does not match the site's origin. A host that is waking up can take about a minute.                                                                                                    |
-| A visitor sees "גרסה חדשה של האתר זמינה" (a new version of the site is available) | A page of the site could not be loaded, which is normal for someone who had the site open during a deployment: the file their old version asks for no longer exists. They reload the page (the button offers it) and it is fixed. If it happens to everyone, the deployment of the site is broken: check the Pages deploy. |
-| `/api/auth/*` answers `503 database_not_configured`                               | `MONGODB_URI` is not set on the service.                                                                                                                                                                                                                                                                                   |
-| Visitors are signed out after a deploy                                            | They should not be: sessions are in MongoDB. Check that the `sessions` collection still has its documents and that `MONGODB_DB_NAME` did not change.                                                                                                                                                                       |
-| The deploy job fails at "Check the production API"                                | The step prints which check failed. The same command can be run by hand (above).                                                                                                                                                                                                                                           |
+| Symptom                                                                                         | Likely cause and what to check                                                                                                                                                                                                                                                                                             |
+| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The site shows its error state instead of products                                              | `/api/health/ready` first. Then the browser console: a CORS error means `CORS_ORIGINS` does not match the site's origin; a request to `github.io/api/...` means the site was built without `API_URL`.                                                                                                                      |
+| `/api/health/ready` answers `503` with `down`                                                   | Atlas is unreachable: check the `MONGODB_URI` secret (special characters in the password must be URL-encoded) and Atlas _Network Access_, which must admit Render.                                                                                                                                                         |
+| `/api/products` answers `503 database_not_configured`                                           | `MONGODB_URI` is not set on the service.                                                                                                                                                                                                                                                                                   |
+| `/api/products` answers `200` with no items                                                     | The collection is empty: run `npm run seed:products` against that database.                                                                                                                                                                                                                                                |
+| The service does not start                                                                      | The Render logs name the invalid variable. Production requires `CORS_ORIGINS` (origins without a path or trailing slash) and `MONGODB_URI`.                                                                                                                                                                                |
+| Sign-in or registration says the server cannot be reached                                       | `/api/health/ready`; a request to `github.io/api/...` means the site was built without `API_URL`; a CORS error means `CORS_ORIGINS` does not match the site's origin. A host that is waking up can take about a minute.                                                                                                    |
+| A visitor sees "גרסה חדשה של האתר זמינה" (a new version of the site is available)               | A page of the site could not be loaded, which is normal for someone who had the site open during a deployment: the file their old version asks for no longer exists. They reload the page (the button offers it) and it is fixed. If it happens to everyone, the deployment of the site is broken: check the Pages deploy. |
+| `/api/auth/*` answers `503 database_not_configured`                                             | `MONGODB_URI` is not set on the service.                                                                                                                                                                                                                                                                                   |
+| A visitor's cart is not kept in the account, or placing an order says it could not be completed | The API has not redeployed yet, or its CORS settings are older than the site: a CORS error on `PUT`/`DELETE` `/api/cart…` or on `POST /api/orders` in the browser console. Wait for Render, then run `STRICT_HARDENING=1 npm run check:api`.                                                                               |
+| Visitors are signed out after a deploy                                                          | They should not be: sessions are in MongoDB. Check that the `sessions` collection still has its documents and that `MONGODB_DB_NAME` did not change.                                                                                                                                                                       |
+| The deploy job fails at "Check the production API"                                              | The step prints which check failed. The same command can be run by hand (above).                                                                                                                                                                                                                                           |

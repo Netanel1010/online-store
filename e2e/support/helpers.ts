@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { Locator, Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
 import { expect } from './test'
 import type { CatalogProduct } from './catalog'
 
@@ -31,10 +31,6 @@ export function amount(text: string | null): number {
 /* ----------------------------------------------------------------------------- navigation */
 
 export const header = (page: Page) => page.getByRole('banner')
-
-export function productCard(page: Page, product: CatalogProduct): Locator {
-  return page.getByRole('article').filter({ has: page.getByRole('link', { name: product.name }) })
-}
 
 /**
  * The product names on the page, in display order. Waits until the cards have rendered, and until
@@ -84,10 +80,6 @@ export async function expectSignedOut(page: Page) {
 }
 
 /* ------------------------------------------------------------------------- cart, favorites */
-
-export async function addToCartFromCard(page: Page, product: CatalogProduct) {
-  await page.getByRole('button', { name: `הוספה לעגלה: ${product.name}` }).click()
-}
 
 export async function addToCartFromProductPage(page: Page, product: CatalogProduct) {
   await page.goto(`products/${product.id}`)
