@@ -66,6 +66,25 @@ describe('fetchWithRetry', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 
+  it('sends the same method, headers and body with every attempt, each with a signal of its own', async () => {
+    const fail = () => Promise.reject(new TypeError('Failed to fetch'))
+    const fetchMock = stubFetch(fail, () => status(503), ok)
+    const init = {
+      method: 'POST',
+      headers: { 'Idempotency-Key': 'key-1234567890abcdef' },
+      body: '{"a":1}',
+    }
+
+    const pending = fetchWithRetry(URL_, undefined, init)
+    await vi.advanceTimersByTimeAsync(1_000 + 3_000)
+
+    expect((await pending).status).toBe(200)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    const signals = fetchMock.mock.calls.map(([, options]) => options.signal)
+    for (const [, options] of fetchMock.mock.calls) expect(options).toMatchObject(init)
+    expect(new Set(signals).size).toBe(3)
+  })
+
   it('gives up after the last attempt and throws the last failure', async () => {
     const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
     vi.stubGlobal('fetch', fetchMock)

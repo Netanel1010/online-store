@@ -2,14 +2,13 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useAuthStore } from '@/features/auth/authStore'
 import { useCartStore } from '@/features/cart/cartStore'
-import * as placeOrder from '@/features/checkout/placeOrder'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 import { makeProduct } from '@/test/fixtures'
 import { setUpAuthApi } from '@/test/authApi'
 import { renderApp } from '@/test/renderApp'
 
-// The real authentication API answers these tests (see setUpAuthApi).
-setUpAuthApi()
+// The real authentication and orders API answers these tests (see setUpAuthApi).
+const api = setUpAuthApi()
 
 const GOOD = { name: 'נתנאל', email: 'netanel@example.com', password: 'Passw0rdOK' }
 
@@ -20,6 +19,9 @@ const gpu = makeProduct({
   price: { current: 750, original: 1000 },
 })
 const catalog = [psu, gpu]
+
+// The API prices an order from its own products: the ones the page shows, unless a test says otherwise.
+beforeEach(() => api.setCatalog(catalog))
 
 const url = () => screen.getByTestId('url').textContent
 const summary = () => screen.getByRole('complementary', { name: 'סיכום הזמנה' })
@@ -36,6 +38,43 @@ async function fillValidForm({ phone = '050-1234567' } = {}) {
   await userEvent.type(box('רחוב'), 'דיזנגוף')
   await userEvent.type(box('מספר בית'), '12')
   await userEvent.click(screen.getByRole('checkbox', { name: /הזמנת הדגמה/ }))
+}
+
+/** An order request, as the API received it. */
+const isOrderRequest = (input: RequestInfo | URL, init?: RequestInit) =>
+  String(input).endsWith('/api/orders') && init?.method === 'POST'
+
+/**
+ * Records the order requests of the page (their keys and bodies). "fail-first" makes the first one
+ * fail before it reaches the API; "lose-first-answer" lets the API place the order and then loses
+ * its answer, which is what a timeout on a slow host looks like.
+ */
+function watchOrderRequests(behavior?: 'fail-first' | 'lose-first-answer') {
+  const seen: { key: string; body: unknown }[] = []
+  const inner = globalThis.fetch
+  let first = true
+  vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (!isOrderRequest(input, init)) return inner(input, init)
+    const headers = init?.headers as Record<string, string>
+    seen.push({ key: headers['Idempotency-Key']!, body: JSON.parse(init?.body as string) })
+    const failing = first && behavior !== undefined
+    first = false
+    if (failing && behavior === 'fail-first') throw new TypeError('network down')
+    const response = await inner(input, init)
+    if (failing) throw new TypeError('the answer was lost')
+    return response
+  })
+  return { keys: () => seen.map((request) => request.key), bodies: () => seen.map((r) => r.body) }
+}
+
+/** Every order request is answered with this status instead of reaching the API. */
+function answerOrderRequestsWith(status: number) {
+  const inner = globalThis.fetch
+  vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) =>
+    isOrderRequest(input, init)
+      ? Promise.resolve(Response.json({ error: { code: 'x', message: 'x' } }, { status }))
+      : inner(input, init),
+  )
 }
 
 describe('checkout is protected', () => {
@@ -64,7 +103,7 @@ describe('checkout is protected', () => {
   })
 
   it('sends a signed-out visitor away from the confirmation page too', async () => {
-    renderApp('/checkout/success', catalog)
+    renderApp('/orders/DEMO-ABCDEFGH', catalog)
 
     await waitFor(() => expect(url()).toBe('/login'))
   })
@@ -250,10 +289,8 @@ describe('invalid checkout submission', () => {
     expect(url()).toBe('/checkout')
   })
 
-  it('shows a form-level error and keeps the cart when the order cannot be placed', async () => {
-    vi.spyOn(placeOrder, 'placeDemoOrder').mockImplementation(() => {
-      throw new Error('boom')
-    })
+  it('keeps the cart and the form, and says so, when the API cannot be reached', async () => {
+    const sent = watchOrderRequests('fail-first')
     renderApp('/checkout', catalog)
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
 
@@ -261,32 +298,41 @@ describe('invalid checkout submission', () => {
     await userEvent.click(submitButton())
 
     expect(await screen.findByRole('alert')).toHaveTextContent('לא הצלחנו להשלים את ההזמנה')
+    expect(screen.getByRole('alert')).toHaveTextContent('לא תיווצר הזמנה כפולה')
     expect(url()).toBe('/checkout')
     expect(useCartStore.getState().items).toEqual([{ productId: 'PSU-1', quantity: 1 }])
+    expect(box('עיר')).toHaveValue('תל אביב')
+    expect(api.orders()).toHaveLength(0)
+    expect(sent.keys()).toHaveLength(1)
   })
 
-  it('explains it when the cart turned out to be empty at submit time', async () => {
-    vi.spyOn(placeOrder, 'placeDemoOrder').mockImplementation(() => {
-      throw new placeOrder.EmptyOrderError()
-    })
+  it.each([
+    [429, 'ניסיתם להזמין יותר מדי פעמים'],
+    [500, 'לא הצלחנו להשלים את ההזמנה'],
+    [400, 'השרת לא קיבל את פרטי ההזמנה'],
+  ])('explains a %i answer and keeps the cart', async (status, message) => {
+    answerOrderRequestsWith(status)
     renderApp('/checkout', catalog)
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
 
     await fillValidForm()
     await userEvent.click(submitButton())
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'העגלה ריקה או שהמוצרים בה אינם זמינים עוד',
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(message)
+    expect(url()).toBe('/checkout')
+    expect(useCartStore.getState().items).toEqual([{ productId: 'PSU-1', quantity: 1 }])
   })
 })
 
-describe('valid checkout submission', () => {
-  it('places the demo order, shows the confirmation and empties the cart only', async () => {
+describe('placing the order', () => {
+  beforeEach(async () => {
     await signIn()
     useCartStore.getState().addItem('PSU-1')
     useCartStore.getState().addItem('GPU-1', 2)
     useFavoritesStore.getState().toggle('GPU-1')
+  })
+
+  it('places the order with the API, opens its page, and empties the cart only', async () => {
     renderApp('/checkout', catalog)
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
 
@@ -296,14 +342,16 @@ describe('valid checkout submission', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
     ).toBeInTheDocument()
-    expect(url()).toBe('/checkout/success')
-    expect(screen.getByText(/DEMO-\d{6}/)).toBeInTheDocument()
-    expect(screen.getByText(GOOD.email)).toBeInTheDocument()
+    const [stored] = api.orders()
+    expect(api.orders()).toHaveLength(1)
+    expect(url()).toBe(`/orders/${stored!.orderNumber}`)
+    expect(screen.getByText(stored!.orderNumber)).toBeInTheDocument()
 
-    // What was ordered, and amounts worked out from the catalog: 1,000 + 2 x 750.
+    // What was ordered, and the amounts, are the API's: 1,000 + 2 x 750.
     const lines = screen.getByRole('list', { name: 'המוצרים שהוזמנו' })
     expect(within(lines).getAllByRole('listitem')).toHaveLength(2)
     expect(total()).toHaveTextContent(/2,500/)
+    expect(stored).toMatchObject({ userId: expect.any(String), total: 2500, savings: 500 })
 
     // The cart is emptied; the favorites and the session are untouched.
     expect(useCartStore.getState().items).toEqual([])
@@ -311,23 +359,8 @@ describe('valid checkout submission', () => {
     expect(useAuthStore.getState().status).toBe('authenticated')
   })
 
-  it('says again that nothing was charged or stored', async () => {
-    await signIn()
-    useCartStore.getState().addItem('PSU-1')
-    renderApp('/checkout', catalog)
-    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
-
-    await fillValidForm()
-    await userEvent.click(submitButton())
-
-    expect(await screen.findByRole('complementary', { name: 'הערה' })).toHaveTextContent(
-      'לא בוצע חיוב',
-    )
-  })
-
-  it('does not store the order or the entered details anywhere', async () => {
-    await signIn()
-    useCartStore.getState().addItem('PSU-1')
+  it('sends the cart as ids and quantities, the delivery details, and the total that was shown', async () => {
+    const sent = watchOrderRequests()
     renderApp('/checkout', catalog)
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
 
@@ -335,15 +368,184 @@ describe('valid checkout submission', () => {
     await userEvent.click(submitButton())
     await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
 
-    const everything = JSON.stringify({ ...localStorage })
-    expect(everything).not.toContain('דיזנגוף')
-    expect(everything).not.toContain('050-1234567')
-    expect(everything).not.toContain('DEMO-')
+    expect(sent.bodies()).toEqual([
+      {
+        items: [
+          { productId: 'PSU-1', quantity: 1 },
+          { productId: 'GPU-1', quantity: 2 },
+        ],
+        delivery: {
+          fullName: GOOD.name,
+          email: GOOD.email,
+          phone: '050-1234567',
+          city: 'תל אביב',
+          street: 'דיזנגוף',
+          houseNumber: '12',
+          apartment: '',
+          postalCode: '',
+          notes: '',
+        },
+        expectedTotal: 2500,
+      },
+    ])
+    // The tick box is the visitor's, not part of the order.
+    expect(JSON.stringify(sent.bodies())).not.toContain('acceptDemo')
   })
 
-  it('offers the next steps from the confirmation', async () => {
-    await signIn()
-    useCartStore.getState().addItem('PSU-1')
+  it('sends an Idempotency-Key, and forgets it once the order exists', async () => {
+    const sent = watchOrderRequests()
+    renderApp('/checkout', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+
+    await fillValidForm()
+    await userEvent.click(submitButton())
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+
+    expect(sent.keys()).toHaveLength(1)
+    expect(sent.keys()[0]).toMatch(/^[0-9a-f-]{36}$/)
+    expect(localStorage.getItem('online-store:checkout-attempt')).toBeNull()
+  })
+
+  it('makes one order when the button is clicked twice', async () => {
+    const sent = watchOrderRequests()
+    renderApp('/checkout', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+
+    await fillValidForm()
+    await userEvent.dblClick(submitButton())
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+
+    expect(api.orders()).toHaveLength(1)
+    expect(new Set(sent.keys()).size).toBe(1)
+  })
+
+  it('retries with the same key after a failure, and makes one order', async () => {
+    const sent = watchOrderRequests('fail-first')
+    renderApp('/checkout', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+    await fillValidForm()
+
+    await userEvent.click(submitButton())
+    await screen.findByRole('alert')
+    await userEvent.click(submitButton())
+
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(sent.keys()).toHaveLength(2)
+    expect(sent.keys()[1]).toBe(sent.keys()[0])
+    expect(api.orders()).toHaveLength(1)
+  })
+
+  it('does not make a second order when the first one was placed but its answer was lost', async () => {
+    const sent = watchOrderRequests('lose-first-answer')
+    renderApp('/checkout', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+    await fillValidForm()
+
+    await userEvent.click(submitButton())
+    await screen.findByRole('alert')
+    expect(api.orders()).toHaveLength(1) // the API did place it, and the page does not know
+    await userEvent.click(submitButton())
+
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(sent.keys()[1]).toBe(sent.keys()[0])
+    expect(api.orders()).toHaveLength(1)
+    expect(url()).toBe(`/orders/${api.orders()[0]!.orderNumber}`)
+    expect(useCartStore.getState().items).toEqual([])
+  })
+
+  it('uses a key of its own for an order that is not the same', async () => {
+    const sent = watchOrderRequests('fail-first')
+    renderApp('/checkout', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+    await fillValidForm()
+    await userEvent.click(submitButton())
+    await screen.findByRole('alert')
+
+    useCartStore.getState().setQuantity('PSU-1', 3) // another order
+    await userEvent.click(submitButton())
+
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(sent.keys()[1]).not.toBe(sent.keys()[0])
+    expect(api.orders()).toHaveLength(1)
+  })
+
+  it('uses the price the API has, not the one the page showed, and says so first', async () => {
+    api.setCatalog([{ ...psu, price: { current: 1200 } }, gpu])
+    renderApp('/checkout', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+    expect(total()).toHaveTextContent(/2,500/)
+    await fillValidForm()
+
+    await userEvent.click(submitButton())
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('המחיר השתנה')
+    expect(alert).toHaveTextContent(/2,700/)
+    expect(api.orders()).toHaveLength(0)
+    expect(url()).toBe('/checkout')
+    expect(useCartStore.getState().items).toHaveLength(2)
+
+    // The visitor has seen the new total: ordering again accepts exactly that.
+    await userEvent.click(submitButton())
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(api.orders()).toHaveLength(1)
+    expect(api.orders()[0]!.total).toBe(2700)
+    expect(total()).toHaveTextContent(/2,700/)
+  })
+
+  it('refuses the order, names the product, and lets the visitor remove it from the cart', async () => {
+    api.setCatalog([psu]) // the API no longer has the graphics card
+    renderApp('/checkout', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+    await fillValidForm()
+
+    await userEvent.click(submitButton())
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('אינם זמינים עוד')
+    expect(alert).toHaveTextContent('כרטיס מסך')
+    expect(api.orders()).toHaveLength(0)
+    expect(useCartStore.getState().items).toHaveLength(2) // nothing was removed for them
+
+    await userEvent.click(within(alert).getByRole('button', { name: 'הסרה מהעגלה' }))
+
+    expect(useCartStore.getState().items).toEqual([{ productId: 'PSU-1', quantity: 1 }])
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    await userEvent.click(submitButton())
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(api.orders()[0]!.lines.map((line) => line.productId)).toEqual(['PSU-1'])
+  })
+
+  it('signs the visitor out, and sends them to log in again, when the API no longer knows the session', async () => {
+    renderApp('/checkout', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+    await fillValidForm()
+    api.endAllSessions() // ended elsewhere, a moment ago
+
+    await userEvent.click(submitButton())
+
+    await waitFor(() => expect(url()).toBe('/login'))
+    expect(useAuthStore.getState().status).toBe('anonymous')
+    expect(api.orders()).toHaveLength(0)
+    expect(useCartStore.getState().items).toHaveLength(2) // the cart is waiting after the login
+  })
+
+  it('says again that nothing was charged, and that the order is saved in the account', async () => {
+    renderApp('/checkout', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+
+    await fillValidForm()
+    await userEvent.click(submitButton())
+
+    // Wait for the order page first: until then the note on the screen is the checkout's own.
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    const note = screen.getByRole('complementary', { name: 'הערה' })
+    expect(note).toHaveTextContent('לא בוצע חיוב')
+    expect(note).toHaveTextContent('נשמרו בחשבון שלכם')
+    expect(note).not.toHaveTextContent('אינה נשמרת')
+  })
+
+  it('offers the next steps from the order page', async () => {
     renderApp('/checkout', catalog)
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
 
@@ -355,16 +557,6 @@ describe('valid checkout submission', () => {
       '/products',
     )
     expect(screen.getByRole('link', { name: 'לדף הבית' })).toHaveAttribute('href', '/')
-  })
-
-  it('shows an empty state instead of a confirmation when there was no order', async () => {
-    await signIn()
-    renderApp('/checkout/success', catalog)
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'אין הזמנה להצגה' }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'לדף הבית' })).toBeInTheDocument()
   })
 })
 

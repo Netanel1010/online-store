@@ -18,7 +18,7 @@ function good() {
     missing: headers({ 'cache-control': 'no-store' }),
     preflight: headers({
       'access-control-allow-methods': 'GET,HEAD,POST',
-      'access-control-allow-headers': 'Authorization,Content-Type',
+      'access-control-allow-headers': 'Authorization,Content-Type,Idempotency-Key',
       'access-control-max-age': '600',
     }),
   }
@@ -78,12 +78,19 @@ describe('hardeningProblems', () => {
   it('says when the preflight is not cached or refuses the Authorization header', () => {
     const answers = good()
     answers.preflight.delete('access-control-max-age')
-    answers.preflight.set('access-control-allow-headers', 'Content-Type')
+    answers.preflight.set('access-control-allow-headers', 'Content-Type,Idempotency-Key')
 
     expect(hardeningProblems(answers)).toEqual([
       expect.stringMatching(/Authorization/),
       expect.stringMatching(/Access-Control-Max-Age/),
     ])
+  })
+
+  it('says when the preflight refuses the Idempotency-Key header of an order', () => {
+    const answers = good()
+    answers.preflight.set('access-control-allow-headers', 'Authorization,Content-Type')
+
+    expect(hardeningProblems(answers)).toEqual([expect.stringMatching(/Idempotency-Key/)])
   })
 
   it('reports every problem of an API that has none of it (as the one deployed before this change)', () => {

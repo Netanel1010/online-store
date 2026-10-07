@@ -76,6 +76,10 @@ export function hardeningProblems({ product, missing, preflight, https }) {
     'the preflight does not allow the Authorization header',
   )
   need(
+    list(preflight.get('access-control-allow-headers')).includes('idempotency-key'),
+    'the preflight does not allow the Idempotency-Key header the site sends with an order',
+  )
+  need(
     Number(preflight.get('access-control-max-age')) >= 60,
     'the preflight answer is not cached (Access-Control-Max-Age)',
   )

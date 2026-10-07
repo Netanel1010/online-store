@@ -101,6 +101,8 @@ describe('CORS for authentication', () => {
     ['sign-out', 'POST', '/api/auth/logout', 'authorization'],
     ['the current user', 'GET', '/api/auth/me', 'authorization'],
     ['a later request with a token', 'GET', '/api/auth/me', 'authorization,content-type'],
+    ['placing an order', 'POST', '/api/orders', 'authorization,content-type,idempotency-key'],
+    ['reading an order', 'GET', '/api/orders/DEMO-7K2M9QX4', 'authorization'],
   ])(
     'lets a listed origin send %s, with an Authorization header',
     async (_name, method, path, headers) => {

@@ -158,8 +158,14 @@ describe('getRedirectTarget', () => {
 describe('isProtectedPath', () => {
   it('protects checkout and everything under it', () => {
     expect(isProtectedPath('/checkout')).toBe(true)
-    expect(isProtectedPath('/checkout/success')).toBe(true)
+    expect(isProtectedPath('/checkout/anything')).toBe(true)
     expect(isProtectedPath('/checkouts')).toBe(false)
     expect(isProtectedPath('/cart')).toBe(false)
+  })
+
+  it('protects the orders of the account', () => {
+    expect(isProtectedPath('/orders')).toBe(true)
+    expect(isProtectedPath('/orders/DEMO-7K2M9QX4')).toBe(true)
+    expect(isProtectedPath('/ordersx')).toBe(false)
   })
 })

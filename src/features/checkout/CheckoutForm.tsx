@@ -14,9 +14,14 @@ interface CheckoutFormProps {
   onSubmit: (values: CheckoutValues) => Promise<SubmitOutcome> | SubmitOutcome
   /** Shown just above the submit button, e.g. the total being confirmed. */
   totalNote?: ReactNode
+  /**
+   * A problem with the order that needs more than a line of text (for example an action to take),
+   * shown at the top of the form.
+   */
+  notice?: ReactNode
 }
 
-export function CheckoutForm({ defaultValues, onSubmit, totalNote }: CheckoutFormProps) {
+export function CheckoutForm({ defaultValues, onSubmit, totalNote, notice }: CheckoutFormProps) {
   const {
     register,
     handleSubmit,
@@ -46,6 +51,7 @@ export function CheckoutForm({ defaultValues, onSubmit, totalNote }: CheckoutFor
   return (
     <form onSubmit={submit} noValidate className="space-y-6">
       {errors.root?.message && <FormAlert>{errors.root.message}</FormAlert>}
+      {notice}
 
       <p className="text-sm text-muted">שדות חובה מסומנים בכוכבית (*).</p>
 
@@ -129,7 +135,7 @@ export function CheckoutForm({ defaultValues, onSubmit, totalNote }: CheckoutFor
       </fieldset>
 
       <CheckboxField
-        label="אני מבין/ה שזו הזמנת הדגמה: לא מתבצע חיוב, לא נשלח מוצר, והפרטים שהזנתי אינם נשמרים."
+        label="אני מבין/ה שזו הזמנת הדגמה: לא מתבצע חיוב ולא נשלח מוצר. ההזמנה ופרטי המשלוח שהזנתי נשמרים בחשבון שלי."
         error={errors.acceptDemo?.message}
         {...register('acceptDemo')}
       />

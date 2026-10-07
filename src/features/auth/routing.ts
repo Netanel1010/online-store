@@ -21,5 +21,10 @@ export function getRedirectTarget(state: unknown): string {
 
 /** Pages that need a signed-in visitor. */
 export function isProtectedPath(pathname: string): boolean {
-  return pathname === paths.checkout || pathname.startsWith(`${paths.checkout}/`)
+  return (
+    pathname === paths.checkout ||
+    pathname.startsWith(`${paths.checkout}/`) ||
+    pathname === '/orders' ||
+    pathname.startsWith('/orders/')
+  )
 }
