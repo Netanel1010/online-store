@@ -1,5 +1,5 @@
 import { fetchPolicy } from '@/lib/fetchWithRetry'
-import { fetchOrder, placeOrder, type PlaceOrderRequest } from './orderService'
+import { fetchOrder, fetchOrders, placeOrder, type PlaceOrderRequest } from './orderService'
 
 const API = 'http://localhost:3001'
 const TOKEN = 'T'.repeat(43)
@@ -278,5 +278,98 @@ describe('fetchOrder', () => {
     )
 
     await expect(fetchOrder(TOKEN, 'DEMO-7K2M9QX4', controller.signal)).rejects.toThrow()
+  })
+})
+
+describe('fetchOrders', () => {
+  const PAGE = { items: [ORDER], page: 1, limit: 20, total: 1, totalPages: 1 }
+
+  it("asks for a page of the account's orders, with the token as a Bearer token", async () => {
+    const fetchMock = stubFetch(() => json(PAGE, 200))
+
+    const outcome = await fetchOrders(TOKEN, 2)
+
+    expect(outcome).toEqual({
+      status: 'ok',
+      page: { items: [ORDER], page: 1, total: 1, totalPages: 1 },
+    })
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(url).toBe(`${API}/api/orders?page=2`)
+    expect(init?.headers).toEqual({ Authorization: `Bearer ${TOKEN}` })
+    expect(init?.method).toBeUndefined()
+  })
+
+  it('keeps the orders in the order the API gave them', async () => {
+    const older = { ...ORDER, orderNumber: 'DEMO-AAAAAAAA' }
+    stubFetch(() => json({ ...PAGE, items: [ORDER, older] }, 200))
+
+    const outcome = await fetchOrders(TOKEN, 1)
+
+    expect(outcome.status === 'ok' && outcome.page.items.map((order) => order.orderNumber)).toEqual(
+      [ORDER.orderNumber, 'DEMO-AAAAAAAA'],
+    )
+  })
+
+  it('reads an empty page', async () => {
+    stubFetch(() => json({ items: [], page: 1, limit: 20, total: 0, totalPages: 0 }, 200))
+
+    expect(await fetchOrders(TOKEN, 1)).toEqual({
+      status: 'ok',
+      page: { items: [], page: 1, total: 0, totalPages: 0 },
+    })
+  })
+
+  it.each([
+    [401, 'unauthorized'],
+    [500, 'unavailable'],
+    [503, 'unavailable'],
+    [404, 'unavailable'],
+  ])('says %i is "%s"', async (code, status) => {
+    stubFetch(() => json({ error: { code: 'x', message: 'x' } }, code))
+
+    expect(await fetchOrders(TOKEN, 1)).toEqual({ status })
+  })
+
+  it.each([
+    ['a page of an unexpected shape', () => json({ items: 'none' }, 200)],
+    [
+      'an order of an unexpected shape',
+      () => json({ ...PAGE, items: [{ orderNumber: 'DEMO-1' }] }, 200),
+    ],
+    ['an answer that is not JSON', () => new Response('<html>', { status: 200 })],
+  ])('says "unavailable" for %s, not that there are no orders', async (_name, answer) => {
+    stubFetch(answer)
+
+    expect(await fetchOrders(TOKEN, 1)).toEqual({ status: 'unavailable' })
+  })
+
+  it('says "unavailable", and does not throw, when the API cannot be reached', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network down')))
+
+    expect(await fetchOrders(TOKEN, 1)).toEqual({ status: 'unavailable' })
+  })
+
+  it('repeats a read that fails because the host is waking up', async () => {
+    fetchPolicy.delaysMs = [1]
+    const fetchMock = stubFetch(
+      () => json({}, 503),
+      () => json(PAGE, 200),
+    )
+
+    expect((await fetchOrders(TOKEN, 1)).status).toBe('ok')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('throws when the page cancels the request, as nobody is waiting for the answer', async () => {
+    const controller = new AbortController()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        controller.abort()
+        return Promise.reject(new DOMException('aborted', 'AbortError'))
+      }),
+    )
+
+    await expect(fetchOrders(TOKEN, 1, controller.signal)).rejects.toThrow()
   })
 })

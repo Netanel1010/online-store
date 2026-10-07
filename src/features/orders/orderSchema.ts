@@ -35,5 +35,14 @@ export const orderSchema = z.object({
   }),
 })
 
+/** One page of the account's orders, the newest first (the API's page shape, as the products have). */
+export const orderPageSchema = z.object({
+  items: z.array(orderSchema),
+  page: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  totalPages: z.number().int().nonnegative(),
+})
+
+export type OrderPage = z.infer<typeof orderPageSchema>
 export type Order = z.infer<typeof orderSchema>
 export type OrderLine = Order['lines'][number]

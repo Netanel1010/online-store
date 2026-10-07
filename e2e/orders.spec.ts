@@ -5,6 +5,7 @@ import {
   cartLink,
   expectSignedIn,
   fillDeliveryForm,
+  header,
   newAccount,
   register,
   summaryTotal,
@@ -224,5 +225,59 @@ test.describe('what the API refuses', () => {
     await order(page).click()
     await confirmed(page)
     expect((await accountOrders(page)).total).toBe(1)
+  })
+})
+
+test.describe('the orders of the account', () => {
+  test('lists them newest first from the menu, and opens one', async ({ page }) => {
+    await checkoutWithOneProduct(page)
+    await order(page).click()
+    await confirmed(page)
+    const first = ORDER_URL.exec(page.url())![1]!
+
+    // A second order, of two units, so that the two can be told apart.
+    await addToCartFromProductPage(page, PSU)
+    await addToCartFromProductPage(page, PSU)
+    await page.goto('checkout')
+    await fillDeliveryForm(page)
+    await order(page).click()
+    await confirmed(page)
+    const second = ORDER_URL.exec(page.url())![1]!
+    expect(second).not.toBe(first)
+
+    await header(page).getByRole('link', { name: 'ההזמנות שלי' }).click()
+
+    await expect(page).toHaveURL(/\/online-store\/orders$/)
+    await expect(page.getByRole('heading', { level: 1, name: 'ההזמנות שלי' })).toBeVisible()
+    const cards = page.getByRole('list', { name: 'ההזמנות שלי' }).getByRole('listitem')
+    await expect(cards).toHaveCount(2)
+    await expect(cards.nth(0).getByRole('heading')).toHaveText(second)
+    await expect(cards.nth(0)).toContainText((2 * PSU.price.current).toLocaleString('en-US'))
+    await expect(cards.nth(1).getByRole('heading')).toHaveText(first)
+    await expect(cards.nth(1)).toContainText('פריט אחד')
+
+    await cards
+      .nth(1)
+      .getByRole('link', { name: /לפרטי ההזמנה/ })
+      .click()
+    await expect(page).toHaveURL(new RegExp(`/online-store/orders/${first}$`))
+    await expect(page.getByRole('heading', { level: 1, name: 'פרטי הזמנה' })).toBeVisible()
+    await expect.poll(() => summaryTotal(page)).toBe(PSU.price.current)
+  })
+
+  test('says there are no orders yet for a new account', async ({ page }) => {
+    await register(page, newAccount())
+    await expectSignedIn(page)
+
+    await page.goto('orders')
+
+    await expect(page.getByRole('heading', { name: 'עדיין אין לכם הזמנות' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'לכל המוצרים' })).toBeVisible()
+  })
+
+  test('is for signed-in visitors only', async ({ page }) => {
+    await page.goto('orders')
+
+    await expect(page).toHaveURL(/\/online-store\/login$/)
   })
 })

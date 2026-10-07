@@ -98,6 +98,17 @@ export function AccountMenu({ variant }: { variant: 'header' | 'drawer' }) {
       <p className={`px-3 text-sm text-muted ${variant === 'header' ? 'hidden lg:block' : 'py-2'}`}>
         שלום, <bdi className="font-semibold text-ink">{user.name}</bdi>
       </p>
+      {/* In the header there is room for this link only on wide screens; the menu always has it. */}
+      <NavLink
+        to={paths.orders}
+        className={({ isActive }) =>
+          variant === 'header'
+            ? accountLinkClass({ isActive }).replace('inline-flex', 'hidden xl:inline-flex')
+            : accountLinkClass({ isActive })
+        }
+      >
+        <span className={variant === 'drawer' ? 'ps-7' : ''}>ההזמנות שלי</span>
+      </NavLink>
       <button type="button" aria-label="התנתקות" onClick={() => signOut()} className={buttonClass}>
         <LogoutIcon />
         <span className={labelClass}>התנתקות</span>
