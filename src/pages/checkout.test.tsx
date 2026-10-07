@@ -1,6 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useAuthStore } from '@/features/auth/authStore'
+import { setServerLine } from '@/features/cart/cartService'
 import { useCartStore } from '@/features/cart/cartStore'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 import { makeProduct } from '@/test/fixtures'
@@ -31,6 +32,9 @@ const box = (name: string) => screen.getByRole('textbox', { name })
 const submitButton = () => screen.getByRole('button', { name: 'אישור הזמנה (הדגמה)' })
 
 const signIn = () => useAuthStore.getState().register(GOOD)
+
+/** How many lines the API holds in the cart of the (only) account: the cart is sent as it is changed. */
+const savedCartLines = () => [...api.carts().values()][0]?.items.length ?? 0
 
 async function fillValidForm({ phone = '050-1234567' } = {}) {
   await userEvent.type(box('טלפון'), phone)
@@ -149,6 +153,30 @@ describe('checkout with an empty cart', () => {
     expect(screen.getByRole('link', { name: 'לכל המוצרים' })).toHaveAttribute('href', '/products')
     expect(screen.queryByRole('button', { name: 'אישור הזמנה (הדגמה)' })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: 'טלפון' })).not.toBeInTheDocument()
+  })
+
+  it('waits for the cart of the account, on a browser that has none, before saying the cart is empty', async () => {
+    await signIn()
+    await setServerLine(useAuthStore.getState().token!, 'PSU-1', 1)
+    let answer: () => void = () => undefined
+    const slow = new Promise<void>((resolve) => {
+      answer = resolve
+    })
+    const inner = globalThis.fetch
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('/api/cart') && init?.method === undefined) await slow
+      return inner(input, init)
+    })
+
+    const { fetchProducts } = renderApp('/checkout', catalog)
+    await waitFor(() => expect(fetchProducts).toHaveBeenCalled())
+    await act(async () => {})
+    expect(screen.queryByText('העגלה ריקה')).not.toBeInTheDocument()
+
+    answer()
+
+    expect(await screen.findByRole('textbox', { name: 'טלפון' })).toBeInTheDocument()
+    expect(screen.queryByText('העגלה ריקה')).not.toBeInTheDocument()
   })
 
   it('treats a cart of products that no longer exist as empty', async () => {
@@ -494,10 +522,11 @@ describe('placing the order', () => {
   })
 
   it('refuses the order, names the product, and lets the visitor remove it from the cart', async () => {
-    api.setCatalog([psu]) // the API no longer has the graphics card
     renderApp('/checkout', catalog)
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
     await fillValidForm()
+    await waitFor(() => expect(savedCartLines()).toBe(2)) // the account's cart has both
+    api.setCatalog([psu]) // and then the API no longer has the graphics card
 
     await userEvent.click(submitButton())
 
@@ -520,6 +549,7 @@ describe('placing the order', () => {
     renderApp('/checkout', catalog)
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
     await fillValidForm()
+    await waitFor(() => expect(savedCartLines()).toBe(2))
     api.endAllSessions() // ended elsewhere, a moment ago
 
     await userEvent.click(submitButton())
@@ -527,7 +557,11 @@ describe('placing the order', () => {
     await waitFor(() => expect(url()).toBe('/login'))
     expect(useAuthStore.getState().status).toBe('anonymous')
     expect(api.orders()).toHaveLength(0)
-    expect(useCartStore.getState().items).toHaveLength(2) // the cart is waiting after the login
+    // Nobody is signed in, so this browser holds no cart; the account keeps it, and it comes back with the login.
+    expect(useCartStore.getState().items).toHaveLength(0)
+    expect(savedCartLines()).toBe(2)
+    await useAuthStore.getState().login({ email: GOOD.email, password: GOOD.password })
+    await waitFor(() => expect(useCartStore.getState().items).toHaveLength(2))
   })
 
   it('says again that nothing was charged, and that the order is saved in the account', async () => {

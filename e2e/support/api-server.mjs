@@ -1,4 +1,4 @@
-// The API for the E2E tests (products, authentication and orders), without a database.
+// The API for the E2E tests (products, authentication, orders and carts), without a database.
 //
 // It is the real API code (routes, service, validation, paging, hashing, sessions, error format)
 // over the in-memory repositories the server's own tests use. The products are the same catalog
@@ -16,6 +16,8 @@ import { createLoginThrottle } from '../../server/src/auth/throttle.ts'
 import { createConcurrencyGate } from '../../server/src/lib/concurrencyGate.ts'
 import { errorHandler } from '../../server/src/middleware/errorHandler.ts'
 import { notFound } from '../../server/src/middleware/notFound.ts'
+import { createCartRouter, NO_CART_RATE_LIMITS } from '../../server/src/cart/routes.ts'
+import { createCartService } from '../../server/src/cart/service.ts'
 import { createOrdersRouter, NO_ORDER_RATE_LIMITS } from '../../server/src/orders/routes.ts'
 import { createOrderService } from '../../server/src/orders/service.ts'
 import { createProductsRouter } from '../../server/src/products/routes.ts'
@@ -25,6 +27,7 @@ import {
   createMemorySessionRepository,
   createMemoryUserRepository,
 } from '../../server/src/testing/memoryAuthRepositories.ts'
+import { createMemoryCartRepository } from '../../server/src/testing/memoryCartRepository.ts'
 import { createMemoryOrderRepository } from '../../server/src/testing/memoryOrderRepository.ts'
 import { createMemoryProductRepository } from '../../server/src/testing/memoryProductRepository.ts'
 
@@ -60,6 +63,16 @@ app.use(
     }),
     createRequireAuth(auth),
     NO_ORDER_RATE_LIMITS,
+  ),
+)
+// The cart of an account, kept in memory like everything here: it survives a reload and a new sign-in
+// (the tests run against one API process), and no cart is visible to another test's account.
+app.use(
+  '/api/cart',
+  createCartRouter(
+    createCartService({ carts: createMemoryCartRepository().repository, products: repository }),
+    createRequireAuth(auth),
+    NO_CART_RATE_LIMITS,
   ),
 )
 app.use(notFound)

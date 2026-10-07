@@ -29,6 +29,9 @@ function clampQuantity(quantity: number) {
 /**
  * Only product ids and quantities are persisted. Names, images and prices are always read from
  * the catalog, so a cart can never show a stale price.
+ *
+ * This is the cart the pages read and change, kept in this browser. For a signed-in visitor it is
+ * mirrored to the account's cart on the API (see `cartSync.ts`), which this store knows nothing about.
  */
 const persistedCartSchema = z.object({
   items: z.array(

@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/shared/Skeleton'
 import { buttonStyles } from '@/components/ui/buttonStyles'
 import { useAuthStatus, useCurrentUser } from '@/features/auth/authStore'
 import { useCartStore } from '@/features/cart/cartStore'
+import { useCartIsLoading } from '@/features/cart/cartSyncStatus'
 import { CartLineItem } from '@/features/cart/CartLineItem'
 import { OrderSummary } from '@/features/cart/OrderSummary'
 import { buildCartLines, summarizeCart } from '@/features/cart/summary'
@@ -33,6 +34,7 @@ export function CartPage() {
   const user = useCurrentUser()
   const authStatus = useAuthStatus()
   const items = useCartStore((state) => state.items)
+  const waitingForCart = useCartIsLoading()
   const removeItem = useCartStore((state) => state.removeItem)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const [removedMessage, setRemovedMessage] = useState('')
@@ -53,6 +55,7 @@ export function CartPage() {
         {(products) => {
           const lines = buildCartLines(items, products)
 
+          if (lines.length === 0 && waitingForCart) return <CartSkeleton />
           if (lines.length === 0) {
             return (
               <EmptyState

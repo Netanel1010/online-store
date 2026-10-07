@@ -315,18 +315,22 @@ test.describe('authentication', () => {
     await expect(page).toHaveURL(home)
   })
 
-  test('keeps the cart and favorites when signing in and out', async ({ page }) => {
+  test('keeps the cart and favorites when signing in, and empties only the cart when signing out', async ({
+    page,
+  }) => {
+    const account = newAccount()
     await addToCartFromProductPage(page, PSU)
     await page.getByRole('button', { name: `מועדפים: ${PSU.name}` }).click()
     await expect(favoritesLink(page)).toHaveAccessibleName('מועדפים, 1 פריטים')
 
-    await register(page, newAccount())
+    await register(page, account)
     await expectSignedIn(page)
     await expect(cartLink(page)).toHaveAccessibleName('עגלת קניות, 1 פריטים')
 
     await signOut(page)
 
-    await expect(cartLink(page)).toHaveAccessibleName('עגלת קניות, 1 פריטים')
+    // The cart belongs to the account, which keeps it; the favorites belong to this browser.
+    await expect(cartLink(page)).toHaveAccessibleName('עגלת קניות')
     await expect(favoritesLink(page)).toHaveAccessibleName('מועדפים, 1 פריטים')
   })
 })

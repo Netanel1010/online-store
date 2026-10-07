@@ -64,13 +64,10 @@ export function hardeningProblems({ product, missing, preflight, https }) {
 
   const methods = list(preflight.get('access-control-allow-methods'))
   need(
-    methods.includes('post') && methods.includes('get'),
-    'the preflight does not allow the GET and POST the site uses',
+    ['get', 'post', 'put', 'delete'].every((method) => methods.includes(method)),
+    'the preflight does not allow the GET, POST, PUT and DELETE the site uses',
   )
-  need(
-    !methods.some((method) => ['put', 'patch', 'delete'].includes(method)),
-    'the preflight allows PUT, PATCH or DELETE, which the site never uses',
-  )
+  need(!methods.includes('patch'), 'the preflight allows PATCH, which the site never uses')
   need(
     list(preflight.get('access-control-allow-headers')).includes('authorization'),
     'the preflight does not allow the Authorization header',

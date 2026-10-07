@@ -103,6 +103,11 @@ describe('CORS for authentication', () => {
     ['a later request with a token', 'GET', '/api/auth/me', 'authorization,content-type'],
     ['placing an order', 'POST', '/api/orders', 'authorization,content-type,idempotency-key'],
     ['reading an order', 'GET', '/api/orders/DEMO-7K2M9QX4', 'authorization'],
+    ['reading the cart', 'GET', '/api/cart', 'authorization'],
+    ['adding to the cart', 'POST', '/api/cart/items', 'authorization,content-type'],
+    ['setting a quantity', 'PUT', '/api/cart/items/GV-N4060', 'authorization,content-type'],
+    ['removing a line', 'DELETE', '/api/cart/items/GV-N4060', 'authorization'],
+    ['emptying the cart', 'DELETE', '/api/cart', 'authorization'],
   ])(
     'lets a listed origin send %s, with an Authorization header',
     async (_name, method, path, headers) => {

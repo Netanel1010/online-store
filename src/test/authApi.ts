@@ -6,6 +6,8 @@ import { createLoginThrottle } from '../../server/src/auth/throttle'
 import { createConcurrencyGate } from '../../server/src/lib/concurrencyGate'
 import { errorHandler } from '../../server/src/middleware/errorHandler'
 import { notFound } from '../../server/src/middleware/notFound'
+import { createCartRouter, NO_CART_RATE_LIMITS } from '../../server/src/cart/routes'
+import { createCartService } from '../../server/src/cart/service'
 import { createOrdersRouter, NO_ORDER_RATE_LIMITS } from '../../server/src/orders/routes'
 import { createOrderService } from '../../server/src/orders/service'
 import { listen } from '../../server/src/testing/listen'
@@ -13,6 +15,7 @@ import {
   createMemorySessionRepository,
   createMemoryUserRepository,
 } from '../../server/src/testing/memoryAuthRepositories'
+import { createMemoryCartRepository } from '../../server/src/testing/memoryCartRepository'
 import { createMemoryOrderRepository } from '../../server/src/testing/memoryOrderRepository'
 import { createMemoryProductRepository } from '../../server/src/testing/memoryProductRepository'
 import type { Product } from '@/features/products/schema'
@@ -22,13 +25,14 @@ import express from 'express'
 const API_BASE = 'http://localhost:3001'
 
 /**
- * The authentication and orders API for the UI tests: the real API code (routes, validation, the
- * password hashing, sessions, the middleware, the order pricing and idempotency, the error handling)
- * over accounts, sessions, orders and products kept in memory, listening on a free port. The storefront's own requests reach it, so these tests
+ * The authentication, orders and cart API for the UI tests: the real API code (routes, validation, the
+ * password hashing, sessions, the middleware, the order pricing and idempotency, the cart changes, the
+ * error handling) over accounts, sessions, orders, carts and products kept in memory, listening on a free port. The storefront's own requests reach it, so these tests
  * exercise what the page sends and what comes back for real, not a script.
  *
- * Call it once at the top of a test file. Every test starts with no accounts, no sessions, no orders
- * and an empty catalog (`setCatalog` gives the API the products that orders are priced from).
+ * Call it once at the top of a test file. Every test starts with no accounts, no sessions, no orders,
+ * no carts and an empty catalog (`setCatalog` gives the API the products that orders are priced from
+ * and that can be put in a cart).
  */
 export function setUpAuthApi() {
   const realFetch = globalThis.fetch
@@ -39,6 +43,8 @@ export function setUpAuthApi() {
   let orders = createMemoryOrderRepository()
   let catalog = createMemoryProductRepository()
   let orderService = buildOrders()
+  let carts = createMemoryCartRepository()
+  let cartService = buildCarts()
 
   function build() {
     return createAuthService({
@@ -51,6 +57,10 @@ export function setUpAuthApi() {
 
   function buildOrders() {
     return createOrderService({ orders: orders.repository, products: catalog.repository })
+  }
+
+  function buildCarts() {
+    return createCartService({ carts: carts.repository, products: catalog.repository })
   }
 
   const app = express()
@@ -80,6 +90,21 @@ export function setUpAuthApi() {
       NO_ORDER_RATE_LIMITS,
     ),
   )
+  app.use(
+    '/api/cart',
+    createCartRouter(
+      {
+        get: (userId) => cartService.get(userId),
+        add: (userId, input) => cartService.add(userId, input),
+        setQuantity: (userId, productId, quantity) =>
+          cartService.setQuantity(userId, productId, quantity),
+        remove: (userId, productId) => cartService.remove(userId, productId),
+        clear: (userId) => cartService.clear(userId),
+      },
+      createRequireAuth({ authenticate: (token) => service.authenticate(token) }),
+      NO_CART_RATE_LIMITS,
+    ),
+  )
   app.use(notFound)
   app.use(errorHandler({ error: () => {} }))
 
@@ -95,6 +120,8 @@ export function setUpAuthApi() {
     orders = createMemoryOrderRepository()
     catalog = createMemoryProductRepository()
     orderService = buildOrders()
+    carts = createMemoryCartRepository()
+    cartService = buildCarts()
     vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input).replace(API_BASE, server.url)
       return realFetch(url, init)
@@ -113,8 +140,11 @@ export function setUpAuthApi() {
     setCatalog: (products: readonly Product[]) => {
       catalog = createMemoryProductRepository(products)
       orderService = buildOrders()
+      cartService = buildCarts()
     },
     /** The orders the API has stored, in the order they were placed. */
     orders: () => orders.stored,
+    /** The carts the API has stored, by account id. */
+    carts: () => carts.stored,
   }
 }

@@ -17,7 +17,7 @@ function good() {
     }),
     missing: headers({ 'cache-control': 'no-store' }),
     preflight: headers({
-      'access-control-allow-methods': 'GET,HEAD,POST',
+      'access-control-allow-methods': 'GET,HEAD,POST,PUT,DELETE',
       'access-control-allow-headers': 'Authorization,Content-Type,Idempotency-Key',
       'access-control-max-age': '600',
     }),
@@ -69,10 +69,10 @@ describe('hardeningProblems', () => {
     const tooMany = good()
     tooMany.preflight.set('access-control-allow-methods', 'GET,HEAD,PUT,PATCH,POST,DELETE')
     const tooFew = good()
-    tooFew.preflight.set('access-control-allow-methods', 'GET')
+    tooFew.preflight.set('access-control-allow-methods', 'GET,HEAD,POST')
 
-    expect(hardeningProblems(tooMany)).toEqual([expect.stringMatching(/PUT, PATCH or DELETE/)])
-    expect(hardeningProblems(tooFew)).toEqual([expect.stringMatching(/GET and POST/)])
+    expect(hardeningProblems(tooMany)).toEqual([expect.stringMatching(/allows PATCH/)])
+    expect(hardeningProblems(tooFew)).toEqual([expect.stringMatching(/GET, POST, PUT and DELETE/)])
   })
 
   it('says when the preflight is not cached or refuses the Authorization header', () => {
