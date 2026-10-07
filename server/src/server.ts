@@ -1,6 +1,7 @@
 import { createApp } from './app.ts'
 import { createSessionRepository } from './auth/sessionRepository.ts'
 import { createUserRepository } from './auth/userRepository.ts'
+import { createCartRepository } from './cart/repository.ts'
 import { loadConfig } from './config.ts'
 import { createDatabase, type Database } from './db/database.ts'
 import { createJsonLogger } from './lib/logger.ts'
@@ -33,6 +34,8 @@ async function start() {
     await createSessionRepository(database).ensureIndexes()
     // The unique order number, the unique idempotency key of an account, and the list of its orders.
     await createOrderRepository(database).ensureIndexes()
+    // The unique cart of an account.
+    await createCartRepository(database).ensureIndexes()
   } else {
     logger.warn?.('MONGODB_URI is not set: running without a database')
   }
