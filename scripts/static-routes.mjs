@@ -13,10 +13,16 @@
 //   dist/sitemap.xml                 the pages above
 //
 // The tags come from src/lib/seo.ts, the same code the app uses while the visitor navigates.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+//
+// The products are those of public/data/products.json, the one source of the catalog: the seed copies
+// the same file to MongoDB, which is what the app reads while it runs (`npm run check:api` reports a
+// difference between the two). The file is not published with the site: nothing reads it at run time,
+// so it is taken out of dist/ once the pages are written, and there is no second copy to drift.
+import { existsSync, mkdirSync, readFileSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { findCategory } from '../src/features/products/categories.ts'
+import { productsSchema } from '../src/features/products/schema.ts'
 import {
   categoryMeta,
   homeMeta,
@@ -48,7 +54,14 @@ function writePage(path, meta) {
   writeFileSync(file, withTags(meta))
 }
 
-const products = JSON.parse(readFileSync(join(dist, 'data', 'products.json'), 'utf8'))
+// The same check the seed makes: a page is only written for a product that is valid.
+const source = fileURLToPath(new URL('../public/data/products.json', import.meta.url))
+const parsed = productsSchema.safeParse(JSON.parse(readFileSync(source, 'utf8')))
+if (!parsed.success) {
+  console.error('public/data/products.json is not a valid catalog:', parsed.error.message)
+  process.exit(1)
+}
+const products = parsed.data
 const pages = [
   { path: '', meta: homeMeta() },
   { path: 'products', meta: productsMeta() },
@@ -76,5 +89,14 @@ writeFileSync(
   join(dist, 'sitemap.xml'),
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
 )
+
+// Vite copied public/ to dist/. The catalog is read from the API, so the file is not served.
+const published = join(dist, 'data', 'products.json')
+if (existsSync(published)) unlinkSync(published)
+try {
+  rmdirSync(join(dist, 'data'))
+} catch {
+  // Something else is in public/data: it stays.
+}
 
 console.log(`Wrote ${pages.length} static pages, dist/404.html and dist/sitemap.xml`)

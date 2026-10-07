@@ -47,7 +47,7 @@ Browser ── GitHub Pages (React site) ──► Render (Express API) ──�
 
 The products, search, category and filtered pages ask `GET /api/products` for the products that match what the visitor typed, ticked and sorted (and for the filter options with their counts), and a product page asks `GET /api/products/:id`. The API does the searching, filtering, sorting and paging in MongoDB.
 
-The site still loads the whole catalog once (`GET /api/products`, following the pagination) for what needs every product: the cart, favorites and checkout, the sale and recommended products of the home page, the category links with their counts, and the suggestions under the search box.
+The site never loads the whole catalog. Every page asks the API only for what it shows: the cart, the favorites, the checkout and an order ask for their products by id (`GET /api/products?ids=…`), the home page for its sale and recommended products (`?sale=true`, `?recommended=true`), the product pages for the category counts of their links (`GET /api/categories`), and the search box for the first five products of the search it is typing (`?q=…&limit=5`).
 
 A signed-in visitor also talks to the API for two more things, always with their session token (`Authorization: Bearer`):
 
@@ -105,7 +105,7 @@ This is a **portfolio application**. The product catalog, the accounts, the cart
 
 - Product catalog of **31 products**, stored in MongoDB and served by the Products API
 - A read-only product API: `GET /api/products` (paginated, with search, category, brand, specification and sort parameters), `GET /api/products/:id`, `GET /api/health` and `GET /api/health/ready`
-- A seed command that copies [`public/data/products.json`](public/data/products.json) to MongoDB
+- A seed command that copies [`public/data/products.json`](public/data/products.json) to MongoDB. That file is the one source of the catalog: the build writes the static pages, the sitemap and the structured data of the products from it too, and `npm run check:api` reports any difference between it and what the API serves
 - Zod validation of every product the site receives and every product the API reads
 - Limits on the routes that change data: sign-in and registration, placing orders and changing a cart (see [`server/README.md`](server/README.md))
 - Authentication in the API: registration, sign-in, sign-out and "who am I", with scrypt-hashed passwords and revocable sessions (see [`server/README.md`](server/README.md#authentication)); the checkout pages need a signed-in visitor
@@ -121,7 +121,7 @@ This is a **portfolio application**. The product catalog, the accounts, the cart
 
 | Limitation                  | Details                                                                                                                                               |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🔍 **Listings Only**        | The API searches, filters and sorts the product listings. The header's search suggestions, and the cart, favorites and home sections, still work on the whole catalog loaded in the browser |
+| 🔍 **Suggestions Wait**     | The search suggestions come from the API a moment after the typing pauses, so they are not instant, and a visitor who presses Enter before they arrive searches instead of opening a suggestion |
 | ✏️ **Read-Only Catalog**    | The API cannot create, update or delete products. Changes to the catalog go through `products.json` and the seed command                                |
 | 🔐 **No Roles**             | There is one kind of account. There are no administrators, no password reset, no email confirmation and no account page                                  |
 | ❤️ **Favorites in the Browser** | Favorites are stored in the browser, not in the account                                                                                            |

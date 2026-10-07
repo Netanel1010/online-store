@@ -7,7 +7,7 @@ import { notFound } from '../middleware/notFound.ts'
 import { createMemoryProductRepository } from '../testing/memoryProductRepository.ts'
 import { listen } from '../testing/listen.ts'
 import { readSourceCatalog } from '../testing/products.ts'
-import { createProductsRouter, PRODUCT_CACHE_CONTROL } from './routes.ts'
+import { createCategoriesRouter, createProductsRouter, PRODUCT_CACHE_CONTROL } from './routes.ts'
 import { validateCatalog } from './seed.ts'
 import { createProductService } from './service.ts'
 import type { Product, ProductPage } from './types.ts'
@@ -193,6 +193,99 @@ describe('GET /api/products/:id', () => {
   })
 })
 
+describe('GET /api/products: a lookup by id, the sale and the recommended products', () => {
+  const some = [catalog[0]!.id, catalog[5]!.id, catalog[9]!.id]
+
+  it('answers with exactly the products asked for, in one page', async () => {
+    const page = await pageOf(`?ids=${some.join(',')}&limit=100`)
+
+    expect(page.items.map((product) => product.id).sort()).toEqual([...some].sort())
+    expect(page).toMatchObject({ total: 3, totalPages: 1 })
+  })
+
+  it('leaves out an id that has no product instead of failing', async () => {
+    const page = await pageOf(`?ids=${some[0]},NO-SUCH-PRODUCT`)
+
+    expect(page.items.map((product) => product.id)).toEqual([some[0]])
+  })
+
+  it('refuses an empty list rather than answering with the whole catalog', async () => {
+    for (const path of ['?ids=', '?ids=,', '?ids=A-1,,B-2']) {
+      const { status, body } = await errorOf(path)
+
+      expect(status, path).toBe(400)
+      expect(body.error.code, path).toBe('invalid_query')
+    }
+  })
+
+  it('refuses more ids than a page holds, and an id that is not one', async () => {
+    const many = Array.from({ length: 101 }, (_, i) => `P-${i}`).join(',')
+
+    expect((await errorOf(`?ids=${many}`)).status).toBe(400)
+    expect((await errorOf('?ids=a%20b')).status).toBe(400)
+  })
+
+  it('lists the sale products and the recommended products', async () => {
+    const sale = await pageOf('?sale=true&limit=100')
+    const recommended = await pageOf('?recommended=true&limit=100')
+
+    expect(sale.items.map((product) => product.id).sort()).toEqual(
+      catalog
+        .filter((product) => product.price.original !== undefined)
+        .map((product) => product.id)
+        .sort(),
+    )
+    expect(recommended.items.map((product) => product.id).sort()).toEqual(
+      catalog
+        .filter((product) => product.isRecommended)
+        .map((product) => product.id)
+        .sort(),
+    )
+    expect(sale.total).toBeGreaterThan(0)
+    expect(recommended.total).toBeGreaterThan(0)
+  })
+
+  it('lets a browser keep these answers like any listing', async () => {
+    for (const path of [`?ids=${some[0]}`, '?sale=true', '?recommended=true']) {
+      expect((await get(path)).headers.get('cache-control'), path).toBe(PRODUCT_CACHE_CONTROL)
+    }
+  })
+})
+
+describe('GET /api/categories', () => {
+  const categoryApp = express()
+  categoryApp.use(
+    '/api/categories',
+    createCategoriesRouter(createProductService(createMemoryProductRepository(catalog).repository)),
+  )
+  categoryApp.use(notFound)
+  categoryApp.use(errorHandler(logger))
+  let categories: Awaited<ReturnType<typeof listen>>
+  beforeAll(async () => {
+    categories = await listen(categoryApp)
+  })
+  afterAll(() => categories.close())
+
+  it('counts the products of each category, over the whole catalog', async () => {
+    const response = await fetch(`${categories.url}/api/categories`)
+    const body = (await response.json()) as { items: { id: string; count: number }[] }
+
+    expect(response.status).toBe(200)
+    expect(body.items.reduce((sum, entry) => sum + entry.count, 0)).toBe(catalog.length)
+    for (const { id, count } of body.items) {
+      expect(count, id).toBe(catalog.filter((product) => product.category === id).length)
+    }
+    expect(response.headers.get('cache-control')).toBe(PRODUCT_CACHE_CONTROL)
+  })
+
+  it('is read only', async () => {
+    for (const method of ['POST', 'PUT', 'DELETE']) {
+      const response = await fetch(`${categories.url}/api/categories`, { method })
+      expect(response.status, method).toBe(404)
+    }
+  })
+})
+
 describe('what a browser may keep', () => {
   it('lets a browser keep a listing and a product, and show them again while it asks anew', async () => {
     for (const path of ['', '?q=intel&facets=true', `/${sortedIds[0]}`]) {
@@ -331,9 +424,11 @@ describe('through the application', () => {
   it('says a database is needed when none is configured, instead of a 404', async () => {
     const list = await fetch(`${withoutDatabase.url}/api/products`)
     const one = await fetch(`${withoutDatabase.url}/api/products/A-1`)
+    const counts = await fetch(`${withoutDatabase.url}/api/categories`)
 
     expect(list.status).toBe(503)
     expect(one.status).toBe(503)
+    expect(counts.status).toBe(503)
     expect(await list.json()).toEqual({
       error: {
         code: 'database_not_configured',

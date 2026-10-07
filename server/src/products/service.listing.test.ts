@@ -495,3 +495,99 @@ describe('the filter options (facets)', () => {
     expect(facets).toEqual({ brands: [], specs: [] })
   })
 })
+
+describe('ProductService.list: a lookup, the sale and the recommended products', () => {
+  const sale = makeProduct({
+    id: 'SALE-1',
+    name: 'On sale',
+    brand: 'amd',
+    category: 'gpu',
+    price: { current: 700, original: 900 },
+    isRecommended: false,
+  })
+  const pick = makeProduct({
+    id: 'PICK-1',
+    name: 'Our pick',
+    category: 'gpu',
+    price: { current: 800 },
+    isRecommended: true,
+  })
+  const both = makeProduct({
+    id: 'BOTH-1',
+    name: 'Both',
+    brand: 'intel',
+    category: 'cpu',
+    price: { current: 500, original: 600 },
+    isRecommended: true,
+  })
+  const plainOne = makeProduct({
+    id: 'PLAIN-1',
+    name: 'Plain',
+    category: 'cpu',
+    price: { current: 400 },
+    isRecommended: false,
+  })
+  const shop = [sale, pick, both, plainOne]
+  const idsOf = async (params: Parameters<ReturnType<typeof serviceOver>['list']>[0]) =>
+    (await serviceOver(shop).list(params)).items.map((product) => product.id)
+
+  it('looks up the products with the given ids, and leaves out an id that has no product', async () => {
+    expect(await idsOf({ ids: ['PICK-1', 'MISSING-1', 'PLAIN-1'] })).toEqual(['PICK-1', 'PLAIN-1'])
+  })
+
+  it('counts the lookup like any listing: total, page and limit', async () => {
+    const page = await serviceOver(shop).list({ ids: ['SALE-1', 'PICK-1', 'BOTH-1'], limit: 2 })
+
+    expect(page).toMatchObject({ total: 3, totalPages: 2, limit: 2 })
+    expect(page.items).toHaveLength(2)
+  })
+
+  it('lists only the products on sale', async () => {
+    expect(await idsOf({ sale: true })).toEqual(['BOTH-1', 'SALE-1'])
+  })
+
+  it('lists only the recommended products', async () => {
+    expect(await idsOf({ recommended: true })).toEqual(['BOTH-1', 'PICK-1'])
+  })
+
+  it('needs every restriction to hold, with the category and the search too', async () => {
+    expect(await idsOf({ sale: true, recommended: true })).toEqual(['BOTH-1'])
+    expect(await idsOf({ sale: true, category: 'gpu' })).toEqual(['SALE-1'])
+    expect(await idsOf({ ids: ['SALE-1', 'PLAIN-1'], sale: true })).toEqual(['SALE-1'])
+    expect(await idsOf({ ids: ['SALE-1', 'PLAIN-1'], q: 'plain' })).toEqual(['PLAIN-1'])
+  })
+
+  it('restricts the filter options to the same products', async () => {
+    const { facets } = await serviceOver(shop).list({ sale: true, facets: true })
+
+    // Two products are on sale, one of each brand: the options count only those.
+    expect(facets?.brands.map((option) => option.count)).toEqual([1, 1])
+  })
+
+  it('is the whole catalog when none of them is given', async () => {
+    expect(await idsOf({})).toHaveLength(4)
+    expect(await idsOf({ ids: [], sale: false, recommended: false })).toHaveLength(4)
+  })
+})
+
+describe('ProductService.categoryCounts', () => {
+  it('counts the products per category, in the order of the category registry', async () => {
+    const counts = await serviceOver([cooler, amdAm5, intelNew, intelOld]).categoryCounts()
+
+    expect(counts).toEqual([
+      { category: 'cpu', count: 3 },
+      { category: 'cooler', count: 1 },
+    ])
+  })
+
+  it('has no entry for a category without products, and none at all for an empty catalog', async () => {
+    expect(await serviceOver([]).categoryCounts()).toEqual([])
+  })
+
+  it('counts the real catalog: every product is in one category', async () => {
+    const real = validateCatalog(readSourceCatalog())
+    const counts = await serviceOver(real).categoryCounts()
+
+    expect(counts.reduce((sum, entry) => sum + entry.count, 0)).toBe(real.length)
+  })
+})

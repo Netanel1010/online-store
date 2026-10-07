@@ -15,13 +15,24 @@ const catalog = [psu, gpu]
 const summary = () => screen.getByRole('complementary', { name: 'סיכום הזמנה' })
 
 describe('CartPage', () => {
-  it('shows a loading status and then the empty state for an empty cart', async () => {
-    renderApp('/cart', catalog)
+  it('shows the empty state at once for an empty cart, without asking the API for any product', async () => {
+    const { fetchProductsByIds } = renderApp('/cart', catalog)
 
-    expect(screen.getByText('טוען עגלה…')).toBeInTheDocument()
     expect(await screen.findByText('העגלה ריקה')).toBeInTheDocument()
+    expect(fetchProductsByIds).not.toHaveBeenCalled()
     expect(screen.getByRole('link', { name: 'לכל המוצרים' })).toHaveAttribute('href', '/products')
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+  })
+
+  it('shows a loading status while the products of the cart load, and asks only for them', async () => {
+    useCartStore.getState().addItem('PSU-1')
+    const { fetchProductsByIds } = renderApp('/cart', catalog)
+
+    expect(screen.getByText('טוען עגלה…')).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'ספק כוח' })).toBeInTheDocument()
+    // The page, and the check that drops ids with no product: both ask about the cart, and only it.
+    expect(fetchProductsByIds).toHaveBeenCalled()
+    for (const [ids] of fetchProductsByIds.mock.calls) expect(ids).toEqual(['PSU-1'])
   })
 
   it('lists the cart lines with their line totals, in the order they were added', async () => {
@@ -120,7 +131,8 @@ describe('CartPage', () => {
     expect(screen.getByText('העגלה ריקה')).toBeInTheDocument()
   })
 
-  it('shows an error with retry when the catalog cannot be loaded', async () => {
+  it('shows an error with retry when the products of the cart cannot be loaded', async () => {
+    useCartStore.getState().addItem('PSU-1')
     renderApp('/cart', new Error('down'))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('משהו השתבש')

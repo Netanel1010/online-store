@@ -1,9 +1,10 @@
+import { CATEGORY_IDS } from '../../../src/features/products/categories.ts'
 import { rankBySearch, searchWords } from '../../../src/features/products/listing/search.ts'
 import { HttpError } from '../lib/httpError.ts'
 import { buildFacets, offeredSpecGroups, sanitizeSpecSelection, type Facets } from './facets.ts'
 import type { ProductListQuery } from './listQuery.ts'
 import type { ProductRepository } from './repository.ts'
-import type { Product, ProductFilter, ProductPage, SpecValueCount } from './types.ts'
+import type { CategoryCount, Product, ProductFilter, ProductPage, SpecValueCount } from './types.ts'
 
 export const DEFAULT_LIMIT = 20
 /** A page is never larger than this, however much a client asks for. */
@@ -23,11 +24,13 @@ export type ProductListParams = Partial<ProductListQuery>
 export interface ProductService {
   list(params?: ProductListParams): Promise<ProductPage>
   get(id: string): Promise<Product>
+  /** How many products each category has, in the order of the category registry. */
+  categoryCounts(): Promise<CategoryCount[]>
 }
 
 type ReadingRepository = Pick<
   ProductRepository,
-  'list' | 'findAll' | 'count' | 'brandCounts' | 'specValueCounts' | 'findById'
+  'list' | 'findAll' | 'count' | 'brandCounts' | 'specValueCounts' | 'findById' | 'categoryCounts'
 >
 
 const withoutLabel = (specs: ReadonlyMap<string, readonly string[]>, label: string) =>
@@ -50,6 +53,9 @@ export function createProductService(repository: ReadingRepository): ProductServ
       specs = new Map(),
       sort = 'default',
       facets = false,
+      ids = [],
+      sale = false,
+      recommended = false,
     } = {}) {
       const skip = (page - 1) * limit
       if (
@@ -63,6 +69,14 @@ export function createProductService(repository: ReadingRepository): ProductServ
         throw invalidPagination()
       }
 
+      // What the listing is restricted to before anything else: a lookup by id, the sale, the
+      // recommended products.
+      const restriction: Pick<ProductFilter, 'ids' | 'onSale' | 'recommended'> = {
+        ...(ids.length > 0 && { ids }),
+        ...(sale && { onSale: true }),
+        ...(recommended && { recommended: true }),
+      }
+
       // The search looks at the name, SKU, brand and category first, and only when nothing in the
       // category matches there at all, at the specifications and features too (see search.ts).
       // That is decided on the category alone, so ticking a brand never changes where it looks.
@@ -74,6 +88,7 @@ export function createProductService(repository: ReadingRepository): ProductServ
           search: { query: q, deep: false },
           brands: [],
           specs: new Map(),
+          ...restriction,
         })) === 0
       // The scope: what is being browsed, before any filter is ticked.
       const scope: ProductFilter = {
@@ -81,6 +96,7 @@ export function createProductService(repository: ReadingRepository): ProductServ
         search: searching ? { query: q, deep } : undefined,
         brands: [],
         specs: new Map(),
+        ...restriction,
       }
 
       // Specification filters only exist within one category, and only for the options that are
@@ -122,6 +138,14 @@ export function createProductService(repository: ReadingRepository): ProductServ
         totalPages: Math.ceil(total / limit),
         ...(filterOptions && { facets: filterOptions }),
       }
+    },
+
+    async categoryCounts() {
+      const counts = new Map((await repository.categoryCounts()).map((c) => [c.category, c.count]))
+      return CATEGORY_IDS.flatMap((category) => {
+        const count = counts.get(category)
+        return count === undefined ? [] : [{ category, count }]
+      })
     },
 
     async get(id) {

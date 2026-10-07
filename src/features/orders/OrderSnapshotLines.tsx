@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { paths } from '@/app/paths'
-import { useLoadedCatalog } from '@/features/products/useProductCatalog'
+import { useProductsByIds } from '@/features/products/useProductsByIds'
 import { assetUrl } from '@/lib/assets'
 import { formatPrice } from '@/lib/format'
 import { IMAGE_SIZE } from '@/lib/imageSizes'
@@ -8,8 +8,8 @@ import type { OrderLine } from './orderSchema'
 
 /**
  * The lines of an order as they were when it was placed: the name, the quantity and the prices are
- * the order's own. The catalog is only asked for a picture, and only if it happens to be loaded; a
- * product that has since been renamed, repriced or removed changes nothing here.
+ * the order's own. The API is only asked for a picture, and the lines do not wait for it or fail
+ * without it; a product that has since been renamed, repriced or removed changes nothing here.
  */
 export function OrderSnapshotLines({
   lines,
@@ -18,9 +18,11 @@ export function OrderSnapshotLines({
   lines: readonly OrderLine[]
   label: string
 }) {
-  const catalog = useLoadedCatalog()
+  const products = useProductsByIds(lines.map((line) => line.productId))
   const pictureOf = (productId: string) =>
-    catalog?.find((product) => product.id === productId)?.images.card
+    products.status === 'ready'
+      ? products.products.find((product) => product.id === productId)?.images.card
+      : undefined
 
   return (
     <ul aria-label={label} className="divide-y divide-line border-y border-line">

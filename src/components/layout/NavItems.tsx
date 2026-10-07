@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
 import { paths } from '@/app/paths'
-import { findProduct } from '@/features/products/selectors'
-import { useLoadedCatalog } from '@/features/products/useProductCatalog'
+import { useCachedProduct } from '@/features/products/productCache'
 import {
   ariaCurrent,
   categoryOfPath,
@@ -35,14 +34,12 @@ export function MainNavLink({ link, className, children }: ItemProps & { link: M
  */
 function useCategoryLinkState(categoryId: string): LinkState {
   const { pathname } = useLocation()
-  const products = useLoadedCatalog()
-
   const onCategoryPage = categoryOfPath(pathname)
+  // The product page in front of the visitor, if this visit has loaded it (it never asks the API).
+  const product = useCachedProduct(onCategoryPage ? null : productIdOfPath(pathname))
   if (onCategoryPage) return onCategoryPage.id === categoryId ? 'page' : null
 
-  const productId = productIdOfPath(pathname)
-  if (productId === null || products === null) return null
-  return findProduct(products, productId)?.category === categoryId ? 'section' : null
+  return product?.category === categoryId ? 'section' : null
 }
 
 export function CategoryNavLink({

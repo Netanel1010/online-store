@@ -99,6 +99,7 @@ answer `503 database_not_configured`.
 | ----------------------------------- | --------------------------------------------------------------- |
 | `GET /api/products`                 | One page of the products that match the query, with the numbers to build a pager (and, on request, the filter options) |
 | `GET /api/products/:id`             | One product, by its id (the manufacturer SKU, e.g. `CC-9011240-WW`) |
+| `GET /api/categories`               | How many products each category has: `{ "items": [{ "id": "cpu", "count": 5 }] }`, only categories that have some |
 
 ```json
 {
@@ -114,6 +115,8 @@ answer `503 database_not_configured`.
   digits. Anything else is `400 invalid_pagination`. A page past the end is `200` with an empty
   `items` and the real `total`. Products are ordered by `id`, so paging is stable. Unknown query
   parameters are ignored.
+- **A lookup by id:** `?ids=A-1,B-2` (or the parameter repeated) returns only those products, in one page: at most 100 ids, each a valid product id. An id with no product is left out of the answer, and an empty list is `400 invalid_query` (it must never be read as "every product"). It combines with every other parameter, and it is how the storefront reads the products of the cart, the favorites, the checkout and an order.
+- **The sale and the recommended products:** `?sale=true` lists only the products that have an original price, `?recommended=true` only the recommended ones (`false`, or leaving them out, means no restriction). They are what the home page shows, and combine with every other parameter and with the filter options.
 - **One product:** `:id` may contain letters, digits, `.`, `_` and `-`, up to 64 characters.
   Anything else is `400 invalid_product_id`, and an id that does not exist is
   `404 product_not_found`.
@@ -131,10 +134,11 @@ answer `503 database_not_configured`.
   preflight answers are cached for ten minutes (`Access-Control-Max-Age`).
 - **The storefront uses this API.** The products, category and search pages send the search text,
   the filters and the sort and read the matching products (following the pages until the last) and
-  the filter options; a product page reads `GET /api/products/:id`. The whole catalog is also read
-  (`GET /api/products?limit=100`) for what needs every product: the cart and favorites, the home
-  page sections, the category links and the search suggestions. A `400` or `404` for a product
-  means "no such product" to the storefront; any other failure is an error.
+  the filter options; a product page reads `GET /api/products/:id`. Nothing reads the whole catalog:
+  the cart, the favorites, the checkout and the orders use the lookup by id, the home page the sale and
+  recommended lists, the category links `GET /api/categories`, and the search suggestions the first five
+  products of `?q=` (the search of the results page itself). A `400` or `404` for a product means
+  "no such product" to the storefront; any other failure is an error.
 
 ### Search, filters and sorting
 

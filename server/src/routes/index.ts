@@ -14,7 +14,7 @@ import { createOrderRepository } from '../orders/repository.ts'
 import { createOrdersRouter } from '../orders/routes.ts'
 import { createOrderService } from '../orders/service.ts'
 import { createProductRepository } from '../products/repository.ts'
-import { createProductsRouter } from '../products/routes.ts'
+import { createCategoriesRouter, createProductsRouter } from '../products/routes.ts'
 import { createProductService } from '../products/service.ts'
 import { createHealthRouter } from './health.ts'
 
@@ -44,9 +44,14 @@ export function createApiRouter(database: Database | null) {
       })
     : null
 
+  const productService = products ? createProductService(products) : null
   router.use(
     '/products',
-    products ? createProductsRouter(createProductService(products)) : databaseNotConfigured,
+    productService ? createProductsRouter(productService) : databaseNotConfigured,
+  )
+  router.use(
+    '/categories',
+    productService ? createCategoriesRouter(productService) : databaseNotConfigured,
   )
 
   router.use('/auth', auth ? createAuthRouter(auth) : databaseNotConfigured)

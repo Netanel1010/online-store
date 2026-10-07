@@ -58,6 +58,8 @@ test.describe('live suggestions in the header search', () => {
   test('works from the keyboard: arrows, Enter, Escape', async ({ page }) => {
     await page.goto('')
     await searchBox(page).pressSequentially('4070')
+    // The list comes from the API a moment after the typing pauses: the keys wait for it, as a person does.
+    await expect(suggestions(page).getByRole('option').first()).toBeVisible()
 
     await page.keyboard.press('ArrowDown')
     const first = suggestions(page).getByRole('option').first()
@@ -150,6 +152,7 @@ test.describe('the focus after choosing a suggestion', () => {
   }) => {
     await page.goto('')
     await searchBox(page).pressSequentially('4070')
+    await expect(suggestions(page).getByRole('option').first()).toBeVisible()
 
     await page.keyboard.press('ArrowDown')
     await page.keyboard.press('Enter')

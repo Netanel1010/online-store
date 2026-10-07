@@ -37,9 +37,8 @@ describe('the cart page of a signed-in visitor', () => {
       return inner(input, init)
     })
 
-    const { fetchProducts } = renderApp('/cart', catalog)
-    // The catalog is there, the cart is not: this is where an empty cart would be announced.
-    await waitFor(() => expect(fetchProducts).toHaveBeenCalled())
+    renderApp('/cart', catalog)
+    // The page is there, the cart is not: this is where an empty cart would be announced.
     await act(async () => {})
     expect(screen.getByText('טוען עגלה…')).toBeInTheDocument()
     expect(screen.queryByText('העגלה ריקה')).not.toBeInTheDocument()

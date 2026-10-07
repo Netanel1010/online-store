@@ -27,6 +27,18 @@ describe('HomePage', () => {
     expect(screen.queryByText('מוצר רגיל')).not.toBeInTheDocument()
   })
 
+  it('asks the API for the two sections only, not for the whole catalog', async () => {
+    const { fetchSaleProducts, fetchRecommendedProducts, fetchProductListing, fetchProductsByIds } =
+      renderApp('/', [onSale, recommended, regular])
+
+    await screen.findByRole('region', { name: 'מבצעים' })
+
+    expect(fetchSaleProducts).toHaveBeenCalledTimes(1)
+    expect(fetchRecommendedProducts).toHaveBeenCalledTimes(1)
+    expect(fetchProductListing).not.toHaveBeenCalled()
+    expect(fetchProductsByIds).not.toHaveBeenCalled()
+  })
+
   it('hides a product section that has no products', async () => {
     renderApp('/', [regular])
 

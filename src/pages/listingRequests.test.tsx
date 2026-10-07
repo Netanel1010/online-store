@@ -216,16 +216,15 @@ describe('while the API answers', () => {
   })
 })
 
-describe('without the whole catalog', () => {
-  it('lists and searches products even when the catalog cannot be loaded', async () => {
-    const { fetchProducts } = renderApp('/search?q=intel', catalog)
-    fetchProducts.mockRejectedValue(new Error('down'))
+describe('without the rest of the catalog', () => {
+  it('lists and searches products even when the category counts cannot be loaded', async () => {
+    renderApp('/search?q=intel', catalog, { failing: ['categoryCounts'] })
 
     expect(await screen.findByRole('heading', { level: 2, name: /Intel Core/ })).toBeVisible()
     expect(screen.getByText('מוצר אחד', { selector: 'p[role="status"]' })).toBeInTheDocument()
   })
 
-  it('shows the category links on the products page once the catalog is known', async () => {
+  it('shows the category links on the products page once their counts are known', async () => {
     renderApp('/products', catalog)
 
     const nav = await screen.findByRole('navigation', { name: 'סינון לפי קטגוריה' })

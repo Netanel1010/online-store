@@ -2,7 +2,6 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { lazy, useEffect } from 'react'
 import { Link, MemoryRouter, Route, Routes, useNavigate } from 'react-router'
-import { resetProductCatalog } from '@/features/products/useProductCatalog'
 import * as productService from '@/services/productService'
 import { RootLayout } from './RootLayout'
 
@@ -41,8 +40,7 @@ const searchBox = () => screen.getAllByRole('searchbox', { name: 'חיפוש מ�
  * to the late page before, so that going back leads to it.
  */
 async function renderWithLatePage({ cameFromCart = false } = {}) {
-  resetProductCatalog()
-  vi.spyOn(productService, 'fetchProducts').mockResolvedValue([])
+  vi.spyOn(productService, 'fetchProductsByIds').mockResolvedValue([])
   let land: () => void = () => undefined
   let navigate: (delta: number) => void = () => undefined
   const gate = new Promise<void>((resolve) => {

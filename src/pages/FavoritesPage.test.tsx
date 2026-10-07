@@ -17,11 +17,12 @@ describe('favoriteProducts', () => {
 })
 
 describe('FavoritesPage', () => {
-  it('shows a loading state and then the empty state when there are no favorites', async () => {
-    renderApp('/favorites', catalog)
+  it('shows the empty state at once when there are no favorites, and suggests the recommended products', async () => {
+    const { fetchProductsByIds, fetchRecommendedProducts } = renderApp('/favorites', catalog)
 
-    expect(screen.getByText('טוען מוצרים…')).toBeInTheDocument()
     expect(await screen.findByText('אין מוצרים במועדפים')).toBeInTheDocument()
+    expect(fetchProductsByIds).not.toHaveBeenCalled()
+    expect(fetchRecommendedProducts).toHaveBeenCalled()
     expect(screen.getByRole('link', { name: 'לכל המוצרים' })).toHaveAttribute('href', '/products')
   })
 
@@ -72,7 +73,17 @@ describe('FavoritesPage', () => {
     expect(screen.getByText('אין מוצרים במועדפים')).toBeInTheDocument()
   })
 
-  it('shows an error with retry when the catalog cannot be loaded', async () => {
+  it('shows a loading state while the favorites load, then only the products asked for', async () => {
+    useFavoritesStore.getState().toggle('GPU-1')
+    const { fetchProductsByIds } = renderApp('/favorites', catalog)
+
+    expect(screen.getByText('טוען מוצרים…')).toBeInTheDocument()
+    expect(await screen.findAllByRole('article')).toHaveLength(1)
+    for (const [ids] of fetchProductsByIds.mock.calls) expect(ids).toEqual(['GPU-1'])
+  })
+
+  it('shows an error with retry when the favorites cannot be loaded', async () => {
+    useFavoritesStore.getState().toggle('GPU-1')
     renderApp('/favorites', new Error('down'))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('משהו השתבש')

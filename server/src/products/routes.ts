@@ -12,6 +12,24 @@ import type { ProductService } from './service.ts'
  */
 export const PRODUCT_CACHE_CONTROL = 'public, max-age=60, stale-while-revalidate=3600'
 
+/**
+ * `GET /api/categories`: how many products each category has, for the category links of the
+ * storefront, so that counting them never takes the whole catalog.
+ */
+export function createCategoriesRouter(service: ProductService) {
+  const router = Router()
+
+  router.get('/', async (_req, res) => {
+    const items = (await service.categoryCounts()).map(({ category, count }) => ({
+      id: category,
+      count,
+    }))
+    res.set('Cache-Control', PRODUCT_CACHE_CONTROL).json({ items })
+  })
+
+  return router
+}
+
 /** HTTP only: read the request, call the service, send what it returns. */
 export function createProductsRouter(service: ProductService) {
   const router = Router()

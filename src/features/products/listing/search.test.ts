@@ -9,7 +9,6 @@ import {
   searchMatches,
   searchScore,
   searchWords,
-  suggestProducts,
 } from './search'
 
 // The real catalog: the cases below are the ones a shopper would actually type.
@@ -215,42 +214,5 @@ describe('products a search must not change', () => {
     expect(() =>
       all.forEach((product) => searchScore(product, 'test', { deep: true })),
     ).not.toThrow()
-  })
-})
-
-describe('suggestProducts', () => {
-  const names = (query: string, limit?: number) =>
-    suggestProducts(products, query, limit).map((product) => product.id)
-
-  it('suggests the RTX 4070 for "4070", first', () => {
-    expect(names('4070')).toEqual([RTX_4070])
-    expect(names('rtx')[0]).toBeDefined()
-    expect(names('gigabyte 4070')).toEqual([RTX_4070])
-  })
-
-  it('gives at most five by default, or as many as asked for', () => {
-    expect(names('intel')).toHaveLength(5)
-    expect(names('intel', 2)).toHaveLength(2)
-    expect(names('intel', 50).length).toBeGreaterThan(5)
-  })
-
-  it('offers nothing for an empty, blank or one-character query, or when nothing matches', () => {
-    for (const query of ['', '   ', ' - ', 'a', '4', 'banana']) {
-      expect(names(query), query).toEqual([])
-    }
-    expect(names('i7')).toEqual([]) // no product matches
-  })
-
-  it('is the search of the results page, cut short: same products, same order', () => {
-    const results = idsFor('intel')
-
-    expect(names('intel', 50)).toEqual(results)
-    expect(names('intel')).toEqual(results.slice(0, 5))
-  })
-
-  it('follows the query as it is typed', () => {
-    expect(names('cors').length).toBeGreaterThan(0)
-    expect(names('corsa')).toEqual(names('corsair'))
-    expect(names('corsairx')).toEqual([])
   })
 })

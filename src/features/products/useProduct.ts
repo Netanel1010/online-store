@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchProduct } from '@/services/productService'
+import { rememberProducts } from './productCache'
 import type { Product } from './schema'
 
 export type ProductState =
@@ -22,11 +23,13 @@ export function useProduct(id: string | undefined): ProductState & { retry: () =
     if (id === undefined) return
     const controller = new AbortController()
     fetchProduct(id, controller.signal).then(
-      (product) =>
+      (product) => {
+        if (product) rememberProducts([product])
         setResult({
           key,
           state: product ? { status: 'ready', product } : { status: 'not-found' },
-        }),
+        })
+      },
       () => {
         if (!controller.signal.aborted) setResult({ key, state: { status: 'error' } })
       },

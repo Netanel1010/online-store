@@ -145,13 +145,23 @@ test.describe('products from the API', () => {
   const isApiCall = (path: string) => (request: { url(): string }) =>
     new URL(request.url()).pathname + new URL(request.url()).search === path
 
-  test('the catalog is read from the API, page by page, not from a data file', async ({ page }) => {
-    const catalogRequest = page.waitForRequest(isApiCall('/api/products?page=1&limit=100'))
+  test('the products page asks the API for its listing, not for a data file or the whole catalog', async ({
+    page,
+  }) => {
+    const files: string[] = []
+    page.on('request', (request) => {
+      if (request.url().includes('products.json')) files.push(request.url())
+    })
+    const listingRequest = page.waitForRequest((request) => {
+      const { pathname, searchParams } = new URL(request.url())
+      return pathname === '/api/products' && searchParams.get('facets') === 'true'
+    })
 
     await page.goto('products')
 
-    await catalogRequest
+    await listingRequest
     await expect(page.getByRole('article')).toHaveCount(catalog.length)
+    expect(files).toEqual([])
   })
 
   test('a product page asks the API for that product', async ({ page }) => {

@@ -1,10 +1,12 @@
 import { BRAND_IDS, type BrandId } from '../../../src/features/products/brands.ts'
+import { CATEGORY_IDS } from '../../../src/features/products/categories.ts'
 import { productSchema } from '../../../src/features/products/schema.ts'
 import type { Database } from '../db/database.ts'
 import { NAME_COLLATION, sortNeedsCollation, toMongoFilter, toMongoSort } from './productFilter.ts'
 import { buildSearchFields, SEARCH_VERSION } from './searchFields.ts'
 import type {
   BrandCount,
+  CategoryCount,
   Product,
   ProductFilter,
   ProductRange,
@@ -54,6 +56,8 @@ export interface ProductRepository {
    * values (only the values that have some).
    */
   specValueCounts(filter: ProductFilter): Promise<SpecValueCount[]>
+  /** The products per category over the whole collection (only the categories that have some). */
+  categoryCounts(): Promise<CategoryCount[]>
   findById(id: string): Promise<Product | null>
   /** The products with these ids, in no particular order. An id with no product is left out. */
   findByIds(ids: readonly string[]): Promise<Product[]>
@@ -182,6 +186,19 @@ export function createProductRepository(database: Database): ProductRepository {
         ])
         .toArray()
       return groups.map((group) => ({ ...group._id, count: group.count }))
+    },
+
+    async categoryCounts() {
+      const groups = await products()
+        .aggregate<{ _id: unknown; count: number }>([
+          { $group: { _id: '$category', count: { $sum: 1 } } },
+        ])
+        .toArray()
+      return groups
+        .filter((group): group is { _id: CategoryCount['category']; count: number } =>
+          (CATEGORY_IDS as readonly unknown[]).includes(group._id),
+        )
+        .map((group) => ({ category: group._id, count: group.count }))
     },
 
     async findById(id) {

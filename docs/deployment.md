@@ -116,6 +116,12 @@ $env:API_URL="https://online-store-api-9hz8.onrender.com"; $env:SITE_ORIGIN="htt
 
 `WAIT_SECONDS` (default 300) is how long it waits for a sleeping host to wake up and reach its database.
 
+`npm run check:api` also compares the catalog the API serves with `public/data/products.json`, the one source
+of the catalog (the seed copies it to MongoDB and the build writes the static pages from it), and
+names the products that are missing, extra or different. The deploy job runs before a changed file
+has been seeded, so a difference is only a warning there; after the seed, run it with
+`STRICT_HARDENING=1` to make it an error.
+
 `npm run check:api` also reports the HTTP hardening of the API (security headers, CORS, caching; see
 [the server README](../server/README.md#behaviour-worth-knowing)). Among them: a preflight answer
 that allows `GET`, `POST`, `PUT` and `DELETE` (and not `PATCH`), and the `Authorization` and
@@ -140,7 +146,9 @@ The catalog lives in MongoDB and is served by the API, but its source is
    running it from a checkout with the production `MONGODB_URI` in your shell or in the git-ignored
    `server/.env`; take care not to leave that file around.
 3. The static SEO pages and the sitemap are generated at build time from the same file
-   ([`docs/seo.md`](seo.md)), so the merge also redeploys the site with the new pages.
+   ([`docs/seo.md`](seo.md)), so the merge also redeploys the site with the new pages. The file is
+   the only source: it is not published with the site, and `npm run check:api` reports a difference
+   between it and what the API serves, which is what is left to do when the seed has not been run.
 
 The seed also stores the text the API's search works on with each product. A database seeded before
 the search existed needs no new seed: when the API starts it stores that text for every product

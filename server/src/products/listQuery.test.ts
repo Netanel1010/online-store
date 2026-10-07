@@ -21,6 +21,9 @@ describe('parseProductListQuery: defaults', () => {
       specs: new Map(),
       sort: 'default',
       facets: false,
+      ids: [],
+      sale: false,
+      recommended: false,
     })
   })
 
@@ -170,6 +173,50 @@ describe('parseProductListQuery: facets', () => {
 
   it.each(['1', 'yes', 'TRUE', '', ['true', 'false']])('rejects facets=%j', (facets) => {
     expect(invalid({ facets })).toMatchObject({ status: 400, code: 'invalid_query' })
+  })
+})
+
+describe('parseProductListQuery: ids', () => {
+  it('reads a comma-separated list, without repeats and in the order given', () => {
+    expect(parseProductListQuery({ ids: 'B-2,A-1,B-2' }).ids).toEqual(['B-2', 'A-1'])
+  })
+
+  it('reads a repeated parameter as well', () => {
+    expect(parseProductListQuery({ ids: ['A-1,B-2', 'C-3'] }).ids).toEqual(['A-1', 'B-2', 'C-3'])
+  })
+
+  it('accepts 100 ids and rejects 101', () => {
+    const many = (count: number) => Array.from({ length: count }, (_, i) => `P-${i}`).join(',')
+
+    expect(parseProductListQuery({ ids: many(100) }).ids).toHaveLength(100)
+    expect(invalid({ ids: many(101) })).toMatchObject({ status: 400, code: 'invalid_query' })
+  })
+
+  it.each(['', ',', 'A-1,,B-2', 'A 1', 'A-1;B-2', "A-1'", '$ne', '.A', 'x'.repeat(65)])(
+    'rejects ids=%j',
+    (ids) => {
+      expect(invalid({ ids })).toMatchObject({ status: 400, code: 'invalid_query' })
+    },
+  )
+
+  it('is not the same as no ids: an empty list is refused rather than read as the whole catalog', () => {
+    expect(parseProductListQuery({}).ids).toEqual([])
+    expect(invalid({ ids: '' })).toBeInstanceOf(HttpError)
+  })
+})
+
+describe('parseProductListQuery: sale and recommended', () => {
+  it('are true or false, and false by default', () => {
+    expect(parseProductListQuery({ sale: 'true' }).sale).toBe(true)
+    expect(parseProductListQuery({ sale: 'false' }).sale).toBe(false)
+    expect(parseProductListQuery({ recommended: 'true' }).recommended).toBe(true)
+    expect(parseProductListQuery({}).recommended).toBe(false)
+  })
+
+  it.each(['sale', 'recommended'])('rejects anything else for %s', (name) => {
+    for (const value of ['1', 'yes', 'TRUE', '', ['true', 'false']]) {
+      expect(invalid({ [name]: value })).toMatchObject({ status: 400, code: 'invalid_query' })
+    }
   })
 })
 
