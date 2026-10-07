@@ -25,10 +25,11 @@ the GitHub Pages base path. Vitest ignores `e2e/`; Playwright ignores `src/`.
   The first run on a machine needs the browser: `npx playwright install chromium`.
 - **Isolation:** every test gets a fresh browser context, so accounts, cart, favorites and the
   session never leak between tests. Each test registers its own throwaway account with a unique
-  email; nothing is seeded and no test credentials are real.
-- **Deterministic data:** the site loads its products from an API, which in these tests is
-  `e2e/support/api-server.mjs`: the real API code (routes, service, validation, paging, error
-  format) over the in-memory repository the API's own tests use, filled from
+  email; nothing is seeded and no test credentials are real. A cart and the orders belong to an
+  account, so no test sees another's.
+- **Deterministic data:** the site loads its products, accounts, carts and orders from an API, which
+  in these tests is `e2e/support/api-server.mjs`: the real API code (routes, service, validation,
+  paging, error format) over the in-memory repositories the API's own tests use, filled from
   `public/data/products.json` (the file `npm run seed:products` copies to MongoDB). The tests read
   the same file and compute their expectations from it. The build gets the stub's address through
   `VITE_API_URL`, and Playwright starts both servers. No MongoDB, production API or other network
@@ -49,7 +50,10 @@ the GitHub Pages base path. Vitest ignores `e2e/`; Playwright ignores `src/`.
 `npm run test:server` runs the API's Vitest suite in a Node environment. It needs **no MongoDB and
 no credentials**, so CI runs it as it is: the driver is replaced by a stand-in, the products
 service and routes run over an in-memory repository, and the entry point and the seed command are
-started as real processes to check their failure paths. An optional integration suite talks to a
+started as real processes to check their failure paths. The carts and the orders have the same layers (schemas, service, repository queries, routes over
+HTTP with in-memory repositories), including that an account can only reach its own cart and its own
+orders, the idempotent writes, and that CORS lets the storefront's `PUT`, `DELETE` and
+`Idempotency-Key` through. An optional integration suite talks to a
 real MongoDB; `npm run test:server` skips it (it stays quick and needs nothing), and CI runs it with
 `npm run test:integration` against a throwaway MongoDB (below). Details:
 [`server/README.md`](../server/README.md#tests).
@@ -86,6 +90,35 @@ in an `Authorization` header and no cookie is sent, that a session survives a re
 out ends it on the server, that a token the server has ended signs nobody in, and that two browsers
 are two sessions.
 
+## Carts, orders and cart synchronization in the tests
+
+`setUpAuthApi` also serves the **real cart and order routes** (their validation, pricing, idempotency,
+ownership and error answers) over in-memory repositories, so the checkout, the order pages and the
+cart page are tested against what the API really answers. `setCatalog` gives it the products that
+orders are priced from and that can be put in a cart, and `api.carts()` / `api.orders()` show what it
+stored.
+
+The synchronization of the cart (`src/features/cart/cartSync.ts`) is tested at three levels:
+
+- `cartSyncPlan.test.ts`: the two pure rules, what to send so that the API's cart becomes the
+  browser's (`planChanges`) and how two carts are joined (`mergeCarts`, the larger quantity, never
+  the sum).
+- `cartSync.test.ts`: the engine against the real cart routes. Signing in (a cart filled in while
+  signed out is joined, a copy with unsent changes is sent, a clean copy or another account's is
+  replaced), sending what is added, changed, removed and emptied, a burst of clicks becoming one
+  request, a line another device added being left alone, a product the API refuses or a full cart,
+  the API being unreachable or ending the session, and signing out. Debounce and retry delays are set
+  per test (`cartSyncPolicy`; `src/test/setup.ts` makes them immediate), so there are no sleeps to
+  tune.
+- `src/pages/cartSync.test.tsx` and the checkout tests: the whole app, including that an empty cart
+  shows "loading" and not "the cart is empty" until the account's cart has arrived.
+
+In the browser, `e2e/cart-sync.spec.ts` checks that signing out empties this browser and signing in
+brings the cart back, that a browser that has never seen the cart reads it from the API, that a cart
+filled in while signed out joins the account's at sign-in, and that a change on the cart page is
+saved. The E2E tests also place orders and read the order history through the same stub API
+(`e2e/auth-checkout.spec.ts`, `e2e/orders.spec.ts`).
+
 ## Accessibility tests
 
 Automated checks (axe-core, WCAG 2.0/2.1 A and AA rules) find only part of the problems.
@@ -101,7 +134,8 @@ management and the mobile menu dialog.
 1. **verify**: `npm ci`, format check, lint, typecheck, unit tests, API tests, the site build (with
    `VITE_API_URL` from the `API_URL` repository variable) and the API build.
 2. **integration**: the tests of the code that talks to MongoDB (queries, unique indexes, sorting,
-   the index that expires sessions) against a real MongoDB 8 that exists only for the job: a
+   the index that expires sessions, and the cart and order writes that must stay correct when requests
+   arrive at the same moment: one cart per account, no lost update, one order per idempotency key) against a real MongoDB 8 that exists only for the job: a
    GitHub Actions service container, so Docker is not a dependency of the project. The job sets
    `MONGODB_TEST_URI=mongodb://localhost:27017`; no secret and no production address is available
    to it, and the tests only use databases named `online_store_test_<random>`, which they drop.

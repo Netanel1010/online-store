@@ -22,13 +22,13 @@
 
 A Hebrew, right-to-left online store for PC components, built with **React 19 and TypeScript**.
 
-The project covers the shopping experience in the browser — from discovering products and filtering the catalog to managing a cart, saving favorites, signing in to a real account and completing a demo checkout.
+The project covers the whole shopping experience — from discovering products and filtering the catalog to managing a cart, saving favorites, signing in to a real account, placing a demo order and reading the order history.
 
-The **product catalog is served by a real backend**: an Express API on Render that reads the products from MongoDB Atlas. The site, hosted on GitHub Pages, loads its products from that API, and the **search, filtering and sorting of the product listings run in the API**, as MongoDB queries. **Accounts and sessions live in the API too**: registration, sign-in and sign-out are real, with the passwords stored only as hashes in MongoDB.
+The **product catalog is served by a real backend**: an Express API on Render that reads the products from MongoDB Atlas. The site, hosted on GitHub Pages, loads its products from that API, and the **search, filtering and sorting of the product listings run in the API**, as MongoDB queries. **Accounts and sessions live in the API too**: registration, sign-in and sign-out are real, with the passwords stored only as hashes in MongoDB. So do the **cart** of a signed-in visitor and the **orders** they place: the API prices every order from its own products and stores it in the account.
 
-> 🎯 **Portfolio project:** a frontend-first store with its first backend features (the Products API and authentication) in production.
+> 🎯 **Portfolio project:** a frontend-first store with a real backend in production: the Products API, authentication, a server-backed cart and orders.
 
-> **Scope:** the API serves products only. Accounts, cart, favorites and checkout are demo features that run in the browser, and there are no real payments. See [Scope & Limitations](#-scope--limitations).
+> **Scope:** the checkout is a **demo**: orders are real records in the account, but nothing is charged, shipped or emailed, and there are no real payments. Favorites stay in the browser. See [Scope & Limitations](#-scope--limitations).
 
 ---
 
@@ -43,11 +43,16 @@ Browser ── GitHub Pages (React site) ──► Render (Express API) ──�
 | ------------ | ---------------------------------- | ------------------------------------------------------------------------ |
 | 🖥️ Site      | GitHub Pages                       | React + Vite single-page app, built and deployed by GitHub Actions       |
 | 🔌 API       | Render (free web service)          | Express 5 + TypeScript in [`server/`](server/README.md), deployed from `main` |
-| 🗄️ Database  | MongoDB Atlas                      | The `products` collection (filled by `npm run seed:products`), and the `users` and `sessions` collections of the accounts |
+| 🗄️ Database  | MongoDB Atlas                      | The `products` collection (filled by `npm run seed:products`), the `users` and `sessions` collections of the accounts, and the `carts` and `orders` collections |
 
 The products, search, category and filtered pages ask `GET /api/products` for the products that match what the visitor typed, ticked and sorted (and for the filter options with their counts), and a product page asks `GET /api/products/:id`. The API does the searching, filtering, sorting and paging in MongoDB.
 
 The site still loads the whole catalog once (`GET /api/products`, following the pagination) for what needs every product: the cart, favorites and checkout, the sale and recommended products of the home page, the category links with their counts, and the suggestions under the search box.
+
+A signed-in visitor also talks to the API for two more things, always with their session token (`Authorization: Bearer`):
+
+- **The cart** (`/api/cart`). The pages read and change the cart in the browser, so it stays instant and works offline; a small engine mirrors it to the account (a debounced `PUT`/`DELETE` of the quantities that changed, repeated when the API cannot be reached). Signing in joins a cart filled in while signed out with the account's, and signing out empties the cart in the browser while the account keeps it. How the two copies are reconciled: [`docs/state-persistence.md`](docs/state-persistence.md).
+- **The orders** (`/api/orders`). The checkout sends only product ids, quantities and the delivery details, with an `Idempotency-Key`; the API works out the prices and the total, stores an immutable snapshot of the order, and answers a repeated request with the same order, so a retry after a timeout can never place a second one.
 
 How it is deployed, configured and checked: [`docs/deployment.md`](docs/deployment.md).
 
@@ -61,11 +66,12 @@ How it is deployed, configured and checked: [`docs/deployment.md`](docs/deployme
 | 🔌  | **Products API**        | Read-only REST API backed by MongoDB: server-side search, filters, sorting and paging, with health and readiness checks |
 | 🔎  | **Search**              | URL-based search, done by the API, with shareable and reloadable results                        |
 | 🎛️  | **Filters & Sorting**   | Brand and specification filters with result counts, filtered and sorted by the API, with URL state |
-| 🛒  | **Shopping Cart**       | Add, remove and update quantities with calculated totals and savings                            |
+| 🛒  | **Shopping Cart**       | Add, remove and update quantities with calculated totals and savings; for a signed-in visitor the cart is kept in the account and follows them between devices |
 | ❤️  | **Favorites**           | Save products and access them from a dedicated favorites page                                   |
 | 👤  | **Authentication**      | Real accounts: register, log in and log out against the API, with server-side sessions and a protected checkout |
-| 💳  | **Demo Checkout**       | Validated delivery form followed by a demo order confirmation                                   |
-| 💾  | **Persistence**         | Cart, favorites and session survive browser reloads                                             |
+| 💳  | **Demo Checkout**       | Validated delivery form; the API prices and stores the order (no payment), and the confirmation is read back from the API |
+| 📦  | **Orders**              | An order page that survives a reload, and a "my orders" list in the account menu                |
+| 💾  | **Persistence**         | The cart (in the browser and in the account), favorites and the session survive browser reloads |
 | 📱  | **Responsive UI**       | Mobile navigation and responsive layouts                                                        |
 | ♿  | **Accessibility**       | Keyboard navigation, accessible errors, live-region notifications and automated axe-core checks |
 | 🌐  | **RTL Experience**      | Hebrew-first interface with right-to-left layout and logical CSS properties                     |
@@ -93,17 +99,21 @@ How it is deployed, configured and checked: [`docs/deployment.md`](docs/deployme
 
 ## 🎯 Scope & Limitations
 
-This is a **portfolio application**. The product catalog and the accounts have a real backend; the cart, favorites and the checkout are intentionally a browser-side demo.
+This is a **portfolio application**. The product catalog, the accounts, the cart and the orders have a real backend; the checkout is intentionally a demo (no payment, shipping or email) and the favorites are intentionally a browser-side feature.
 
 ### What is included
 
 - Product catalog of **31 products**, stored in MongoDB and served by the Products API
-- A read-only API: `GET /api/products` (paginated, with search, category, brand, specification and sort parameters), `GET /api/products/:id`, `GET /api/health` and `GET /api/health/ready`
+- A read-only product API: `GET /api/products` (paginated, with search, category, brand, specification and sort parameters), `GET /api/products/:id`, `GET /api/health` and `GET /api/health/ready`
 - A seed command that copies [`public/data/products.json`](public/data/products.json) to MongoDB
 - Zod validation of every product the site receives and every product the API reads
+- Limits on the routes that change data: sign-in and registration, placing orders and changing a cart (see [`server/README.md`](server/README.md))
 - Authentication in the API: registration, sign-in, sign-out and "who am I", with scrypt-hashed passwords and revocable sessions (see [`server/README.md`](server/README.md#authentication)); the checkout pages need a signed-in visitor
-- Persistent cart and favorites
-- Demo checkout flow
+- A server-backed cart per account (`/api/cart`): add, set the quantity, remove and empty, with the same limits as the order (1–99 units, 50 different products), and no price or name stored in it
+- Server-side orders (`POST /api/orders`, `GET /api/orders`, `GET /api/orders/:orderNumber`): priced from the API's own products, an immutable snapshot per order, idempotent, scoped to the account that placed them, with order numbers such as `DEMO-7K2M9QX4`
+- Cart synchronization in the storefront: the cart is kept in the browser and mirrored to the account, with a merge at sign-in and an empty cart after sign-out
+- Persistent favorites (in the browser)
+- Demo checkout flow, ending in an order page and an order history
 - Automated unit, API, E2E and accessibility testing
 - GitHub Actions CI/CD, with a production API check before the site is published
 
@@ -112,11 +122,12 @@ This is a **portfolio application**. The product catalog and the accounts have a
 | Limitation                  | Details                                                                                                                                               |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 🔍 **Listings Only**        | The API searches, filters and sorts the product listings. The header's search suggestions, and the cart, favorites and home sections, still work on the whole catalog loaded in the browser |
-| ✏️ **Read-Only API**        | The API cannot create, update or delete products. Changes to the catalog go through `products.json` and the seed command                                |
+| ✏️ **Read-Only Catalog**    | The API cannot create, update or delete products. Changes to the catalog go through `products.json` and the seed command                                |
 | 🔐 **No Roles**             | There is one kind of account. There are no administrators, no password reset, no email confirmation and no account page                                  |
-| 🛒 **No Server Cart**       | The cart and favorites are stored in the browser, not in the API                                                                                       |
-| 💳 **No Real Payments**     | Checkout does not charge money or send payment information                                                                                             |
-| 🗄️ **No Server Orders**     | Orders are demo-only and are not stored on a backend                                                                                                   |
+| ❤️ **Favorites in the Browser** | Favorites are stored in the browser, not in the account                                                                                            |
+| 🛒 **Cart Limits**          | A cart holds at most 50 different products (the most one order can hold) and 99 units of each. Changes made on another device appear at the next sign-in or page load, not live |
+| 💳 **No Real Payments**     | Checkout does not charge money or send payment information. Every order is a demo order, and the checkout says so                                       |
+| 📦 **Orders Are Final**     | An order can be placed and read, but not cancelled or edited, and it has one status. There is no way to delete an account or its orders yet; orders hold the name, phone and address that were entered |
 | 📦 **No Inventory System**  | Stock and availability are not managed                                                                                                                 |
 | 🚚 **No Shipping System**   | Shipping and tax calculations are outside the project scope                                                                                            |
 
@@ -215,13 +226,13 @@ The project uses multiple testing layers rather than relying on a single test ty
 
 ### Current test suite
 
-- **554** unit and component tests in **43** test files
-- **409** API tests in **20** test files, plus **39** optional MongoDB integration tests (in 2 more files) that are skipped unless `MONGODB_TEST_URI` is set
-- **224** Playwright E2E tests in **9** test files
+- **861** unit, component and script tests in **62** test files
+- **1,018** API tests in **47** test files, plus **88** optional MongoDB integration tests (in 5 more files) that are skipped unless `MONGODB_TEST_URI` is set
+- **298** Playwright E2E tests in **16** test files
 
-The API tests need **no MongoDB and no credentials**. The optional integration tests run the same questions against a real MongoDB and compare its answers with the in-memory ones.
+The API tests need **no MongoDB and no credentials**. The optional integration tests run against a real MongoDB what a fake cannot prove: the unique indexes, the atomic cart updates and the idempotent orders when requests arrive at the same moment.
 
-The E2E suite runs against the production build under the `/online-store/` base path, using the GitHub Pages `404.html` fallback for SPA routing. The site reads its products from a stub API that runs the real API code over in-memory data, so the browser tests need no database either.
+The E2E suite runs against the production build under the `/online-store/` base path, using the GitHub Pages `404.html` fallback for SPA routing. The site talks to a stub API that runs the real API code (products, accounts, carts and orders) over in-memory data, so the browser tests need no database either.
 
 Accessibility tests cover areas including:
 
@@ -244,8 +255,8 @@ More details: [`docs/testing.md`](docs/testing.md)
 src/
 ├── app/          Routes, path helpers and app shell
 ├── components/   Shared UI and reusable building blocks
-├── features/     Products, cart, favorites, auth, checkout,
-│                 search, notifications, home and shop
+├── features/     Products, cart (and its sync), favorites, auth, checkout,
+│                 orders, search, notifications, home and shop
 ├── layouts/      Root layout
 ├── lib/          API address, formatting, validation and password helpers
 ├── pages/        Route-level pages
@@ -284,11 +295,11 @@ The `verify` job checks:
 - API tests
 - production build (site and API)
 
-The `e2e` job runs the Playwright tests against the production build, in parallel.
+The `integration` job runs the tests of the code that talks to MongoDB (queries, unique indexes, the atomic cart and idempotent order writes) against a real MongoDB that exists only for the job. The `e2e` job runs the Playwright tests against the production build. Both run in parallel with `verify`.
 
 ### Deployment
 
-On pushes to `main`, once `verify` and `e2e` have both succeeded, the `deploy` job:
+On pushes to `main`, once `verify`, `integration` and `e2e` have all succeeded, the `deploy` job:
 
 1. checks the production API with [`scripts/check-api.mjs`](scripts/check-api.mjs) (up, connected to MongoDB, products readable, CORS allowing the site), waiting for a sleeping host to wake up;
 2. publishes the site to **GitHub Pages**.
@@ -303,6 +314,7 @@ This allows routes such as:
 /online-store/cart
 /online-store/favorites
 /online-store/checkout
+/online-store/orders/DEMO-7K2M9QX4
 ```
 
 to work correctly after deployment.
@@ -314,7 +326,8 @@ to work correctly after deployment.
 - 🚢 [`docs/deployment.md`](docs/deployment.md) — Render, Atlas and GitHub Pages: configuration, release flow, verification and troubleshooting
 - 🖥️ [`server/README.md`](server/README.md) — the API: running it, MongoDB, endpoints, configuration and structure
 - 🧪 [`docs/testing.md`](docs/testing.md) — testing strategy, isolation, accessibility and CI
-- 💾 [`docs/state-persistence.md`](docs/state-persistence.md) — cart and favorites persistence
+- 💾 [`docs/state-persistence.md`](docs/state-persistence.md) — cart and favorites persistence, and how the cart is kept in step with the account
+- 📦 [`docs/m9-server-cart-and-orders.md`](docs/m9-server-cart-and-orders.md) — the server cart and orders: what was built, the decisions and the limits
 - 🗃️ [`docs/product-data-migration.md`](docs/product-data-migration.md) — product data migration and cleanup
 - 🔍 [`docs/seo.md`](docs/seo.md) — page metadata, static pages and the sitemap
 
@@ -324,7 +337,7 @@ to work correctly after deployment.
 
 The project originally started as a static **HTML/CSS/JavaScript** website.
 
-It was later rebuilt using **React and TypeScript**, with the original implementation preserved in the [`legacy-v1`](https://github.com/Netanel1010/online-store/tree/legacy-v1) tag. A backend was then added: an Express API with MongoDB, deployed to Render, which now serves the product catalog to the site.
+It was later rebuilt using **React and TypeScript**, with the original implementation preserved in the [`legacy-v1`](https://github.com/Netanel1010/online-store/tree/legacy-v1) tag. A backend was then added: an Express API with MongoDB, deployed to Render, which now serves the product catalog, the accounts, the carts and the orders to the site.
 
 This repository therefore also documents the evolution from a simple static site into a modern component-based frontend application with its own API.
 

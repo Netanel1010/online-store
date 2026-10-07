@@ -5,7 +5,7 @@ import { formatPrice } from '@/lib/format'
 import { IMAGE_SIZE } from '@/lib/imageSizes'
 import type { CartLine } from './summary'
 
-/** Read-only list of what is being ordered, for the checkout and the confirmation. */
+/** Read-only list of what is about to be ordered, with today's prices (the order page shows `OrderSnapshotLines`). */
 export function OrderLines({ lines, label }: { lines: readonly CartLine[]; label: string }) {
   return (
     <ul aria-label={label} className="divide-y divide-line border-y border-line">

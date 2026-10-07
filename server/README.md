@@ -1,15 +1,16 @@
 # Online Store API
 
-The backend of the online store: **Node.js**, **Express 5** and **TypeScript**. It is the
-foundation with a first feature. It has health checks, JSON parsing, CORS, validated
-configuration, central error handling, a **MongoDB** connection (the official driver) with a managed
-life cycle, and a read-only **Products API** that serves the catalog from MongoDB, with the search,
-filtering, sorting and paging of the product listings done in MongoDB.
+The backend of the online store: **Node.js**, **Express 5** and **TypeScript**. It has health
+checks, JSON parsing, CORS, validated configuration, central error handling, a **MongoDB**
+connection (the official driver) with a managed life cycle, a read-only **Products API** that serves
+the catalog from MongoDB (with the search, filtering, sorting and paging of the product listings done
+in MongoDB), **authentication**, a **cart** per account and **orders**.
 
 The storefront loads its products from this API, in production (hosted on Render, with MongoDB
-Atlas) and in development. Accounts and sessions are in the API ([Authentication](#authentication));
-the cart, favorites and orders still live in the frontend: a server cart and orders are later steps. How the API is deployed and checked is in
-[`docs/deployment.md`](../docs/deployment.md).
+Atlas) and in development. Accounts and sessions are in the API ([Authentication](#authentication)),
+and so are the carts of the signed-in visitors ([Cart](#cart)) and the orders they place
+([Orders](#orders)). Only the favorites still live in the frontend. How the API is deployed and
+checked is in [`docs/deployment.md`](../docs/deployment.md).
 
 It is an npm workspace of this repository, so one `npm install` at the root installs everything and
 the root ESLint, Prettier and TypeScript settings apply to it.
@@ -217,8 +218,8 @@ built in `productFilter.ts` and `searchFields.ts`, and its index).
 
 Accounts and sessions live in MongoDB (`users` and `sessions`) and are served by the API under
 `/api/auth`. There is one kind of account: a signed-in visitor is the only thing the API tells
-apart, and the only protected resource so far is `GET /api/auth/me`. Future features (a server cart,
-orders) put `createRequireAuth` in front of their routes (see [Protecting a route](#protecting-a-route)).
+apart. Every route of the cart and of the orders puts `createRequireAuth` in front of it (see
+[Protecting a route](#protecting-a-route)).
 No roles exist, because nothing in the store needs them yet.
 
 | Endpoint                   | Needs a token | What it does                                                                                                   |
@@ -337,6 +338,99 @@ Nothing to configure: authentication needs no environment variable. It needs the
 two collections and their indexes when the API starts. In development the storefront already finds
 the API at `http://localhost:3001`, and the API already allows the Vite dev server's origin.
 
+## Cart
+
+The cart of a signed-in visitor, under `/api/cart`. Every route needs a token, and the cart is always
+the one of the session's account, never one named in the request. Every answer is the whole cart as
+it is after the change, `{ items: [{ productId, quantity }], updatedAt }` (`updatedAt` is `null` for an
+account that has never used its cart), with `Cache-Control: no-store`.
+
+| Endpoint                           | What it does                                                                                              |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `GET /api/cart`                    | The cart (an empty one if there is none).                                                                 |
+| `POST /api/cart/items`             | `{ productId, quantity? }`: adds units (one by default) to the product's line, up to 99.                  |
+| `PUT /api/cart/items/:productId`   | `{ quantity }`: sets the line's quantity (1–99), making the line if there is none. Repeating it changes nothing. |
+| `DELETE /api/cart/items/:productId` | Removes the line. Quietly does nothing when there is none.                                                |
+| `DELETE /api/cart`                 | Empties the cart.                                                                                         |
+
+The cart stores **product ids and quantities and nothing else**: no name, no price, no catalog copy,
+so it can never show or charge a stale price (an order reads the prices when it is placed). A product
+must exist to be put in a cart; a line whose product was removed later stays (it is just an id) and
+can still be taken out. The limits are the ones of an order, shared with the storefront in
+`src/features/cart/limits.ts`: 1–99 units of a product and **50 different products** (the most one
+order can hold, so a cart is always one that can be ordered).
+
+**Errors** use the usual shape: `400 invalid_input` (the message names the field, never the value),
+`401 unauthorized`, `409 product_unavailable` (with `details.productIds`), `409 cart_full` (a 51st
+different product) and `409 cart_conflict`, `429 rate_limited`.
+
+**How a change is made.** One document per account in the `carts` collection, with a unique `userId`
+and a `revision` that counts the changes. A change reads the cart, works out the new lines and writes
+them only if the cart is still at the revision it read (a compare-and-swap in one atomic MongoDB
+update), then reads and tries again if another change got in first, up to five times. So two changes at
+the same moment, from two tabs, are both made, and none is lost. There are no transactions: the cart
+is one document. If it keeps losing the race the answer is `409 cart_conflict`, and repeating the
+request is safe.
+
+**Limits.** Changing a cart is limited per client address: 300 changes per 15 minutes
+(`CART_RATE_LIMITS` in `cart/routes.ts`), checked before the session is looked up. Reading is not
+limited. It is kept in the memory of the process, like the sign-in limit.
+
+The storefront keeps the cart in the browser and mirrors it here; how the two are reconciled is in
+[`docs/state-persistence.md`](../docs/state-persistence.md).
+
+## Orders
+
+The orders of a signed-in visitor, under `/api/orders`. Every route needs a token, an order always
+belongs to the account that placed it, and every answer has `Cache-Control: no-store` (an order holds a
+name, a phone number and an address).
+
+| Endpoint                         | What it does                                                                                                    |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `POST /api/orders`               | Places an order. Needs an `Idempotency-Key` header. `201` with the order, `200` with the same order for a repeat. |
+| `GET /api/orders`                | The account's orders, newest first, paged like the products (`?page=&limit=`, 20 by default, 100 at most).      |
+| `GET /api/orders/:orderNumber`   | One of the account's orders. Anyone else's, and one that does not exist, are the same `404 order_not_found`.    |
+
+```json
+{
+  "items": [{ "productId": "GP-P650G", "quantity": 2 }],
+  "delivery": {
+    "fullName": "…", "email": "…", "phone": "…", "city": "…", "street": "…",
+    "houseNumber": "…", "apartment": "", "postalCode": "", "notes": ""
+  },
+  "expectedTotal": 560
+}
+```
+
+**The server decides the money.** Only product ids and quantities come from the client. The API reads
+the products, works out every unit price, the total, the total before the sale and the savings (whole
+shekels), and stores an **immutable snapshot**: the name and price of each line as they were, so a later
+change to the catalog changes no order. A price, a name or a total in the body is not read.
+`expectedTotal` is what the visitor saw: if it is not what the server works out, nothing is ordered
+and the answer is `409 price_changed` with the real `details.total`.
+
+**A retry can never place a second order.** The `Idempotency-Key` (16–128 characters of a UUID-like
+token, one per checkout attempt) is stored with the order under a unique `{ userId, idempotencyKey }`
+index, together with a digest of what was ordered. The same key with the same request gets the order it
+made, even if prices changed since (`200`, not `201`); the same key with a different request is
+`409 idempotency_key_reuse`. The browser repeats a request that timed out (a Render cold start) with
+the same key, which is why this matters.
+
+**Order numbers** look like `DEMO-7K2M9QX4`: eight characters from an alphabet without look-alike
+letters, drawn with `crypto.randomInt` (about 10^12 possibilities), unique by an index. The `DEMO-`
+prefix stays while there is no payment.
+
+**Errors:** `400 invalid_input` (the field, never the value), `400 idempotency_key_required`, `401`,
+`404 order_not_found`, `409 product_unavailable` (`details.productIds`; nothing is dropped silently),
+`409 price_changed`, `409 idempotency_key_reuse`, `429 rate_limited`.
+
+**Limits.** Placing an order is limited per client address: 20 per hour (`ORDER_RATE_LIMITS` in
+`orders/routes.ts`), checked before the session is looked up and in the memory of the process. An order
+has one status, `placed`: there is no payment, shipping, email, cancelling or editing, and no stock.
+Orders are kept with the account; there is no route that deletes them yet. Three indexes keep the
+`orders` collection correct and fast: the unique order number, the unique `{ userId, idempotencyKey }`
+and `{ userId, createdAt, _id }` for the history.
+
 ## Seed the products
 
 `npm run seed:products` copies `public/data/products.json` to the `products` collection of the
@@ -424,13 +518,17 @@ server/
 │   ├── db/              database.ts (MongoClient, connect, ping, close) and errors.ts
 │   ├── auth/            The authentication feature: routes, service, middleware, user and session
 │   │                    repositories, passwords (scrypt), tokens, the sign-in limit, schemas
+│   ├── cart/            The cart feature: routes, service, repository (revision compare-and-swap),
+│   │                    schemas
+│   ├── orders/          The orders feature: routes, service (pricing, idempotency), repository,
+│   │                    order numbers, schemas
 │   ├── products/        The products feature: routes, query parsing, service, repository, filters
 │   │                    and search text, filter options, schemas, seed
 │   ├── routes/          One router per feature, mounted under /api in routes/index.ts
 │   ├── scripts/         Commands run from a checkout (seedProducts.ts)
 │   ├── middleware/      notFound and the central errorHandler
 │   ├── lib/             HttpError, the error a route throws on purpose
-│   └── testing/         Test helpers: a free-port server, fixtures, an in-memory repository
+│   └── testing/         Test helpers: a free-port server, fixtures, in-memory repositories
 ├── tsconfig.json        Type-checking, tests included
 └── tsconfig.build.json  Production build to dist/
 ```
@@ -457,7 +555,12 @@ sessions that expire and end), the middleware and the routes over HTTP with in-m
 (including that no answer contains a password, a hash or a token that was not just issued), the
 exact queries of the repositories, and CORS for the `Authorization` header.
 
-The **integration tests** (`*.integration.test.ts`: products, accounts and sessions, the connection)
+The cart and the orders are tested the same way: the schemas, the services over in-memory
+repositories (pricing, idempotency, the revision retries, ownership), the exact queries of the
+repositories, and the routes over HTTP (including that one account can never read or change another's
+cart or orders).
+
+The **integration tests** (`*.integration.test.ts`: products, accounts and sessions, carts, orders, the connection)
 talk to a real MongoDB. `npm run test:server` skips them, so it is quick and needs nothing. Run them
 with `npm run test:integration`, which needs `MONGODB_TEST_URI` and **stops with an error without it**
 instead of passing by skipping (CI runs them this way, against a throwaway MongoDB 8 service
@@ -480,7 +583,10 @@ against the real server. It also asks the API over MongoDB and the API over the 
 the same questions (searches, filters, sorts, pages, filter options) and expects the same answers.
 A second file does the same for accounts and sessions: the unique indexes (also when five
 registrations of one email arrive at once), the index that expires sessions, that a password is
-stored only as a hash, and registration, sign-in, `me` and sign-out over HTTP. They work
+stored only as a hash, and registration, sign-in, `me` and sign-out over HTTP. The cart and order
+files check what only MongoDB can prove: the unique indexes, ten simultaneous first writes of a cart
+letting exactly one through, four simultaneous adds all being counted, the same order request sent eight
+times at once making one order, and the history being read by its index. They work
 in a database of its own named `online_store_test_<random>` and drops it at the end. It never uses
 `MONGODB_URI` and never touches your development data.
 
@@ -506,8 +612,9 @@ in a database of its own named `online_store_test_<random>` and drops it at the 
   (the API only answers JSON), `X-Frame-Options: DENY`, and `Strict-Transport-Security` only when
   the request really came over HTTPS (see `TRUST_PROXY_HOPS`). No framework such as Helmet is used:
   this is all an API that serves JSON needs. Every error answer is `Cache-Control: no-store`.
-- **CORS** offers only `GET`, `HEAD` and `POST`, the headers `Authorization` and `Content-Type`, lets a
-  page read `Retry-After`, and lets a browser keep a preflight answer for ten minutes.
+- **CORS** offers only `GET`, `HEAD`, `POST`, `PUT` and `DELETE` (the last two are the cart's; `PATCH` is
+  not offered), the headers `Authorization`, `Content-Type` and `Idempotency-Key`, lets a page read
+  `Retry-After` and `X-Request-Id`, and lets a browser keep a preflight answer for ten minutes.
 - **Timeouts:** an answer that takes longer than 25 seconds is replaced by `503 request_timeout`
   (the work itself is not stopped). The server keeps idle connections for 65 seconds, longer than a
   proxy keeps its own, so a reused connection is never closed under it (that race shows up as an
