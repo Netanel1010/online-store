@@ -114,11 +114,23 @@ describe('idempotencyKeyFor', () => {
     expect(idempotencyKeyFor('user-1', ITEMS, DELIVERY)).toMatch(UUID)
   })
 
-  it('does not keep the delivery details readable in storage beyond what the key needs to compare', () => {
+  it('keeps no name, phone number, address or account in storage, only a digest of them', () => {
     idempotencyKeyFor('user-1', ITEMS, DELIVERY)
 
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+    const raw = localStorage.getItem(STORAGE_KEY)!
+    for (const secret of [
+      'נתנאל',
+      'netanel@example.com',
+      '050-1234567',
+      'חיפה',
+      'הנשיא',
+      'user-1',
+    ]) {
+      expect(raw).not.toContain(secret)
+    }
+    const stored = JSON.parse(raw)
     expect(Object.keys(stored).sort()).toEqual(['createdAt', 'fingerprint', 'key'])
+    expect(stored.fingerprint).toMatch(/^[0-9a-z]{1,11}$/)
   })
 })
 
