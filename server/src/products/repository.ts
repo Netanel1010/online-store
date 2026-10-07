@@ -55,6 +55,8 @@ export interface ProductRepository {
    */
   specValueCounts(filter: ProductFilter): Promise<SpecValueCount[]>
   findById(id: string): Promise<Product | null>
+  /** The products with these ids, in no particular order. An id with no product is left out. */
+  findByIds(ids: readonly string[]): Promise<Product[]>
   /**
    * Inserts the products that do not exist and updates the ones that do, matched by `id`. Other
    * documents are never touched, and nothing is deleted.
@@ -185,6 +187,13 @@ export function createProductRepository(database: Database): ProductRepository {
     async findById(id) {
       const document = await products().findOne({ id }, { projection: PRODUCT_PROJECTION })
       return document === null ? null : toProduct(document)
+    },
+
+    async findByIds(ids) {
+      const documents = await products()
+        .find({ id: { $in: [...ids] } }, { projection: PRODUCT_PROJECTION })
+        .toArray()
+      return documents.map(toProduct)
     },
 
     async upsertMany(items) {

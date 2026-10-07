@@ -176,6 +176,40 @@ describe('list', () => {
   })
 })
 
+describe('findByIds', () => {
+  it('asks for the products by their id in one query, without the internal fields', async () => {
+    fake.cursor.toArray.mockResolvedValue([a, b])
+
+    const found = await createProductRepository(database).findByIds(['A-1', 'B-2', 'GONE'])
+
+    expect(fake.collection.find).toHaveBeenCalledTimes(1)
+    expect(fake.collection.find).toHaveBeenCalledWith(
+      { id: { $in: ['A-1', 'B-2', 'GONE'] } },
+      { projection: { _id: 0, search: 0 } },
+    )
+    expect(found).toEqual([a, b])
+  })
+
+  it('uses the ids as values, never as part of the query', async () => {
+    const hostile = '{"$ne":""}'
+
+    await createProductRepository(database).findByIds([hostile])
+
+    expect(fake.collection.find).toHaveBeenCalledWith(
+      { id: { $in: [hostile] } },
+      { projection: { _id: 0, search: 0 } },
+    )
+  })
+
+  it('refuses a stored document that is not a valid product', async () => {
+    fake.cursor.toArray.mockResolvedValue([{ id: 'A-1' }])
+
+    await expect(createProductRepository(database).findByIds(['A-1'])).rejects.toThrow(
+      'The stored product "A-1" does not match the product schema',
+    )
+  })
+})
+
 describe('findById', () => {
   it('looks up by the product id, not by _id, without the internal _id', async () => {
     fake.collection.findOne.mockResolvedValue(a)

@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { z } from 'zod'
+import { MAX_QUANTITY } from './limits.ts'
 
-export const MAX_QUANTITY = 99
+export { MAX_QUANTITY }
 
 export interface CartItem {
   productId: string

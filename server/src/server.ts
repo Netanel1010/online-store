@@ -5,6 +5,7 @@ import { loadConfig } from './config.ts'
 import { createDatabase, type Database } from './db/database.ts'
 import { createJsonLogger } from './lib/logger.ts'
 import { configureServerTimeouts } from './lib/serverTimeouts.ts'
+import { createOrderRepository } from './orders/repository.ts'
 import { createProductRepository } from './products/repository.ts'
 
 const logger = createJsonLogger()
@@ -30,6 +31,8 @@ async function start() {
     // The unique indexes of the accounts and the sessions (and the one that expires sessions).
     await createUserRepository(database).ensureIndexes()
     await createSessionRepository(database).ensureIndexes()
+    // The unique order number, the unique idempotency key of an account, and the list of its orders.
+    await createOrderRepository(database).ensureIndexes()
   } else {
     logger.warn?.('MONGODB_URI is not set: running without a database')
   }

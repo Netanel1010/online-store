@@ -131,8 +131,22 @@ describe.skipIf(!uri)('products on a real MongoDB (integration, needs MONGODB_TE
     expect(await repository.findById('DOES-NOT-EXIST')).toBeNull()
   })
 
+  it('finds several products by their ids in one query, leaving out an id with no product', async () => {
+    const found = await repository.findByIds([catalog[0]!.id, 'DOES-NOT-EXIST', catalog[3]!.id])
+
+    expect(found.map((product) => product.id).sort()).toEqual(
+      [catalog[0]!.id, catalog[3]!.id].sort(),
+    )
+    for (const product of found) {
+      expect(product).not.toHaveProperty('_id')
+      expect(product).not.toHaveProperty('search')
+    }
+    expect(await repository.findByIds([])).toEqual([])
+  })
+
   it('treats an id that looks like a query as plain text', async () => {
     expect(await repository.findById('{"$ne":""}')).toBeNull()
+    expect(await repository.findByIds(['{"$ne":""}'])).toEqual([])
   })
 
   it('serves the products over HTTP from MongoDB', async () => {

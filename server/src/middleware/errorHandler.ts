@@ -7,7 +7,13 @@ export type { Logger }
 
 export interface ErrorBody {
   /** `requestId` is on a server error (5xx): it is what to quote to find it in the log. */
-  error: { code: string; message: string; requestId?: string }
+  error: {
+    code: string
+    message: string
+    requestId?: string
+    /** Facts a client can act on, only on an error the route threw on purpose with some. */
+    details?: Record<string, unknown>
+  }
 }
 
 /** Errors thrown by Express's own body parser (invalid JSON, a body that is too large). */
@@ -51,6 +57,8 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
           code: known.code,
           message: known.message,
           ...(known.status >= 500 && requestId && { requestId }),
+          ...(error instanceof HttpError &&
+            Object.keys(error.details).length > 0 && { details: error.details }),
         },
       }
       if (error instanceof HttpError) res.set(error.headers)
