@@ -143,3 +143,42 @@ test.describe('the search box as one control', () => {
     await expect(control).toHaveCSS('outline-style', 'solid')
   })
 })
+
+test.describe('the focus after choosing a suggestion', () => {
+  test('goes to the start of the product page when a suggestion is chosen with the keyboard', async ({
+    page,
+  }) => {
+    await page.goto('')
+    await searchBox(page).pressSequentially('4070')
+
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('Enter')
+
+    await expect(page.getByRole('heading', { level: 1, name: rtx4070.fullName })).toBeVisible()
+    await expect(page.locator('main')).toBeFocused()
+  })
+
+  test('goes to the start of the product page when a suggestion is clicked', async ({ page }) => {
+    await page.goto('')
+    await searchBox(page).pressSequentially('4070')
+
+    await suggestions(page).getByRole('option').first().click()
+
+    await expect(page.getByRole('heading', { level: 1, name: rtx4070.fullName })).toBeVisible()
+    await expect(page.locator('main')).toBeFocused()
+  })
+
+  test('goes to the start of the results when a search is typed and submitted', async ({
+    page,
+  }) => {
+    await page.goto('')
+    await searchBox(page).pressSequentially('intel')
+
+    await page.keyboard.press('Enter')
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'תוצאות חיפוש עבור “intel”' }),
+    ).toBeVisible()
+    await expect(page.locator('main')).toBeFocused()
+  })
+})
