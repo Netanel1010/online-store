@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { buttonStyles } from '@/components/ui/buttonStyles'
 import { useAuthStore, useCurrentUser } from '@/features/auth/authStore'
 import { useCartStore } from '@/features/cart/cartStore'
+import { useCartIsLoading } from '@/features/cart/cartSyncStatus'
 import { OrderLines } from '@/features/cart/OrderLines'
 import { OrderSummary } from '@/features/cart/OrderSummary'
 import { buildCartLines, summarizeCart } from '@/features/cart/summary'
@@ -43,6 +44,7 @@ const GENERIC_FAILURE = 'לא הצלחנו להשלים את ההזמנה. נס�
 export function CheckoutPage() {
   const user = useCurrentUser()
   const items = useCartStore((state) => state.items)
+  const waitingForCart = useCartIsLoading()
   const navigate = useNavigate()
   const [problem, setProblem] = useState<Problem | null>(null)
   // The total the visitor agreed to after being told that it changed.
@@ -158,6 +160,7 @@ export function CheckoutPage() {
         {(products) => {
           const lines = buildCartLines(items, products)
 
+          if (lines.length === 0 && waitingForCart) return <CheckoutSkeleton />
           if (lines.length === 0) {
             return (
               <EmptyState

@@ -84,7 +84,7 @@ describe('what is not kept', () => {
 })
 
 describe('CORS', () => {
-  it('offers only what the storefront uses: reading, signing in or out, and placing orders', async () => {
+  it('offers only what the storefront uses: reading, signing in or out, placing orders and keeping a cart', async () => {
     const response = await fetch(`${behindProxy.url}/api/auth/login`, {
       method: 'OPTIONS',
       headers: {
@@ -95,14 +95,14 @@ describe('CORS', () => {
     })
 
     expect(response.headers.get('access-control-allow-origin')).toBe(SITE)
-    expect(response.headers.get('access-control-allow-methods')).toBe('GET,HEAD,POST')
+    expect(response.headers.get('access-control-allow-methods')).toBe('GET,HEAD,POST,PUT,DELETE')
     expect(response.headers.get('access-control-allow-headers')).toBe(
       'Authorization,Content-Type,Idempotency-Key',
     )
     expect(Number(response.headers.get('access-control-max-age'))).toBeGreaterThanOrEqual(600)
   })
 
-  it.each(['PUT', 'PATCH', 'DELETE'])('does not allow %s from a browser', async (method) => {
+  it.each(['PATCH', 'TRACE', 'CONNECT'])('does not allow %s from a browser', async (method) => {
     const response = await fetch(`${behindProxy.url}/api/products`, {
       method: 'OPTIONS',
       headers: { Origin: SITE, 'Access-Control-Request-Method': method },

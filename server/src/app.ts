@@ -35,10 +35,11 @@ export function createApp(
 
   app.use(
     cors({
-      // The storefront reads (GET) and signs in, signs out or places an order (POST). Nothing else
+      // The storefront reads (GET), signs in, signs out or places an order (POST), and keeps the cart
+      // of the account (PUT sets a quantity, DELETE removes a line or empties the cart). Nothing else
       // is offered, so nothing else is allowed from a browser. `Idempotency-Key` is what makes a
       // retry of an order safe (see orders/service.ts).
-      methods: ['GET', 'HEAD', 'POST'],
+      methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
       allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
       // A page's script can read only the headers a server lists: the one that says how long to wait.
       exposedHeaders: ['Retry-After', 'X-Request-Id'],

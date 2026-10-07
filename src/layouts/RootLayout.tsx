@@ -6,6 +6,7 @@ import { RouteCrash } from '@/components/shared/CrashScreens'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { PageLoading } from '@/components/shared/StateMessages'
 import { useRestoreSession } from '@/features/auth/useRestoreSession'
+import { KeepCartSynced } from '@/features/cart/KeepCartSynced'
 import { ToastProvider } from '@/features/notifications/ToastProvider'
 import { ShopStateReconciler } from '@/features/shop/ShopStateReconciler'
 import { useFocusAtPageStart } from './useFocusAtPageStart'
@@ -45,6 +46,7 @@ export function RootLayout() {
         </main>
         <Footer />
         <ShopStateReconciler />
+        <KeepCartSynced />
       </div>
     </ToastProvider>
   )

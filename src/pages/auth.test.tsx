@@ -358,10 +358,11 @@ describe('signed-in state and logout', () => {
   })
 })
 
-describe('cart and favorites are unaffected by signing in and out', () => {
+describe('the cart and the favorites when signing in and out', () => {
   const product = makeProduct({ id: 'P-1', name: 'מוצר' })
 
-  it('keeps the cart and favorites across login and logout', async () => {
+  it('keeps the cart and favorites across login, and empties only the cart on logout', async () => {
+    api.setCatalog([product]) // the API keeps only the products it has
     useCartStore.getState().addItem('P-1', 2)
     useFavoritesStore.getState().toggle('P-1')
     await seedAccount()
@@ -373,7 +374,8 @@ describe('cart and favorites are unaffected by signing in and out', () => {
 
     await userEvent.click(screen.getAllByRole('button', { name: 'התנתקות' })[0]!)
 
-    expect(useCartStore.getState().items).toEqual([{ productId: 'P-1', quantity: 2 }])
+    // The cart is the account's and stays with it; the favorites are this browser's.
+    expect(useCartStore.getState().items).toEqual([])
     expect(useFavoritesStore.getState().ids).toEqual(['P-1'])
   })
 })
