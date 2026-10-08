@@ -64,6 +64,25 @@ The site learns where the API is when it is **built**, from the `VITE_API_URL` v
 - Changing the value needs a new site build (push to `main`, or run the CI workflow manually on
   `main`): the address is baked into the files.
 
+### Netlify (a second frontend host)
+
+[`netlify.toml`](../netlify.toml) builds the same site for a host that serves it from the **root** of its
+own address (`https://<site>.netlify.app/`) instead of `/online-store/`. It is separate from the
+GitHub Pages deployment, which does not read it and is unchanged.
+
+- **`VITE_BASE_PATH`** is the base path of a production build (`vite.config.ts`, validated by
+  `scripts/basePath.ts`). Without it, and in every GitHub Pages build, it is `/online-store/`.
+  `netlify.toml` sets it to `/`. A value that does not start and end with `/` stops the build. On
+  Windows, Git Bash rewrites a bare `/` into a Windows path before the build sees it: use
+  `MSYS_NO_PATHCONV=1`, PowerShell, or the CI.
+- **Canonical addresses, `og:url` and the sitemap still point at GitHub Pages**, which stays the
+  primary site: they come from `SITE_URL` in `src/lib/seo.ts`, not from the base path.
+- **The API must allow the Netlify origin.** Add `https://<site>.netlify.app` to `CORS_ORIGINS` in
+  `render.yaml` (a comma-separated list) before the Netlify site is used, or its pages load and show no
+  products. Sessions are kept per origin, so a visitor signs in on each host separately.
+- The Netlify build does not wait for this repository's checks: that is a property of how Netlify
+  is connected, not of this file.
+
 ## How a change reaches production
 
 1. A pull request is merged into `main`.

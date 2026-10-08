@@ -212,6 +212,7 @@ npx playwright install chromium
 | Variable       | Used by | Purpose                                                                                                                                                         |
 | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `VITE_API_URL` | Site    | Where the API is, read **when the site is built**, without a trailing slash. Defaults to `http://localhost:3001` in development. CI sets it from the repository variable `API_URL` |
+| `VITE_BASE_PATH` | Site  | The path the built site is served from, `/online-store/` (GitHub Pages) unless set, for example `/` for a host at the root of its address ([`netlify.toml`](netlify.toml)) |
 | `MONGODB_URI`, `CORS_ORIGINS`, `PORT`, … | API | Described in [`server/README.md`](server/README.md#configuration). The `MONGODB_URI` secret never goes in a committed file |
 
 ---
@@ -229,7 +230,7 @@ The project uses multiple testing layers rather than relying on a single test ty
 
 ### Current test suite
 
-- **950** unit, component and script tests in **70** test files
+- **962** unit, component and script tests in **71** test files
 - **1,061** API tests in **47** test files, plus **96** optional MongoDB integration tests (in 5 more files) that are skipped unless `MONGODB_TEST_URI` is set
 - **329** Playwright E2E tests in **19** test files
 

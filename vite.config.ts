@@ -2,6 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { resolveBasePath } from './scripts/basePath.ts'
 
 /**
  * Tells the browser, from the first bytes of the HTML, about the API the page is going to call:
@@ -28,10 +29,14 @@ function apiHints(apiUrl: string | undefined): Plugin {
   }
 }
 
-// The site is served from https://<user>.github.io/online-store/ in production,
-// so assets and the router basename must use that sub-path. Dev serves from "/".
+// The site is served from https://<user>.github.io/online-store/ in production, so assets and the
+// router basename use that sub-path unless VITE_BASE_PATH says otherwise: a host that serves the site
+// from the root of its own address builds with VITE_BASE_PATH=/ (see netlify.toml). Dev serves from "/".
 export default defineConfig(({ command, mode }) => ({
-  base: command === 'build' ? '/online-store/' : '/',
+  base:
+    command === 'build'
+      ? resolveBasePath(loadEnv(mode, process.cwd(), 'VITE_').VITE_BASE_PATH)
+      : '/',
   plugins: [
     react(),
     tailwindcss(),
