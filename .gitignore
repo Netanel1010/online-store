@@ -35,3 +35,6 @@ Thumbs.db
 
 # Local Claude Code settings (per developer, not part of the project)
 .claude/
+
+# Generated PDF and DOCX copies of the project documents (the Markdown in docs/project is the source)
+docs/project/artifacts/
