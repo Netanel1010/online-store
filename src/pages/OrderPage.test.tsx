@@ -4,6 +4,7 @@ import { useAuthStore } from '@/features/auth/authStore'
 import { placeOrder } from '@/features/orders/orderService'
 import { makeProduct } from '@/test/fixtures'
 import { setUpAuthApi } from '@/test/authApi'
+import { signOutFromHeader } from '@/test/accountMenu'
 import { renderApp } from '@/test/renderApp'
 
 // The real authentication and orders API answers these tests (see setUpAuthApi).
@@ -175,7 +176,7 @@ describe('the page of an order', () => {
     renderApp(`/orders/${order.orderNumber}`, catalog)
     await screen.findByRole('heading', { level: 1, name: 'פרטי הזמנה' })
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'התנתקות' })[0]!)
+    await signOutFromHeader()
 
     await waitFor(() => expect(url()).toBe('/'))
   })

@@ -5,8 +5,8 @@ import {
   cartLink,
   expectSignedIn,
   fillDeliveryForm,
-  header,
   newAccount,
+  openAccountMenu,
   register,
   summaryTotal,
 } from './support/helpers'
@@ -245,7 +245,7 @@ test.describe('the orders of the account', () => {
     const second = ORDER_URL.exec(page.url())![1]!
     expect(second).not.toBe(first)
 
-    await header(page).getByRole('link', { name: 'ההזמנות שלי' }).click()
+    await (await openAccountMenu(page)).getByRole('link', { name: 'ההזמנות שלי' }).click()
 
     await expect(page).toHaveURL(/\/online-store\/orders$/)
     await expect(page.getByRole('heading', { level: 1, name: 'ההזמנות שלי' })).toBeVisible()

@@ -6,13 +6,16 @@ assistive technology and real users.
 
 ## Automated
 
-| Check                                                                                                                        | Where                                                   | When                                  |
-| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------- |
-| axe-core (WCAG 2.0 to 2.2 A and AA, best practice) on the main pages and states                                              | `e2e/accessibility.spec.ts`, `e2e/support/a11y.ts`      | every pull request (`e2e`)            |
-| Page language and direction, labels, error associations, keyboard order, focus management, the mobile menu as a modal dialog | `e2e/accessibility.spec.ts`, `e2e/navigation.spec.ts`   | every pull request (`e2e`)            |
-| Lighthouse accessibility score of the home page, the listing and a product page (must stay at 0.95 or more)                  | `lighthouserc.json`, `.github/workflows/lighthouse.yml` | every pull request and push to `main` |
+| Check                                                                                                                                                                                                                        | Where                                                                | When                                   |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------- |
+| axe-core (WCAG 2.0 to 2.2 A and AA, best practice) on the main pages and states                                                                                                                                              | `e2e/accessibility.spec.ts`, `e2e/support/a11y.ts`                   | every pull request (`e2e`)             |
+| Page language and direction, labels, error associations, keyboard order, focus management, the mobile menu as a modal dialog                                                                                                 | `e2e/accessibility.spec.ts`, `e2e/navigation.spec.ts`                | every pull request (`e2e`)             |
+| The "My account" menu of the header: Enter opens it, Tab walks the items, Escape closes it and returns the focus, tabbing out or clicking elsewhere closes it, it opens inside the screen from 320 px, axe on the open panel | `e2e/account-menu.spec.ts`, `src/features/auth/AccountMenu.test.tsx` | every pull request (`e2e`, unit tests) |
+| Lighthouse accessibility score of the home page, the listing and a product page (must stay at 0.95 or more)                                                                                                                  | `lighthouserc.json`, `.github/workflows/lighthouse.yml`              | every pull request and push to `main`  |
 
 At the time of M12 Lighthouse scored accessibility, best practices and SEO at 100 on all three pages.
+
+**The statement that visitors read** is the page `/accessibility` (`src/pages/AccessibilityPage.tsx`). It says what is written here, in Hebrew, and claims no conformance. When this document changes, change that page too.
 
 ## Manual keyboard pass (M12)
 

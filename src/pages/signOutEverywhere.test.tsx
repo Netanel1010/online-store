@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { loginAccount } from '@/features/auth/authService'
 import { useAuthStore } from '@/features/auth/authStore'
+import { openAccountMenu } from '@/test/accountMenu'
 import { setUpAuthApi } from '@/test/authApi'
 import { renderApp } from '@/test/renderApp'
 
@@ -11,7 +12,9 @@ const api = setUpAuthApi()
 const GOOD = { name: 'נתנאל', email: 'netanel@example.com', password: 'Passw0rdOK' }
 const auth = () => useAuthStore.getState()
 const url = () => screen.getByTestId('url').textContent
-const everywhere = () => screen.getAllByRole('button', { name: 'התנתקות מכל המכשירים' })[0]!
+/** Opens the account panel of the header and returns its "sign out everywhere" button. */
+const everywhere = async () =>
+  (await openAccountMenu()).getByRole('button', { name: 'התנתקות מכל המכשירים' })
 
 /** Another browser of the same account: a second session, as a second sign-in makes. */
 async function otherBrowser() {
@@ -27,7 +30,7 @@ describe('signing out everywhere', () => {
     expect(api.sessions().size).toBe(2)
     renderApp('/')
 
-    await userEvent.click(everywhere())
+    await userEvent.click(await everywhere())
 
     await waitFor(() => expect(auth().status).toBe('anonymous'))
     expect(auth().token).toBeNull()
@@ -46,8 +49,10 @@ describe('signing out everywhere', () => {
     await auth().register(GOOD)
     renderApp('/')
 
-    expect(screen.getAllByRole('button', { name: 'התנתקות' })).not.toHaveLength(0)
-    // The menu is a dialog that is closed, which the accessibility tree leaves out: ask for it anyway.
+    const panel = await openAccountMenu()
+    expect(panel.getByRole('button', { name: 'התנתקות' })).toBeInTheDocument()
+    expect(panel.getByRole('button', { name: 'התנתקות מכל המכשירים' })).toBeInTheDocument()
+    // The mobile menu is a dialog that is closed, which the accessibility tree leaves out: ask for it anyway.
     expect(
       screen.getAllByRole('button', { name: 'התנתקות מכל המכשירים', hidden: true }),
     ).toHaveLength(2)
@@ -70,7 +75,7 @@ describe('signing out everywhere', () => {
         : real(input, init),
     )
 
-    await userEvent.click(everywhere())
+    await userEvent.click(await everywhere())
 
     expect(
       await screen.findByText('לא הצלחנו להתנתק מכל המכשירים. בדקו את החיבור ונסו שוב.', {
@@ -81,7 +86,7 @@ describe('signing out everywhere', () => {
     expect(auth().token).not.toBeNull()
     expect(api.sessions().size).toBe(2)
     // The visitor can try again.
-    expect(everywhere()).toBeEnabled()
+    expect(await everywhere()).toBeEnabled()
   })
 
   it('signs out here too when the API says the session was already over', async () => {
@@ -89,7 +94,7 @@ describe('signing out everywhere', () => {
     renderApp('/')
     api.endAllSessions() // ended elsewhere, a moment ago
 
-    await userEvent.click(everywhere())
+    await userEvent.click(await everywhere())
 
     await waitFor(() => expect(auth().status).toBe('anonymous'))
     expect(screen.getByText('התנתקתם מכל המכשירים', { selector: 'p' })).toBeInTheDocument()
@@ -100,7 +105,7 @@ describe('signing out everywhere', () => {
     renderApp('/checkout')
     await screen.findByRole('heading', { level: 1 })
 
-    await userEvent.click(everywhere())
+    await userEvent.click(await everywhere())
 
     await waitFor(() => expect(auth().status).toBe('anonymous'))
     expect(url()).toBe('/')
@@ -116,7 +121,7 @@ describe('signing out everywhere', () => {
       return real(input, init)
     })
 
-    const button = everywhere()
+    const button = await everywhere()
     await userEvent.dblClick(button)
 
     await waitFor(() => expect(auth().status).toBe('anonymous'))

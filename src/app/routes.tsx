@@ -6,6 +6,7 @@ import { CartPage } from '@/pages/CartPage'
 import { CategoryPage } from '@/pages/CategoryPage'
 import { FavoritesPage } from '@/pages/FavoritesPage'
 import { HomePage } from '@/pages/HomePage'
+import { INFO_PAGES } from '@/lib/infoPages'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProductDetailPage } from '@/pages/ProductDetailPage'
 import { ProductsPage } from '@/pages/ProductsPage'
@@ -26,6 +27,19 @@ const MyOrdersPage = lazy(() =>
 )
 const OrderPage = lazy(() => import('@/pages/OrderPage').then((m) => ({ default: m.OrderPage })))
 
+// The information pages are plain text that most visits never read.
+const AboutPage = lazy(() => import('@/pages/AboutPage').then((m) => ({ default: m.AboutPage })))
+const ContactPage = lazy(() =>
+  import('@/pages/ContactPage').then((m) => ({ default: m.ContactPage })),
+)
+const AccessibilityPage = lazy(() =>
+  import('@/pages/AccessibilityPage').then((m) => ({ default: m.AccessibilityPage })),
+)
+const PrivacyPage = lazy(() =>
+  import('@/pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
+)
+const TermsPage = lazy(() => import('@/pages/TermsPage').then((m) => ({ default: m.TermsPage })))
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -39,6 +53,11 @@ export function AppRoutes() {
         <Route path="favorites" element={<FavoritesPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path={INFO_PAGES.about.path} element={<AboutPage />} />
+        <Route path={INFO_PAGES.contact.path} element={<ContactPage />} />
+        <Route path={INFO_PAGES.accessibility.path} element={<AccessibilityPage />} />
+        <Route path={INFO_PAGES.privacy.path} element={<PrivacyPage />} />
+        <Route path={INFO_PAGES.terms.path} element={<TermsPage />} />
         <Route element={<RequireAuth />}>
           <Route path="checkout" element={<CheckoutPage />} />
           <Route path="orders" element={<MyOrdersPage />} />

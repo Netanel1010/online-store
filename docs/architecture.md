@@ -49,7 +49,9 @@ the [README](../README.md#-scope--limitations).
 | `lib/`        | The API address (`api.ts`), `fetchWithRetry`, SEO tags, formatting and form validation                                                       |
 
 **Routing.** React Router, served under `/online-store/` (`base` of Vite). The sign-in, registration,
-checkout and order pages are loaded on demand. `checkout`, `orders` and `orders/:orderNumber` sit
+checkout and order pages are loaded on demand. The information pages (about, contact, accessibility,
+privacy, terms) are text pages defined by `src/lib/infoPages.ts`, which also feeds the footer, the page
+metadata and the static build. `checkout`, `orders` and `orders/:orderNumber` sit
 behind `RequireAuth`, which is only the experience: the API decides ([Security](#security)).
 
 **Talking to the API.** `VITE_API_URL` is read when the site is **built** (`src/lib/api.ts`); CI

@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import { renderApp } from '@/test/renderApp'
 
 describe('AppRoutes', () => {
@@ -16,6 +16,18 @@ describe('AppRoutes', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'הדף לא נמצא' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'חזרה לדף הבית' })).toHaveAttribute('href', '/')
+  })
+
+  it('helps a lost visitor on: the products page and every category', () => {
+    renderApp('/does-not-exist')
+
+    expect(screen.getByRole('link', { name: 'לכל המוצרים' })).toHaveAttribute('href', '/products')
+    const categories = within(screen.getByRole('navigation', { name: 'המשך לקטגוריה' }))
+    expect(categories.getAllByRole('link')).toHaveLength(12)
+    expect(categories.getByRole('link', { name: 'מעבדים' })).toHaveAttribute(
+      'href',
+      '/category/cpu',
+    )
   })
 
   it('does not support the legacy .html URLs', () => {

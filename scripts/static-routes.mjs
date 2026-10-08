@@ -7,6 +7,7 @@
 //
 //   dist/index.html                  home
 //   dist/products/index.html         all products
+//   dist/<about|contact|...>/index.html  the information pages (src/lib/infoPages.ts)
 //   dist/category/<id>/index.html    one per category that has products
 //   dist/products/<sku>/index.html   one per product
 //   dist/404.html                    every other path (cart, login, search, ...): noindex
@@ -22,10 +23,12 @@ import { existsSync, mkdirSync, readFileSync, rmdirSync, unlinkSync, writeFileSy
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { findCategory } from '../src/features/products/categories.ts'
+import { INFO_PAGES } from '../src/lib/infoPages.ts'
 import { productsSchema } from '../src/features/products/schema.ts'
 import {
   categoryMeta,
   homeMeta,
+  infoMeta,
   pageUrl,
   productMeta,
   productsMeta,
@@ -66,6 +69,11 @@ const pages = [
   { path: '', meta: homeMeta() },
   { path: 'products', meta: productsMeta() },
 ]
+
+for (const id of Object.keys(INFO_PAGES)) {
+  const meta = infoMeta(id)
+  pages.push({ path: meta.path, meta })
+}
 
 const categoryIds = [...new Set(products.map((product) => product.category))]
 for (const id of categoryIds) {

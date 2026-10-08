@@ -9,14 +9,15 @@ crawlers and previews read the HTML without running the app.
 `npm run build` runs `scripts/static-routes.mjs` after Vite. It copies the app's HTML once per
 page worth indexing and writes that page's tags into the copy:
 
-| File                             | Page                            |
-| -------------------------------- | ------------------------------- |
-| `dist/index.html`                | home                            |
-| `dist/products/index.html`       | all products                    |
-| `dist/category/<id>/index.html`  | each category that has products |
-| `dist/products/<sku>/index.html` | each product                    |
-| `dist/404.html`                  | every other path: `noindex`     |
-| `dist/sitemap.xml`               | the pages above                 |
+| File                                                              | Page                                           |
+| ----------------------------------------------------------------- | ---------------------------------------------- |
+| `dist/index.html`                                                 | home                                           |
+| `dist/products/index.html`                                        | all products                                   |
+| `dist/<about, contact, accessibility, privacy, terms>/index.html` | the information pages (`src/lib/infoPages.ts`) |
+| `dist/category/<id>/index.html`                                   | each category that has products                |
+| `dist/products/<sku>/index.html`                                  | each product                                   |
+| `dist/404.html`                                                   | every other path: `noindex`                    |
+| `dist/sitemap.xml`                                                | the pages above                                |
 
 Pages serves these as real files (status 200; an address without the closing slash is redirected
 to the one with it), so they can be indexed. The app is the same on every copy and takes over as

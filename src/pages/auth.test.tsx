@@ -5,6 +5,7 @@ import { useCartStore } from '@/features/cart/cartStore'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 import type { Product } from '@/features/products/schema'
 import { setUpAuthApi } from '@/test/authApi'
+import { signOutFromHeader } from '@/test/accountMenu'
 import { makeProduct } from '@/test/fixtures'
 import { renderApp } from '@/test/renderApp'
 
@@ -263,7 +264,7 @@ describe('signed-in state and logout', () => {
     expect(screen.getAllByText(GOOD.name)[0]).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'התחברות' })).not.toBeInTheDocument()
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'התנתקות' })[0]!)
+    await signOutFromHeader()
 
     expect(auth().status).toBe('anonymous')
     expect(auth().token).toBeNull()
@@ -372,7 +373,7 @@ describe('the cart and the favorites when signing in and out', () => {
     await waitFor(() => expect(url()).toBe('/'))
     expect(useCartStore.getState().items).toEqual([{ productId: 'P-1', quantity: 2 }])
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'התנתקות' })[0]!)
+    await signOutFromHeader()
 
     // The cart is the account's and stays with it; the favorites are this browser's.
     expect(useCartStore.getState().items).toEqual([])
