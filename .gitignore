@@ -32,3 +32,6 @@ Thumbs.db
 
 # Lighthouse CI reports
 .lighthouseci/
+
+# Local Claude Code settings (per developer, not part of the project)
+.claude/
