@@ -39,6 +39,9 @@ jobs:
       - run: npm run build
         env:
           VITE_API_URL: ${{ vars.API_URL }}
+      # The first page has a weight budget (scripts/bundleBudget.mjs): sizes after gzip do not vary
+      # between runs, so unlike a timing this can fail the checks.
+      - run: npm run check:bundle
       - run: npm run build:server
       # On main only: keep the production build as the Pages artifact. It is published by the
       # `deploy` job below, and only if `e2e` passes as well.

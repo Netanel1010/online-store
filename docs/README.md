@@ -21,6 +21,7 @@ are the details.
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | [`development.md`](development.md)                                   | set up, find your way around, and do the common tasks                               |
 | [`testing.md`](testing.md)                                           | know what each test layer covers and how CI runs them                               |
+| [`accessibility.md`](accessibility.md)                               | see what is checked for accessibility, by machine and by hand, and what is not      |
 | [`../CONTRIBUTING.md`](../CONTRIBUTING.md)                           | open a pull request the way the project expects                                     |
 
 ## Run it

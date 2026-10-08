@@ -6,3 +6,4 @@ coverage
 package-lock.json
 README.md
 .vscode
+.lighthouseci

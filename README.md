@@ -197,6 +197,8 @@ In development the site calls `http://localhost:3001` by default, and the API al
 | `npm run build:server`  | Compile the API to `server/dist`                             |
 | `npm run start:server`  | Run the compiled API                                         |
 | `npm run check:api`     | Check a deployed API the way the deploy job does ([details](docs/deployment.md#verify-a-deployment)) |
+| `npm run check:site`    | Check the deployed site from outside: home page, a static product page, sitemap, 404 (`SITE_URL`) |
+| `npm run check:bundle`  | Check the build against the weight budget of the first page ([details](docs/testing.md#quality-checks-beyond-the-test-suites)) |
 
 For the first E2E run:
 
@@ -226,7 +228,7 @@ The project uses multiple testing layers rather than relying on a single test ty
 
 ### Current test suite
 
-- **899** unit, component and script tests in **65** test files
+- **915** unit, component and script tests in **67** test files
 - **1,061** API tests in **47** test files, plus **96** optional MongoDB integration tests (in 5 more files) that are skipped unless `MONGODB_TEST_URI` is set
 - **304** Playwright E2E tests in **17** test files
 
@@ -295,8 +297,11 @@ The `verify` job checks:
 - unit/component tests
 - API tests
 - production build (site and API)
+- the weight budget of the first page (`npm run check:bundle`)
 
 The `integration` job runs the tests of the code that talks to MongoDB (queries, unique indexes, the atomic cart and idempotent order writes) against a real MongoDB that exists only for the job. The `e2e` job runs the Playwright tests against the production build. Both run in parallel with `verify`.
+
+Three more workflows run on their own and never stop a deployment: `security.yml` (dependency audit and CodeQL), `lighthouse.yml` (Lighthouse budgets for accessibility, SEO and layout shift on every pull request) and `smoke.yml` (a read-only check of the deployed API and site every night).
 
 ### Deployment
 
@@ -333,7 +338,8 @@ The full index, by what you want to do, is [`docs/README.md`](docs/README.md).
 - 🚢 [`docs/deployment.md`](docs/deployment.md) — Render, Atlas and GitHub Pages: configuration, release flow, verification and troubleshooting
 - 🧯 [`docs/runbook.md`](docs/runbook.md) — production procedures: release, verify, roll back, incidents, rotating the database password
 - 🖥️ [`server/README.md`](server/README.md) — the API: running it, MongoDB, endpoints, configuration and structure
-- 🧪 [`docs/testing.md`](docs/testing.md) — testing strategy, isolation, accessibility and CI
+- 🧪 [`docs/testing.md`](docs/testing.md) — testing strategy, isolation, CI, and the quality checks (bundle budget, Lighthouse, nightly smoke test)
+- ♿ [`docs/accessibility.md`](docs/accessibility.md) — what is checked for accessibility by machine and by hand, and what is not
 - 💾 [`docs/state-persistence.md`](docs/state-persistence.md) — cart and favorites persistence, and how the cart is kept in step with the account
 - 📦 [`docs/m9-server-cart-and-orders.md`](docs/m9-server-cart-and-orders.md) — the server cart and orders: what was built, the decisions and the limits
 - 🗃️ [`docs/product-data-migration.md`](docs/product-data-migration.md) — product data migration and cleanup

@@ -57,7 +57,7 @@ CI runs these, so run the ones that match your change:
 | The API                               | `npm run test:server`                                                 |
 | MongoDB queries, indexes, concurrency | `MONGODB_TEST_URI=mongodb://localhost:27017 npm run test:integration` |
 | What a visitor sees, or an API answer | `npm run test:e2e` (it builds first)                                  |
-| Anything that ships                   | `npm run build` and `npm run build:server`                            |
+| Anything that ships                   | `npm run build`, `npm run check:bundle` and `npm run build:server`    |
 
 `npm run format` fixes formatting. Prettier (no semicolons, single quotes, 100 columns) and ESLint
 cover the whole repository, the API included.

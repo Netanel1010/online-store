@@ -117,6 +117,16 @@ On PowerShell:
 $env:API_URL="https://online-store-api-9hz8.onrender.com"; $env:SITE_ORIGIN="https://netanel1010.github.io"; npm run check:api
 ```
 
+`npm run check:site` does the same for the deployed site, from outside (the home page mounts the app under
+`/online-store/`, a static product page has its canonical address and structured data, the sitemap lists it,
+and an unknown address answers 404 with `noindex`):
+
+```bash
+SITE_URL=https://netanel1010.github.io/online-store/ npm run check:site
+```
+
+Both run every night in `smoke.yml` ([runbook](runbook.md#the-nightly-smoke-test)).
+
 `WAIT_SECONDS` (default 300) is how long it waits for a sleeping host to wake up and reach its database.
 
 `npm run check:api` also compares the catalog the API serves with `public/data/products.json`, the one source
