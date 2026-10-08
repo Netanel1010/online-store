@@ -1,3 +1,5 @@
+import { INFO_PAGES, type InfoPageId } from '@/lib/infoPages'
+
 /** Single source of truth for app URLs. */
 export const paths = {
   home: '/',
@@ -11,6 +13,8 @@ export const paths = {
   favorites: '/favorites',
   login: '/login',
   register: '/register',
+  /** An information page: about, contact, accessibility, privacy or terms. */
+  info: (id: InfoPageId) => `/${INFO_PAGES[id].path}`,
   checkout: '/checkout',
   /** The signed-in account's orders, the newest first. */
   orders: '/orders',

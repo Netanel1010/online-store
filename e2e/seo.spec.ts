@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { INFO_PAGE_IDS, INFO_PAGES } from '../src/lib/infoPages'
 import { catalog, productById } from './support/catalog'
 import { expect, test } from './support/test'
 
@@ -97,7 +98,8 @@ test.describe('static HTML for search engines and link previews', () => {
     const categories = new Set(catalog.map((product) => product.category))
 
     expect(status).toBe(200)
-    expect(urls).toHaveLength(2 + categories.size + catalog.length)
+    expect(urls).toHaveLength(2 + INFO_PAGE_IDS.length + categories.size + catalog.length)
+    for (const id of INFO_PAGE_IDS) expect(urls).toContain(`${SITE}${INFO_PAGES[id].path}/`)
     expect(new Set(urls).size).toBe(urls.length)
     expect(urls).toContain(SITE)
     expect(urls).toContain(`${SITE}products/${productById('GP-P650G').id}/`)

@@ -2,11 +2,13 @@ import catalog from '../../public/data/products.json'
 import indexHtml from '../../index.html?raw'
 import { findCategory } from '@/features/products/categories'
 import { productsSchema } from '@/features/products/schema'
+import { INFO_PAGE_IDS, INFO_PAGES } from './infoPages'
 import { makeProduct } from '@/test/fixtures'
 import {
   breadcrumbJsonLd,
   categoryMeta,
   homeMeta,
+  infoMeta,
   noindexMeta,
   pageUrl,
   productJsonLd,
@@ -152,6 +154,29 @@ describe('renderSeoTags', () => {
     expect(html).not.toContain('<b>')
     expect(html).toContain('Evil &quot;name&quot; &lt;b&gt;')
     expect(html).toContain('\\u003c/script>')
+  })
+})
+
+describe('infoMeta', () => {
+  it.each(INFO_PAGE_IDS)(
+    '%s is an indexable page with its own title, description and address',
+    (id) => {
+      const meta = infoMeta(id)
+
+      expect(meta.title).toBe(`${INFO_PAGES[id].label} | N.M.S`)
+      expect(meta.description).toBe(INFO_PAGES[id].description)
+      expect(meta.path).toBe(INFO_PAGES[id].path)
+      const html = renderSeoTags(meta)
+      expect(html).toContain(`<link rel="canonical" href="${pageUrl(INFO_PAGES[id].path)}" />`)
+      expect(html).not.toContain('noindex')
+    },
+  )
+
+  it('gives no two pages the same title, description or address', () => {
+    const metas = INFO_PAGE_IDS.map(infoMeta)
+    for (const key of ['title', 'description', 'path'] as const) {
+      expect(new Set(metas.map((meta) => meta[key])).size).toBe(metas.length)
+    }
   })
 })
 

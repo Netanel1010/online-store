@@ -1,6 +1,7 @@
 import { BRANDS } from '../features/products/brands.ts'
 import type { Category } from '../features/products/categories.ts'
 import type { Product } from '../features/products/schema.ts'
+import { INFO_PAGES, type InfoPageId } from './infoPages.ts'
 
 /* ---------------------------------------------------------------------------------------------
  * Page metadata (title, description, canonical URL, social tags, structured data).
@@ -86,6 +87,16 @@ export function productMeta(
     path,
     image: product.images.card,
     jsonLd: [productJsonLd(product), breadcrumbJsonLd(product, category)],
+  }
+}
+
+/** An information page (about, contact, accessibility, privacy, terms): public and indexable. */
+export function infoMeta(id: InfoPageId): PageMetaData {
+  const page = INFO_PAGES[id]
+  return {
+    title: `${page.label} | ${SITE_NAME}`,
+    description: page.description,
+    path: page.path,
   }
 }
 
