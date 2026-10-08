@@ -122,7 +122,7 @@ saved. The E2E tests also place orders and read the order history through the sa
 
 ## Accessibility tests
 
-Automated checks (axe-core, WCAG 2.0/2.1 A and AA rules) find only part of the problems.
+Automated checks (axe-core, WCAG 2.0 to 2.2 A and AA rules) find only part of the problems.
 Passing them does **not** mean the site is accessible or WCAG-compliant: screen-reader behaviour,
 content quality and many criteria need manual review. Alongside the scans, the tests assert
 language and direction, accessible names, labels, error associations, keyboard order, focus
