@@ -68,9 +68,10 @@ How the parts fit together and why: [`docs/architecture.md`](docs/architecture.m
 | 🎛️  | **Filters & Sorting**   | Brand and specification filters with result counts, filtered and sorted by the API, with URL state |
 | 🛒  | **Shopping Cart**       | Add, remove and update quantities with calculated totals and savings; for a signed-in visitor the cart is kept in the account and follows them between devices |
 | ❤️  | **Favorites**           | Save products and access them from a dedicated favorites page                                   |
-| 👤  | **Authentication**      | Real accounts: register, log in and log out against the API, with server-side sessions and a protected checkout |
+| 👤  | **Authentication**      | Real accounts: register, log in and log out against the API, with server-side sessions and a protected checkout; a "My account" menu with the orders and both ways to sign out |
 | 💳  | **Demo Checkout**       | Validated delivery form; the API prices and stores the order (no payment), and the confirmation is read back from the API |
 | 📦  | **Orders**              | An order page that survives a reload, and a "my orders" list in the account menu                |
+| 📄  | **Information pages**   | About, contact, accessibility statement, privacy and terms (with the demo notice), linked from a footer that says plainly that this is a demo. They state only what the project actually does, and publish no contact details beyond the GitHub profile and repository |
 | 💾  | **Persistence**         | The cart (in the browser and in the account), favorites and the session survive browser reloads |
 | 📱  | **Responsive UI**       | Mobile navigation and responsive layouts                                                        |
 | ♿  | **Accessibility**       | Keyboard navigation, accessible errors, live-region notifications and automated axe-core checks |
@@ -228,9 +229,9 @@ The project uses multiple testing layers rather than relying on a single test ty
 
 ### Current test suite
 
-- **916** unit, component and script tests in **67** test files
+- **950** unit, component and script tests in **70** test files
 - **1,061** API tests in **47** test files, plus **96** optional MongoDB integration tests (in 5 more files) that are skipped unless `MONGODB_TEST_URI` is set
-- **304** Playwright E2E tests in **17** test files
+- **329** Playwright E2E tests in **19** test files
 
 The API tests need **no MongoDB and no credentials**. The optional integration tests run against a real MongoDB what a fake cannot prove: the unique indexes, the atomic cart updates and the idempotent orders when requests arrive at the same moment.
 
