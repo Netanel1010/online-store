@@ -1,0 +1,61 @@
+name: Lighthouse
+
+# Lighthouse (through Lighthouse CI) on the production build of the site, with budgets in
+# `lighthouserc.json`: accessibility, best practices and SEO must stay high, the layout must not
+# jump about, and a low performance score is reported as a warning. The site is served the way
+# GitHub Pages serves it (`e2e/support/pages-server.mjs`) with the stub API of the browser tests, so
+# nothing here touches production and the pages always have the same products.
+#
+# Like `security.yml` this is not part of the deployment gate: a red result is something to look at,
+# not a reason to stop a deploy. The weight of the first page is a budget in `verify` instead
+# (`npm run check:bundle`), because a size, unlike a timing on a shared runner, does not vary.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # The site reads the address of its API when it is built: the stub API of the browser tests.
+      - run: npm run build
+        env:
+          VITE_API_URL: http://localhost:4174
+      - name: Serve the site and the stub API
+        run: |
+          node e2e/support/api-server.mjs &
+          node e2e/support/pages-server.mjs &
+          for attempt in $(seq 1 30); do
+            curl -fs http://localhost:4173/online-store/ > /dev/null &&
+              curl -fs "http://localhost:4174/api/products?limit=1" > /dev/null && exit 0
+            sleep 1
+          done
+          echo "The servers did not start" >&2
+          exit 1
+      # The tool is fetched for this run only and pinned to a version; it is not a dependency of the project.
+      - name: Run Lighthouse CI
+        run: npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.json
+      - name: Keep the Lighthouse reports
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          if-no-files-found: ignore
+          retention-days: 7

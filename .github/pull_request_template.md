@@ -12,7 +12,7 @@
 
 - [ ] `npm run lint`, `npm run typecheck`, `npm run format:check`
 - [ ] `npm test`, `npm run test:server` (and `npm run test:integration` if the data layer changed)
-- [ ] `npm run build`, `npm run build:server`
+- [ ] `npm run build`, `npm run check:bundle`, `npm run build:server`
 - [ ] `npm run test:e2e` (if the storefront or the API's behaviour changed)
 
 ## Notes

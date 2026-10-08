@@ -230,11 +230,14 @@ push to main ──► verify · integration · e2e ──all pass──► depl
 ```
 
 - **`verify`:** formatting, lint, typecheck, site and API unit tests, the site build (with
-  `VITE_API_URL`) and the API build.
+  `VITE_API_URL`), the weight budget of the first page and the API build.
 - **`integration`:** the MongoDB tests against a throwaway MongoDB 8 service container.
 - **`e2e`:** Playwright against the production build and a stub API.
 - **`deploy`:** `scripts/check-api.mjs` against the production API, then publish to Pages. The check
   is skipped while the repository variable `API_URL` is not set; the site is published either way.
+- Three more workflows run on their own and are **not** gates: `security.yml` (audit and CodeQL),
+  `lighthouse.yml` (budgets for accessibility, SEO and layout shift) and `smoke.yml` (a read-only check
+  of the deployed API and site every night).
 - The site and the API are deployed independently, so the order matters when a change adds API
   behaviour the site starts to use ([deployment](deployment.md#how-a-change-reaches-production)).
 

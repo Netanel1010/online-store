@@ -128,12 +128,37 @@ content quality and many criteria need manual review. Alongside the scans, the t
 language and direction, accessible names, labels, error associations, keyboard order, focus
 management and the mobile menu dialog.
 
+## Quality checks beyond the test suites
+
+Three checks that are not tests of behaviour, each with one job:
+
+| Check                    | Command and place                                                                  | What it guards                                                                                                                                       | Can it fail a pull request? |
+| ------------------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Weight of the first page | `npm run check:bundle`, in `verify` after the build                                | the JavaScript (160 KiB) and CSS (16 KiB) that `index.html` loads up front, after gzip; today 133 KiB and 7.7 KiB. `scripts/bundleBudget.mjs`        | yes, and it blocks a deploy |
+| Lighthouse               | `lighthouse.yml`, budgets in `lighthouserc.json`                                   | accessibility at least 0.95, best practices and SEO at least 0.9, layout shift at most 0.25 (errors); performance at least 0.6 (warning)             | yes, but not a deploy gate  |
+| Production smoke         | `smoke.yml` every night and by hand: `check-api.mjs` (strict) and `check-site.mjs` | the deployed API and the deployed site, from outside: health, products, CORS, headers, catalog drift; home page, a static product page, sitemap, 404 | no (it runs on a schedule)  |
+
+**Lighthouse** runs three times on each of the home page, the listing and a product page, against the
+production build served like GitHub Pages with the stub API of the browser tests, and judges the
+median. A size is not asserted there: the test server does not compress, so Lighthouse would see
+sizes that GitHub Pages never sends; that is what `check:bundle` is for. Performance is a warning
+because a timing on a shared runner varies (about 0.65 to 0.76 on the three pages in M12).
+**Known finding:** the layout shift of the listing page is 0.20 (the budget is 0.25, the "good"
+threshold is 0.1): the page jumps when the products replace the loading skeletons.
+
+**The smoke test is read-only**: it creates no account and no data, and checks only public addresses.
+It does not sign in; an authenticated smoke test would need an account kept for the purpose and its
+credentials as a secret, and was not added. See the [runbook](runbook.md#the-nightly-smoke-test) for
+what a red run means. The accessibility checks, including the manual pass, are in
+[`accessibility.md`](accessibility.md).
+
 ## CI
 
 `.github/workflows/ci.yml` runs three parallel jobs on every pull request and push to `main`:
 
 1. **verify**: `npm ci`, format check, lint, typecheck, unit tests, API tests, the site build (with
-   `VITE_API_URL` from the `API_URL` repository variable) and the API build.
+   `VITE_API_URL` from the `API_URL` repository variable), the weight budget of the first page
+   (`npm run check:bundle`) and the API build.
 2. **integration**: the tests of the code that talks to MongoDB (queries, unique indexes, sorting,
    the index that expires sessions, and the cart and order writes that must stay correct when requests
    arrive at the same moment: one cart per account, no lost update, one order per idempotency key) against a real MongoDB 8 that exists only for the job: a
@@ -170,6 +195,9 @@ Separate from the deployment gate, so that a newly published advisory can never 
   neither this test nor GitHub's secret scanning reports a fixture.
 - **`.github/pull_request_template.md`** asks for an English summary, the checks that were run (and
   what was not) and that no secret is in the diff.
+
+Besides `ci.yml`, three workflows run on their own and are not deployment gates: `security.yml`
+(above), `lighthouse.yml` (on pull requests and `main`) and `smoke.yml` (every night).
 
 A test that only passes on its retry is reported as **flaky** in the log and the HTML report, so
 it is visible rather than hidden. In CI Playwright retries a failed test once and gives assertions

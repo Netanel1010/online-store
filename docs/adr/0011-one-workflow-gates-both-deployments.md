@@ -23,6 +23,10 @@ neither. A site whose products cannot be loaded should not be published.
   deployed, so strict checks would block the very deploy that ships the fix.
 - **Dependency and code scanning is a separate workflow** (`security.yml`: `npm audit` of shipped
   packages and CodeQL), deliberately not a gate, so a newly published advisory can never stop a deploy.
+  The same goes for the Lighthouse budgets (`lighthouse.yml`) and the nightly read-only smoke test of
+  production (`smoke.yml`, added in M12): a timing on a shared runner, or a problem at Atlas at night,
+  must not decide whether a commit may ship. What is deterministic, the gzip size of the first page, is
+  a step of `verify` (`npm run check:bundle`) and does gate.
 - Every action is pinned to a commit; the Node version comes from `.nvmrc`.
 
 ## Consequences
