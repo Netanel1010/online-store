@@ -45,9 +45,9 @@ export function AboutPage() {
 
       <InfoSection title="איך האתר בנוי">
         <p>
-          צד הלקוח נכתב ב-React וב-TypeScript ומתארח ב-GitHub Pages. צד השרת הוא API שנכתב ב-Node.js
-          וב-Express ומתארח ב-Render, והנתונים נשמרים ב-MongoDB Atlas. הקוד פתוח, והתיעוד כולל תיאור
-          של הארכיטקטורה, בקוד המקור ב-
+          צד הלקוח נכתב ב-React וב-TypeScript, והאתר מתארח בשני מקומות: ב-GitHub Pages (האתר הראשי)
+          וב-Netlify. צד השרת הוא API שנכתב ב-Node.js וב-Express ומתארח ב-Render, והנתונים נשמרים
+          ב-MongoDB Atlas. הקוד פתוח, והתיעוד כולל תיאור של הארכיטקטורה, בקוד המקור ב-
           <ExternalLink href={GITHUB_REPOSITORY_URL}>GitHub</ExternalLink>.
         </p>
         <p>

@@ -8,6 +8,7 @@ together is in the [architecture overview](architecture.md).
 | Part     | Where                                  | Address                                                                                                                   |
 | -------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Site     | GitHub Pages (static React build)      | <https://netanel1010.github.io/online-store/>                                                                             |
+| Site (2) | Netlify (the same build, at the root)  | <https://online-store-netanel.netlify.app/> ([details](#netlify-a-second-frontend-host))                                  |
 | API      | Render web service `online-store-api`  | <https://online-store-api-9hz8.onrender.com> (try [`/api/health`](https://online-store-api-9hz8.onrender.com/api/health)) |
 | Database | MongoDB Atlas, database `online-store` | Reached only by the API, with the `MONGODB_URI` secret                                                                    |
 
@@ -36,14 +37,14 @@ Frankfurt region, built straight from this repository (no Docker):
 
 Environment variables of the service:
 
-| Variable          | Value                           | Where it is set                                                                   |
-| ----------------- | ------------------------------- | --------------------------------------------------------------------------------- |
-| `NODE_VERSION`    | `24`                            | `render.yaml`                                                                     |
-| `NODE_ENV`        | `production`                    | `render.yaml`                                                                     |
-| `PORT`            | chosen by Render                | Render itself, read by the server                                                 |
-| `MONGODB_DB_NAME` | `online-store`                  | `render.yaml`                                                                     |
-| `CORS_ORIGINS`    | `https://netanel1010.github.io` | `render.yaml`. Scheme and host only: no path, no trailing slash                   |
-| `MONGODB_URI`     | the Atlas connection string     | **Render dashboard only** (`sync: false`). It holds the password: never commit it |
+| Variable          | Value                                                                    | Where it is set                                                                                 |
+| ----------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `NODE_VERSION`    | `24`                                                                     | `render.yaml`                                                                                   |
+| `NODE_ENV`        | `production`                                                             | `render.yaml`                                                                                   |
+| `PORT`            | chosen by Render                                                         | Render itself, read by the server                                                               |
+| `MONGODB_DB_NAME` | `online-store`                                                           | `render.yaml`                                                                                   |
+| `CORS_ORIGINS`    | `https://netanel1010.github.io,https://online-store-netanel.netlify.app` | `render.yaml`. A comma-separated list; each is scheme and host only: no path, no trailing slash |
+| `MONGODB_URI`     | the Atlas connection string                                              | **Render dashboard only** (`sync: false`). It holds the password: never commit it               |
 
 `TRUST_PROXY_HOPS` is optional (default `2` in production) and is not in `render.yaml`: see
 [Client addresses and rate limits](#client-addresses-and-rate-limits).
@@ -63,6 +64,28 @@ The site learns where the API is when it is **built**, from the `VITE_API_URL` v
   `github.io`, which does not exist, and the deploy-time API check is skipped.
 - Changing the value needs a new site build (push to `main`, or run the CI workflow manually on
   `main`): the address is baked into the files.
+
+### Netlify (a second frontend host)
+
+[`netlify.toml`](../netlify.toml) builds the same site for a host that serves it from the **root** of its
+own address (`https://<site>.netlify.app/`) instead of `/online-store/`. It is separate from the
+GitHub Pages deployment, which does not read it and is unchanged.
+
+- **`VITE_BASE_PATH`** is the base path of a production build (`vite.config.ts`, validated by
+  `scripts/basePath.ts`). Without it, and in every GitHub Pages build, it is `/online-store/`.
+  `netlify.toml` sets it to `/`. A value that does not start and end with `/` stops the build. On
+  Windows, Git Bash rewrites a bare `/` into a Windows path before the build sees it: use
+  `MSYS_NO_PATHCONV=1`, PowerShell, or the CI.
+- **Canonical addresses, `og:url` and the sitemap still point at GitHub Pages**, which stays the
+  primary site: they come from `SITE_URL` in `src/lib/seo.ts`, not from the base path.
+- **The API must allow the Netlify origin.** The production site is
+  <https://online-store-netanel.netlify.app>, and that origin is in `CORS_ORIGINS` in `render.yaml` (a
+  comma-separated list). Render has to have redeployed the API with it before the site works: until then
+  its pages load and show no products.
+- **Sessions are kept per origin**, so a visitor signs in on each host separately. Accounts, carts and
+  orders are the same, because they live in the API.
+- The Netlify build does not wait for this repository's checks: that is a property of how Netlify
+  is connected, not of this file.
 
 ## How a change reaches production
 

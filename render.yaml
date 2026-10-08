@@ -33,6 +33,7 @@ services:
         sync: false
       - key: MONGODB_DB_NAME
         value: online-store
-      # The origin of the deployed site: scheme and host only, no path and no trailing slash.
+      # The origins of the deployed site, comma separated: scheme and host only, no path and no trailing
+      # slash. GitHub Pages is the primary site; Netlify serves the same site from its own address.
       - key: CORS_ORIGINS
-        value: https://netanel1010.github.io
+        value: https://netanel1010.github.io,https://online-store-netanel.netlify.app

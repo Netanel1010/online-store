@@ -1,0 +1,13 @@
+# Netlify builds the same site as GitHub Pages, served from the root of its own address instead of
+# /online-store/. GitHub Pages stays the primary site (canonical addresses and the sitemap point there).
+# The Node version is read from .nvmrc. Nothing secret is here.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # The site is served at https://<site>.netlify.app/, not under /online-store/.
+  VITE_BASE_PATH = "/"
+  # The API, as for GitHub Pages (the repository variable API_URL). It is public. The API only answers
+  # origins listed in its CORS_ORIGINS, so this site's address has to be in that list as well.
+  VITE_API_URL = "https://online-store-api-9hz8.onrender.com"

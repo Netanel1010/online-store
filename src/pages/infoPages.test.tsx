@@ -31,6 +31,27 @@ describe('the information pages', () => {
   })
 })
 
+describe('the hosting of the site, as the pages describe it', () => {
+  it('says on the about page that the site is hosted on GitHub Pages (the primary site) and on Netlify', async () => {
+    renderApp(paths.info('about'))
+    const main = await screen.findByRole('main')
+
+    expect(main).toHaveTextContent('GitHub Pages (האתר הראשי)')
+    expect(main).toHaveTextContent('Netlify')
+    expect(main).toHaveTextContent('ב-Render')
+  })
+
+  it('says on the privacy page that both hosts may keep access logs, and that sessions are per address', async () => {
+    renderApp(paths.info('privacy'))
+    const main = await screen.findByRole('main')
+
+    expect(main).toHaveTextContent(/GitHub Pages, האתר הראשי, ו-Netlify/)
+    expect(main).toHaveTextContent('עשויים להיות רישומי גישה משלה')
+    expect(main).toHaveTextContent('לכל כתובת אתר בנפרד')
+    expect(main).toHaveTextContent('ב-Render')
+  })
+})
+
 describe('the contact page', () => {
   it('shows only the GitHub profile and repository, which open in a new tab', async () => {
     renderApp(paths.info('contact'))
