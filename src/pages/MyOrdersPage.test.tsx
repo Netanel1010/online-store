@@ -4,6 +4,7 @@ import { useAuthStore } from '@/features/auth/authStore'
 import { useCartStore } from '@/features/cart/cartStore'
 import { placeOrder } from '@/features/orders/orderService'
 import { setUpAuthApi } from '@/test/authApi'
+import { openAccountMenu, signOutFromHeader } from '@/test/accountMenu'
 import { makeProduct } from '@/test/fixtures'
 import { renderApp } from '@/test/renderApp'
 
@@ -237,7 +238,7 @@ describe('the states of the page', () => {
     renderApp('/orders', catalog)
     await screen.findByRole('heading', { level: 1, name: 'ההזמנות שלי' })
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'התנתקות' })[0]!)
+    await signOutFromHeader()
 
     await waitFor(() => expect(url()).toBe('/'))
   })
@@ -338,7 +339,7 @@ describe('the account menu', () => {
     await useAuthStore.getState().register(GOOD)
     renderApp('/', catalog)
 
-    await userEvent.click((await screen.findAllByRole('link', { name: 'ההזמנות שלי' }))[0]!)
+    await userEvent.click((await openAccountMenu()).getByRole('link', { name: 'ההזמנות שלי' }))
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'ההזמנות שלי' }),

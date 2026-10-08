@@ -192,7 +192,9 @@ test.describe('the header on a phone', () => {
     await expect(current).toBeInViewport()
   })
 
-  test('keeps sign-out in the menu: no lone sign-out icon next to the cart', async ({ page }) => {
+  test('keeps sign-out out of sight until the account button is opened: no lone sign-out icon next to the cart', async ({
+    page,
+  }) => {
     await register(page, newAccount())
     await expect(page).toHaveURL(/\/online-store\/$/)
 

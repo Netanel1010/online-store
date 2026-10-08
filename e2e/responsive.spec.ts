@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 import { productById } from './support/catalog'
-import { expectSignedIn, header, newAccount, register } from './support/helpers'
+import { accountButton, expectSignedIn, header, newAccount, register } from './support/helpers'
 import { expect, test } from './support/test'
 
 /** The shape of every banner: the carousel frame has it at every width. */
@@ -186,9 +186,9 @@ test.describe('the header of a signed-in visitor on a desktop', () => {
       await expectSignedIn(page)
 
       expect(await hasHorizontalScroll(page), 'the page scrolls sideways').toBe(false)
-      const everywhere = header(page).getByRole('button', { name: 'התנתקות מכל המכשירים' })
-      // The extra button is for the wide header only (xl, 1280px): the menu has it everywhere.
-      await (width >= 1280 ? expect(everywhere).toBeVisible() : expect(everywhere).toBeHidden())
+      // The account button is in the header at every width; what it opens is closed until it is used.
+      await expect(accountButton(page)).toBeVisible()
+      await expect(accountButton(page)).toHaveAttribute('aria-expanded', 'false')
       if (width >= 768) {
         const search = (await header(page).getByRole('searchbox').boundingBox())!
         expect(search.width, 'the search box was squeezed').toBeGreaterThanOrEqual(180)

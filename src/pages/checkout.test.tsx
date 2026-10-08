@@ -6,6 +6,7 @@ import { useCartStore } from '@/features/cart/cartStore'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 import { makeProduct } from '@/test/fixtures'
 import { setUpAuthApi } from '@/test/authApi'
+import { signOutFromHeader } from '@/test/accountMenu'
 import { renderApp } from '@/test/renderApp'
 
 // The real authentication and orders API answers these tests (see setUpAuthApi).
@@ -138,7 +139,7 @@ describe('checkout is protected', () => {
     renderApp('/checkout', catalog)
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'התנתקות' })[0]!)
+    await signOutFromHeader()
 
     await waitFor(() => expect(url()).toBe('/'))
   })

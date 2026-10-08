@@ -65,18 +65,31 @@ export async function signIn(page: Page, account: Pick<TestAccount, 'email' | 'p
   await page.getByRole('button', { name: 'התחברות' }).click()
 }
 
+/** The "My account" button that a signed-in visitor has in the header. */
+export const accountButton = (page: Page) =>
+  header(page).getByRole('button', { name: 'החשבון שלי', exact: true })
+
+/** Opens the account panel of the header (if it is not open) and returns it. */
+export async function openAccountMenu(page: Page) {
+  const button = accountButton(page)
+  if ((await button.getAttribute('aria-expanded')) !== 'true') await button.click()
+  await expect(button).toHaveAttribute('aria-expanded', 'true')
+  return header(page).locator(`[id="${await button.getAttribute('aria-controls')}"]`)
+}
+
 export async function signOut(page: Page) {
-  await header(page).getByRole('button', { name: 'התנתקות', exact: true }).click()
+  const panel = await openAccountMenu(page)
+  await panel.getByRole('button', { name: 'התנתקות', exact: true }).click()
 }
 
 export async function expectSignedIn(page: Page) {
-  await expect(header(page).getByRole('button', { name: 'התנתקות', exact: true })).toBeVisible()
+  await expect(accountButton(page)).toBeVisible()
   await expect(header(page).getByRole('link', { name: 'התחברות' })).toHaveCount(0)
 }
 
 export async function expectSignedOut(page: Page) {
   await expect(header(page).getByRole('link', { name: 'התחברות' })).toBeVisible()
-  await expect(header(page).getByRole('button', { name: 'התנתקות', exact: true })).toHaveCount(0)
+  await expect(accountButton(page)).toHaveCount(0)
 }
 
 /* ------------------------------------------------------------------------- cart, favorites */

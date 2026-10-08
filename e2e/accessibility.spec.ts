@@ -2,6 +2,7 @@ import type { Locator, Page } from '@playwright/test'
 import { expectNoAxeViolations } from './support/a11y'
 import { catalog, PSU, SALE_GPU } from './support/catalog'
 import {
+  accountButton,
   addToCartFromProductPage,
   cartLink,
   fillDeliveryForm,
@@ -16,7 +17,7 @@ const toasts = (page: Page) => page.getByRole('region', { name: 'התראות' }
 
 async function signedInWithCart(page: Page) {
   await register(page, newAccount())
-  await expect(header(page).getByRole('button', { name: 'התנתקות', exact: true })).toBeVisible()
+  await expect(accountButton(page)).toBeVisible()
   await addToCartFromProductPage(page, PSU)
 }
 
@@ -691,6 +692,11 @@ test.describe('landmarks, heading order and focus on the dark footer', () => {
     'favorites',
     'login',
     'register',
+    'about',
+    'contact',
+    'accessibility',
+    'privacy',
+    'terms',
     'no/such/page',
   ]
 

@@ -10,6 +10,7 @@ import {
   fillRegistration,
   header,
   newAccount,
+  openAccountMenu,
   register,
   signIn,
   signOut,
@@ -38,8 +39,8 @@ test.describe('authentication', () => {
     await register(page, account)
     await expect(page).toHaveURL(home)
     await expectSignedIn(page)
-    // The name is also in the (hidden) mobile menu, so look only at what is visible.
-    await expect(header(page).getByText(account.name).filter({ visible: true })).toBeVisible()
+    // The name is in the account panel, which the "My account" button opens.
+    await expect((await openAccountMenu(page)).getByText(account.name)).toBeVisible()
     await expect(toasts(page).getByText('החשבון נוצר ואתם מחוברים')).toBeVisible()
 
     await signOut(page)
@@ -180,7 +181,7 @@ test.describe('authentication', () => {
     expect(request.headers()['cookie']).toBeUndefined()
     expect(new URL(request.url()).search).toBe('')
     await expectSignedIn(page)
-    await expect(header(page).getByText(account.name).filter({ visible: true })).toBeVisible()
+    await expect((await openAccountMenu(page)).getByText(account.name)).toBeVisible()
   })
 
   test('lets the same account sign in from another browser, as a session of its own', async ({
@@ -223,8 +224,12 @@ test.describe('authentication', () => {
     await register(strangerPage, newAccount())
     await expectSignedIn(strangerPage)
 
-    // The wide header has the button; one click ends every session of the account.
-    await header(page).getByRole('button', { name: 'התנתקות מכל המכשירים' }).click()
+    // The account panel of the header has the button; one click ends every session of the account.
+    await (
+      await openAccountMenu(page)
+    )
+      .getByRole('button', { name: 'התנתקות מכל המכשירים' })
+      .click()
 
     await expectSignedOut(page)
     await expect(toasts(page).getByText('התנתקתם מכל המכשירים')).toBeVisible()
