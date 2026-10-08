@@ -13,7 +13,7 @@ details of each part are in the documents it links to.
 | M9.3 | #60          | "My orders": `GET /api/orders` and a page in the account menu                                                                                           |
 | M9.4 | #61          | The cart API: one cart per account, ids and quantities only, compare-and-swap on a revision, limits shared with the order                               |
 | M9.5 | #62          | Cart synchronization in the storefront: merge at sign-in, debounced sending, offline behavior, an empty cart after sign-out; CORS allows `PUT`/`DELETE` |
-| M9.6 | this change  | Documentation brought up to date, dead test helpers removed, final verification                                                                         |
+| M9.6 | #63          | Documentation brought up to date, dead test helpers removed, final verification                                                                         |
 
 Where to read more: [the API](../server/README.md#cart) (cart and orders), [how the cart is kept in
 step with the account](state-persistence.md#keeping-the-cart-in-the-account), [deployment](deployment.md#carts-and-orders-in-production)
@@ -56,6 +56,9 @@ and [the tests](testing.md#carts-orders-and-cart-synchronization-in-the-tests).
   does not recognize it. Dismiss such an alert with that reason rather than adding a dependency.
 
 ## Final verification (M9.6)
+
+The results at the end of M9.6. Later milestones changed the counts; [testing](testing.md) and the
+README describe the suite as it is now.
 
 | Check                                                               | Result                                                     |
 | ------------------------------------------------------------------- | ---------------------------------------------------------- |

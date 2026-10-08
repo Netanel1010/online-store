@@ -15,6 +15,10 @@ checked is in [`docs/deployment.md`](../docs/deployment.md).
 It is an npm workspace of this repository, so one `npm install` at the root installs everything and
 the root ESLint, Prettier and TypeScript settings apply to it.
 
+This page describes how the API behaves and why. The contract itself (every endpoint, parameter, body,
+answer and error code) is the OpenAPI document [`docs/openapi.yaml`](../docs/openapi.yaml), and how the
+API fits with the site and the database is in the [architecture overview](../docs/architecture.md).
+
 ## Run it locally
 
 Requires **Node.js 22.9 or newer** (the repository CI uses 24).
@@ -478,7 +482,7 @@ Run from the repository root (or without `:server`, inside `server/`):
 | `npm run dev:server`   | Start with auto-reload (`tsx watch`)                 |
 | `npm run test:server`  | Run the tests (Vitest, Node environment, no MongoDB needed) |
 | `npm run seed:products` | Copy `public/data/products.json` to MongoDB (see above) |
-| `npm run build:server` | Compile to `server/dist` (the server is `dist/server/src/server.js`, next to the three storefront schema files it shares in `dist/src/`) |
+| `npm run build:server` | Compile to `server/dist` (the server is `dist/server/src/server.js`, next to the storefront files it shares in `dist/src/`) |
 | `npm run start:server` | Run the compiled build (what Render runs in production) |
 | `npm run check:api`    | Check a running API: health, readiness, products, CORS (see [deployment](../docs/deployment.md#verify-a-deployment)) |
 | `npm run typecheck`    | Type-check the site, the tests and the API together  |
@@ -530,8 +534,10 @@ server/
 │   │                    and search text, filter options, schemas, seed
 │   ├── routes/          One router per feature, mounted under /api in routes/index.ts
 │   ├── scripts/         Commands run from a checkout (seedProducts.ts)
-│   ├── middleware/      notFound and the central errorHandler
-│   ├── lib/             HttpError, the error a route throws on purpose
+│   ├── middleware/      requestLogging (ids and the log line), securityHeaders, requestTimeout,
+│   │                    rateLimit, notFound and the central errorHandler
+│   ├── lib/             HttpError (what a route throws on purpose), logger, clientKey, concurrencyGate,
+│   │                    serverTimeouts
 │   └── testing/         Test helpers: a free-port server, fixtures, in-memory repositories
 ├── tsconfig.json        Type-checking, tests included
 └── tsconfig.build.json  Production build to dist/

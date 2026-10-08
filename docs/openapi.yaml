@@ -1,0 +1,1092 @@
+openapi: 3.1.0
+
+info:
+  title: Online Store API
+  version: 0.1.0
+  summary: The REST API behind the Online Store.
+  description: |
+    The API of the store: the product catalog (read-only), accounts and sessions, the cart of a
+    signed-in visitor, and orders. It is an Express 5 program (`server/`) backed by MongoDB.
+
+    This document is written by hand from the code and kept next to it. The code is the authority: when
+    the two disagree, the code is right and this file has a bug. The behaviour behind each endpoint
+    (limits, trade-offs, how a change is made) is described in `server/README.md`.
+
+    **Conventions**
+
+    - Bodies and answers are JSON. A request body is limited to 100 kB.
+    - Every error is `{ "error": { "code", "message" } }` (see `Error`). `requestId` is added to a 5xx
+      and `details` where a client can act on it. A message names a field, never the value.
+    - Every answer has an `X-Request-Id` header. Send your own (8 to 64 of `A-Za-z0-9._-`) to follow a
+      request through the logs; anything else is replaced.
+    - Authentication is a bearer token: `Authorization: Bearer <token>`, issued by register and login.
+      A token that is malformed, unknown, expired or ended is refused with the same `401 unauthorized`.
+    - Product reads are cacheable (`Cache-Control: public, max-age=60, stale-while-revalidate=3600`).
+      Everything about an account, and every error, is `no-store`.
+    - Browser access is limited by CORS to the origins in `CORS_ORIGINS`, for `GET`, `HEAD`, `POST`,
+      `PUT` and `DELETE`, with the headers `Authorization`, `Content-Type` and `Idempotency-Key`.
+      Credentials (cookies) are not used.
+    - An answer that takes more than 25 seconds becomes `503 request_timeout`.
+    - Without a configured database (development only) every endpoint except the health checks answers
+      `503 database_not_configured`.
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: https://online-store-api-9hz8.onrender.com
+    description: Production (Render free plan; the first request after a pause can take about a minute)
+  - url: http://localhost:3001
+    description: Local (`npm run dev:server`)
+
+tags:
+  - name: Health
+    description: Is the process up, and can it reach its database.
+  - name: Products
+    description: The catalog. Read-only.
+  - name: Auth
+    description: Accounts and sessions.
+  - name: Cart
+    description: The cart of the signed-in account.
+  - name: Orders
+    description: The orders of the signed-in account.
+
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      operationId: getHealth
+      security: []
+      summary: Is the process up?
+      description: Never touches the database, so a database outage cannot make a host restart a healthy server. Always `200`.
+      responses:
+        '200':
+          description: The process is up.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, uptime, timestamp]
+                properties:
+                  status: { type: string, const: ok }
+                  uptime:
+                    { type: integer, minimum: 0, description: Seconds since the process started. }
+                  timestamp: { type: string, format: date-time }
+
+  /api/health/ready:
+    get:
+      tags: [Health]
+      operationId: getReadiness
+      security: []
+      summary: Can the API do its work?
+      description: Also asks the database. The answer never says why the database is down.
+      responses:
+        '200':
+          description: Ready (`database` is `not_configured` when the API runs without a database).
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, database]
+                properties:
+                  status: { type: string, const: ok }
+                  database: { type: string, enum: [up, not_configured] }
+        '503':
+          description: The database is down.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, database]
+                properties:
+                  status: { type: string, const: unavailable }
+                  database: { type: string, const: down }
+
+  /api/products:
+    get:
+      tags: [Products]
+      operationId: listProducts
+      security: []
+      summary: Search, filter, sort and page the products
+      description: |
+        Every parameter is optional and they combine: a product has to pass all of them. Unknown
+        parameters are ignored.
+
+        **Specification filters.** `s.<label>=<value>`, where `<label>` is a specification label (for
+        example `s.תושבת מעבד`, URL-encoded) and `<value>` one of its values; repeat it per value.
+        Values of one label are OR-ed, different labels are AND-ed. Labels and values are up to 100
+        characters and at most 60 values are read in all. They apply within a `category`, and only for
+        the options offered there (see `facets`); a selection that is not offered is ignored, not an
+        error. They cannot be written as a fixed parameter name, so they are not listed below.
+
+        **Search (`q`).** Normalized (lower case, no accents or niqqud, punctuation is a separator) and
+        split into at most 8 words; every word has to match. Without `sort`, a search lists the best
+        match first.
+
+        **A lookup by id (`ids`).** At most 100 ids, each a valid product id; an id with no product is
+        left out of the answer. An empty list is refused, so it can never be read as "every product".
+
+        **Paging.** Products are ordered by `id` unless sorted, and every sort ends with `id`, so pages do
+        not overlap. A page past the end is `200` with empty `items` and the real `total`.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: q
+          in: query
+          description: Search text, up to 100 characters after trimming. Blank means no search. May not be repeated.
+          schema: { type: string, maxLength: 100 }
+        - name: category
+          in: query
+          schema: { $ref: '#/components/schemas/CategoryId' }
+        - name: brand
+          in: query
+          description: A brand id. Repeat it for several; they are OR-ed.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/BrandId' }
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [default, price-asc, price-desc, name-asc, name-desc]
+            default: default
+        - name: facets
+          in: query
+          description: '`true` adds `facets`, the filter options with their counts.'
+          schema: { type: boolean, default: false }
+        - name: ids
+          in: query
+          description: Only these products. Comma separated, or the parameter repeated. At most 100.
+          style: form
+          explode: true
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 100
+            items: { $ref: '#/components/schemas/ProductId' }
+        - name: sale
+          in: query
+          description: '`true` lists only the products that have an original price.'
+          schema: { type: boolean, default: false }
+        - name: recommended
+          in: query
+          description: '`true` lists only the recommended products.'
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: One page of the matching products.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/ProductCache'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductPage' }
+        '400':
+          description: '`invalid_pagination` for a bad `page` or `limit`; `invalid_query` for any other parameter that is not valid (the message names it).'
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/products/{id}:
+    get:
+      tags: [Products]
+      operationId: getProduct
+      security: []
+      summary: One product, by its id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The manufacturer SKU, for example `CC-9011240-WW`.
+          schema: { $ref: '#/components/schemas/ProductId' }
+      responses:
+        '200':
+          description: The product.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/ProductCache'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400':
+          description: '`invalid_product_id`.'
+          $ref: '#/components/responses/Error'
+        '404':
+          description: '`product_not_found`.'
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/categories:
+    get:
+      tags: [Products]
+      operationId: listCategories
+      security: []
+      summary: How many products each category has
+      description: Only categories that have products are listed.
+      responses:
+        '200':
+          description: The counts.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/ProductCache'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, count]
+                      properties:
+                        id: { $ref: '#/components/schemas/CategoryId' }
+                        count: { type: integer, minimum: 1 }
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      operationId: register
+      security: []
+      summary: Create an account and sign it in
+      description: |
+        Limited to 10 registrations per hour per client address (`429 rate_limited`), whether or not they
+        succeed. Hashing is limited in how many run at once (`503 server_busy`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: The account was created and a session started.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SignedIn' }
+        '400':
+          description: '`invalid_input`: the message names the field.'
+          $ref: '#/components/responses/Error'
+        '409':
+          description: '`email_taken`.'
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          description: '`server_busy` (too many passwords being hashed; has `Retry-After`) or `database_not_configured`.'
+          $ref: '#/components/responses/Error'
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      security: []
+      summary: Sign in
+      description: |
+        Limited to 30 attempts per 15 minutes per client address (`429 rate_limited`), and five failures
+        within 15 minutes block that email for 15 minutes (`429 too_many_attempts`), whether or not the
+        account exists. An unknown email and a wrong password give the same answer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: A new session.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SignedIn' }
+        '400':
+          description: '`invalid_input`.'
+          $ref: '#/components/responses/Error'
+        '401':
+          description: '`invalid_credentials`.'
+          $ref: '#/components/responses/Error'
+        '429':
+          description: '`rate_limited` (per address) or `too_many_attempts` (per email). Has `Retry-After`.'
+          $ref: '#/components/responses/Error'
+        '503':
+          description: '`server_busy` or `database_not_configured`.'
+          $ref: '#/components/responses/Error'
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      operationId: getMe
+      summary: Who the token belongs to
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The account.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: End the session of the token that is sent
+      description: |
+        Always `204`, also for a token that is not a session or when none is sent, so nothing is revealed.
+        It is not rate limited.
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Signed out.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/auth/logout-all:
+    post:
+      tags: [Auth]
+      operationId: logoutAll
+      summary: End every session of the account, on every device
+      description: |
+        The session that asks is ended too. It needs a live session, so a token that is already over
+        cannot be used to end the others.
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Every session of the account has ended.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/cart:
+    get:
+      tags: [Cart]
+      operationId: getCart
+      summary: The cart of the account
+      description: 'An empty cart (with `updatedAt: null`) if the account has never used one.'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [Cart]
+      operationId: clearCart
+      summary: Empty the cart
+      description: Limited to 300 changes per 15 minutes per client address (checked before the session).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: '`cart_conflict`: other changes kept getting in first; repeating the request is safe.'
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/cart/items:
+    post:
+      tags: [Cart]
+      operationId: addCartItem
+      summary: Add units of a product
+      description: |
+        Adds `quantity` units (one by default) to the product's line, up to 99 in all. The product has to
+        exist. Limited to 300 changes per 15 minutes per client address (checked before the session).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId]
+              properties:
+                productId: { $ref: '#/components/schemas/ProductId' }
+                quantity: { $ref: '#/components/schemas/Quantity', default: 1 }
+      responses:
+        '200':
+          $ref: '#/components/responses/Cart'
+        '400':
+          description: '`invalid_input`.'
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: |
+            `product_unavailable` (`details.productIds`), `cart_full` (a 51st different product) or
+            `cart_conflict` (repeating the request is safe).
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/cart/items/{productId}:
+    parameters:
+      - name: productId
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/ProductId' }
+    put:
+      tags: [Cart]
+      operationId: setCartItemQuantity
+      summary: Set the quantity of a line
+      description: |
+        Makes the line if there is none. Repeating the request changes nothing. The product has to exist.
+        Limited like the other changes of a cart.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity: { $ref: '#/components/schemas/Quantity' }
+      responses:
+        '200':
+          $ref: '#/components/responses/Cart'
+        '400':
+          description: '`invalid_input` or `invalid_product_id`.'
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: '`product_unavailable`, `cart_full` or `cart_conflict`.'
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [Cart]
+      operationId: removeCartItem
+      summary: Remove a line
+      description: Quietly does nothing when there is no such line, so a line whose product has left the catalog can still be removed.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Cart'
+        '400':
+          description: '`invalid_product_id`.'
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: '`cart_conflict`.'
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/orders:
+    post:
+      tags: [Orders]
+      operationId: placeOrder
+      summary: Place an order
+      description: |
+        **The server decides the money.** Only product ids, quantities and the delivery details are read
+        from the body; a price, a name or a total is ignored and worked out from the API's own products.
+        `expectedTotal` is what the visitor saw: if it is not what the server works out, nothing is ordered
+        (`409 price_changed`, with `details.expectedTotal` and `details.total`).
+
+        **A retry never places a second order.** The `Idempotency-Key` is stored with the order and a digest
+        of the request. The same key with the same request returns the order it made (`200` instead of
+        `201`), even if prices have changed since; the same key with a different request is
+        `409 idempotency_key_reuse`.
+
+        Nothing is charged, shipped or emailed: this is a demo checkout. Limited to 20 orders per hour per
+        client address (checked before the session).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: One per checkout attempt, reused by every retry of that attempt.
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9_-]{16,128}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlaceOrderRequest' }
+      responses:
+        '201':
+          description: The order that was just made.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '200':
+          description: The same order, given again to a repeat of the same request.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400':
+          description: '`invalid_input` (the message names the field), `idempotency_key_required` or `invalid_idempotency_key`.'
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: |
+            `product_unavailable` (`details.productIds`), `price_changed` (`details.expectedTotal`,
+            `details.total`) or `idempotency_key_reuse`.
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    get:
+      tags: [Orders]
+      operationId: listOrders
+      summary: The orders of the account, newest first
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: One page of orders.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderPage' }
+        '400':
+          description: '`invalid_pagination`.'
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/orders/{orderNumber}:
+    get:
+      tags: [Orders]
+      operationId: getOrder
+      summary: One order of the account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderNumber
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/OrderNumber' }
+      responses:
+        '200':
+          description: The order.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: '`order_not_found`: also the answer for an order that belongs to another account, or for a value that cannot be an order number.'
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: The `token` returned by register and login. It is valid for 7 days or until the session ends.
+
+  headers:
+    RequestId:
+      description: Identifies the request in the logs. A valid `X-Request-Id` sent by the caller is kept.
+      schema: { type: string }
+    NoStore:
+      description: '`no-store`.'
+      schema: { type: string, const: no-store }
+    ProductCache:
+      description: A successful product read may be kept for a minute, and shown stale for an hour while it is refreshed.
+      schema: { type: string, const: 'public, max-age=60, stale-while-revalidate=3600' }
+    RetryAfter:
+      description: Seconds to wait before trying again.
+      schema: { type: integer, minimum: 1 }
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: 1 or more. Plain digits.
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      name: limit
+      in: query
+      description: 1 to 100. Plain digits.
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    Error:
+      description: An error. The `error.code` says which.
+      headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: '`unauthorized`: no token, or one that is malformed, unknown, expired or ended.'
+      headers:
+        WWW-Authenticate:
+          description: '`Bearer`.'
+          schema: { type: string, const: Bearer }
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: '`rate_limited`: too many requests from this client address.'
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unavailable:
+      description: '`database_not_configured` (no database in this environment) or `request_timeout` (no answer within 25 seconds; has `Retry-After`).'
+      headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Cart:
+      description: The whole cart as it is after the change.
+      headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Cart' }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: |
+                A stable machine-readable code. Among them: `invalid_input`, `invalid_query`,
+                `invalid_pagination`, `invalid_product_id`, `invalid_json`, `payload_too_large`,
+                `unauthorized`, `invalid_credentials`, `not_found`, `product_not_found`,
+                `order_not_found`, `email_taken`, `product_unavailable`, `cart_full`, `cart_conflict`,
+                `price_changed`, `idempotency_key_required`, `invalid_idempotency_key`,
+                `idempotency_key_reuse`, `rate_limited`, `too_many_attempts`, `server_busy`,
+                `request_timeout`, `database_not_configured`, `internal_error`.
+            message: { type: string }
+            requestId:
+              type: string
+              description: 'On a server error (5xx): quote it to find the error in the logs.'
+            details:
+              type: object
+              additionalProperties: true
+              description: 'Facts a client can act on: `productIds` (`product_unavailable`); `expectedTotal` and `total` (`price_changed`).'
+      examples:
+        - error: { code: product_not_found, message: The product was not found }
+
+    ProductId:
+      type: string
+      pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$'
+      description: The manufacturer SKU.
+      examples: [CC-9011240-WW]
+
+    CategoryId:
+      type: string
+      enum:
+        [
+          cpu,
+          gpu,
+          memory,
+          storage,
+          motherboard,
+          monitor,
+          psu,
+          cooler,
+          case,
+          keyboard,
+          thermal,
+          headset,
+        ]
+
+    BrandId:
+      type: string
+      enum: [amd, intel, corsair, cooler-master, asus, gigabyte, samsung]
+
+    Product:
+      type: object
+      description: Exactly the fields of the storefront's Zod schema (`src/features/products/schema.ts`). MongoDB's `_id` is never part of a response.
+      required:
+        [
+          id,
+          category,
+          brand,
+          name,
+          fullName,
+          price,
+          images,
+          isRecommended,
+          warranty,
+          manufacturerUrl,
+          features,
+          specs,
+        ]
+      properties:
+        id: { $ref: '#/components/schemas/ProductId' }
+        category: { $ref: '#/components/schemas/CategoryId' }
+        brand: { $ref: '#/components/schemas/BrandId' }
+        name: { type: string, minLength: 1 }
+        fullName: { type: string, minLength: 1 }
+        price:
+          type: object
+          description: Whole ILS. `original`, when present, is higher than `current` (the product is on sale).
+          required: [current]
+          properties:
+            current: { type: integer, minimum: 1 }
+            original: { type: integer, minimum: 1 }
+            eilat: { type: integer, minimum: 1, description: The price for purchases in Eilat. }
+        images:
+          type: object
+          required: [card, gallery]
+          properties:
+            card:
+              {
+                type: string,
+                description: "The listing-card image, relative to the site's `public/` folder.",
+              }
+            gallery:
+              type: array
+              minItems: 1
+              items: { type: string }
+              description: The detail-page images, relative to `public/`. The first is the main one.
+        isRecommended: { type: boolean }
+        warranty: { type: string }
+        manufacturerUrl: { type: string, format: uri }
+        features:
+          type: array
+          items: { type: string }
+        specs:
+          type: array
+          items:
+            type: object
+            required: [label, value]
+            properties:
+              label: { type: string }
+              value: { type: string }
+
+    ProductPage:
+      type: object
+      required: [items, page, limit, total, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Product' }
+        page: { type: integer, minimum: 1 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        total:
+          {
+            type: integer,
+            minimum: 0,
+            description: 'The number of products that match, not of the whole catalog.',
+          }
+        totalPages: { type: integer, minimum: 0 }
+        facets: { $ref: '#/components/schemas/Facets' }
+
+    Facets:
+      type: object
+      description: |
+        The filter options of the listing, present only with `facets=true`. They depend on the category and
+        the search text, not on what is ticked. A `count` is how many products ticking the option would give:
+        the other groups' selections apply, the option's own group does not.
+      required: [brands, specs]
+      properties:
+        brands:
+          type: array
+          description: Empty when there is nothing to choose between.
+          items:
+            type: object
+            required: [value, count]
+            properties:
+              value: { $ref: '#/components/schemas/BrandId' }
+              count: { type: integer, minimum: 0 }
+        specs:
+          type: array
+          items:
+            type: object
+            required: [label, options]
+            properties:
+              label: { type: string }
+              options:
+                type: array
+                items:
+                  type: object
+                  required: [value, count]
+                  properties:
+                    value: { type: string }
+                    count: { type: integer, minimum: 0 }
+
+    User:
+      type: object
+      required: [id, name, email]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email, description: In lower case. }
+
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 60, description: Trimmed. }
+        email: { type: string, format: email, maxLength: 254 }
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Must contain a letter and a digit.
+          writeOnly: true
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 1, maxLength: 128, writeOnly: true }
+
+    SignedIn:
+      type: object
+      required: [user, token, expiresAt]
+      properties:
+        user: { $ref: '#/components/schemas/User' }
+        token:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{43}$'
+          description: Shown once. Send it as `Authorization Bearer`. Only its SHA-256 digest is stored.
+        expiresAt: { type: string, format: date-time, description: Seven days after sign-in. }
+
+    Quantity:
+      type: integer
+      minimum: 1
+      maximum: 99
+
+    CartItem:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId: { $ref: '#/components/schemas/ProductId' }
+        quantity: { $ref: '#/components/schemas/Quantity' }
+
+    Cart:
+      type: object
+      description: Ids and quantities only, in the order the products were added; never a name or a price. At most 50 different products.
+      required: [items, updatedAt]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/CartItem' }
+        updatedAt:
+          type: [string, 'null']
+          format: date-time
+          description: '`null` for an account that has never used its cart.'
+
+    DeliveryDetails:
+      type: object
+      required: [fullName, email, phone, city, street, houseNumber, apartment, postalCode, notes]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 80 }
+        email: { type: string, format: email }
+        phone:
+          {
+            type: string,
+            description: 'An Israeli phone number: after removing spaces, hyphens and brackets, and turning a leading +972 into 0, 9 or 10 digits starting with 0.',
+          }
+        city: { type: string, minLength: 2, maxLength: 60 }
+        street: { type: string, minLength: 2, maxLength: 80 }
+        houseNumber: { type: string, minLength: 1, maxLength: 10 }
+        apartment: { type: string, maxLength: 10, description: May be empty. }
+        postalCode: { type: string, pattern: '^(\d{7})?$', description: Empty or seven digits. }
+        notes: { type: string, maxLength: 300, description: May be empty. }
+
+    PlaceOrderRequest:
+      type: object
+      required: [items, delivery]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 50
+          description: A product may appear once.
+          items: { $ref: '#/components/schemas/CartItem' }
+        delivery: { $ref: '#/components/schemas/DeliveryDetails' }
+        expectedTotal:
+          type: integer
+          minimum: 0
+          description: The total, in whole ILS, that the visitor saw. When it is not what the server works out, nothing is ordered.
+
+    OrderNumber:
+      type: string
+      pattern: '^DEMO-[0-9A-HJKMNP-TV-Z]{8}$'
+      examples: [DEMO-7K2M9QX4]
+
+    OrderLine:
+      type: object
+      description: A line as it was when the order was placed. A later change to the catalog never changes it.
+      required: [productId, name, unitPrice, quantity]
+      properties:
+        productId: { $ref: '#/components/schemas/ProductId' }
+        name: { type: string }
+        unitPrice: { type: integer, description: 'The price of one unit, in whole ILS.' }
+        originalUnitPrice:
+          {
+            type: integer,
+            description: The price before the sale; only when the product was on sale.,
+          }
+        quantity: { $ref: '#/components/schemas/Quantity' }
+
+    Order:
+      type: object
+      description: An immutable record. The account is never part of it.
+      required: [orderNumber, createdAt, status, lines, total, originalTotal, savings, delivery]
+      properties:
+        orderNumber: { $ref: '#/components/schemas/OrderNumber' }
+        createdAt: { type: string, format: date-time }
+        status:
+          type: string
+          const: placed
+          description: The only state. Payment, shipping and the rest of an order's life are not modelled.
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/OrderLine' }
+        total: { type: integer, description: 'Whole ILS, worked out by the server.' }
+        originalTotal: { type: integer, description: The total before the sale. }
+        savings: { type: integer, description: '`originalTotal` minus `total`.' }
+        delivery: { $ref: '#/components/schemas/DeliveryDetails' }
+
+    OrderPage:
+      type: object
+      required: [items, page, limit, total, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Order' }
+        page: { type: integer, minimum: 1 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        total:
+          { type: integer, minimum: 0, description: The number of orders the account has in all. }
+        totalPages: { type: integer, minimum: 0 }
