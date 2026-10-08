@@ -15,10 +15,11 @@ on-call rota or escalation chain. Access to three places is needed:
 | Render, service `online-store-api`     | the API's logs, its environment variables (`MONGODB_URI`, `TRUST_PROXY_HOPS`), deploy history            |
 | MongoDB Atlas, database `online-store` | the data, the database user, _Network Access_                                                            |
 
-| Part | Address                                                                                                                                                                                                   |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Site | <https://netanel1010.github.io/online-store/>                                                                                                                                                             |
-| API  | <https://online-store-api-9hz8.onrender.com> ([`/api/health`](https://online-store-api-9hz8.onrender.com/api/health), [`/api/health/ready`](https://online-store-api-9hz8.onrender.com/api/health/ready)) |
+| Part           | Address                                                                                                                                                                                                   |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Site (primary) | <https://netanel1010.github.io/online-store/>                                                                                                                                                             |
+| Site (second)  | <https://online-store-netanel.netlify.app/> (the same build at the root; needs its origin in the API's `CORS_ORIGINS`, see [deployment](deployment.md#netlify-a-second-frontend-host))                    |
+| API            | <https://online-store-api-9hz8.onrender.com> ([`/api/health`](https://online-store-api-9hz8.onrender.com/api/health), [`/api/health/ready`](https://online-store-api-9hz8.onrender.com/api/health/ready)) |
 
 ## Is it up?
 
