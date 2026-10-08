@@ -20,7 +20,7 @@ welcome if it follows the same path.
 6. **Never commit a secret.** The database connection string lives in the Render dashboard and in a
    git-ignored `server/.env`. A repository test fails if a credential-shaped string is tracked.
 
-Reporting a security problem: do not open a public issue with the details; contact the maintainer
-through their [GitHub profile](https://github.com/Netanel1010).
+Reporting a security problem: do not open a public issue with the details; see the
+[security policy](SECURITY.md).
 
 By contributing you agree that your contribution is licensed under the [MIT License](LICENSE).
