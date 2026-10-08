@@ -24,6 +24,17 @@ describe('initialAssets', () => {
     ).toEqual([])
   })
 
+  it('reads tags and attributes in any letter case, as HTML allows', () => {
+    const upper = `<SCRIPT TYPE="module" SRC="/online-store/assets/index-abc.js"></SCRIPT>
+<LINK REL="MODULEPRELOAD" HREF="/online-store/assets/react-def.js">
+<Link Rel="StyleSheet" Href="/online-store/assets/index-ghi.css">`
+    expect(initialAssets(upper, '/online-store/')).toEqual([
+      { path: 'assets/index-abc.js', kind: 'javascript' },
+      { path: 'assets/react-def.js', kind: 'javascript' },
+      { path: 'assets/index-ghi.css', kind: 'stylesheet' },
+    ])
+  })
+
   it('accepts a base path without the closing slash', () => {
     expect(initialAssets(html, '/online-store')).toHaveLength(3)
   })

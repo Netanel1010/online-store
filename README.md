@@ -228,7 +228,7 @@ The project uses multiple testing layers rather than relying on a single test ty
 
 ### Current test suite
 
-- **915** unit, component and script tests in **67** test files
+- **916** unit, component and script tests in **67** test files
 - **1,061** API tests in **47** test files, plus **96** optional MongoDB integration tests (in 5 more files) that are skipped unless `MONGODB_TEST_URI` is set
 - **304** Playwright E2E tests in **17** test files
 

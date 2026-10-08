@@ -21,13 +21,14 @@ export const BUDGET = {
 export function initialAssets(html, base) {
   const prefix = base.endsWith('/') ? base : `${base}/`
   const found = new Map()
-  for (const tag of html.match(/<(?:script|link)\b[^>]*>/g) ?? []) {
-    const url = /\b(?:src|href)="([^"]+)"/.exec(tag)?.[1]
+  // HTML tag and attribute names, and the value of `rel`, are case-insensitive.
+  for (const tag of html.match(/<(?:script|link)\b[^>]*>/gi) ?? []) {
+    const url = /\b(?:src|href)="([^"]+)"/i.exec(tag)?.[1]
     if (!url?.startsWith(prefix)) continue
     const path = url.slice(prefix.length)
-    if (/^<script\b/.test(tag) || /rel="modulepreload"/.test(tag)) {
+    if (/^<script\b/i.test(tag) || /rel="modulepreload"/i.test(tag)) {
       if (path.endsWith('.js')) found.set(path, 'javascript')
-    } else if (/rel="stylesheet"/.test(tag) && path.endsWith('.css')) {
+    } else if (/rel="stylesheet"/i.test(tag) && path.endsWith('.css')) {
       found.set(path, 'stylesheet')
     }
   }
