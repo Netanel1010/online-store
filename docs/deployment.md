@@ -1,6 +1,9 @@
 # Deployment
 
 The store runs as three parts. Each one is deployed on its own, and nothing secret is committed.
+This page is the configuration and the reference; the step-by-step procedures (release, roll back,
+incidents, rotating the database password) are in the [runbook](runbook.md), and how the parts fit
+together is in the [architecture overview](architecture.md).
 
 | Part     | Where                                  | Address                                                                                                                   |
 | -------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -180,7 +183,8 @@ no new variable**: sessions are random tokens kept (as a digest) in MongoDB, not
 To check it by hand against the deployed API (use a throwaway address; the account stays):
 
 ```bash
-curl -s -X POST "$API_URL/api/auth/register" -H 'Content-Type: application/json' \n  -d '{"name":"Check","email":"check-1@example.com","password":"<a password with a letter and a digit>"}'
+curl -s -X POST "$API_URL/api/auth/register" -H 'Content-Type: application/json' \
+  -d '{"name":"Check","email":"check-1@example.com","password":"<a password with a letter and a digit>"}'
 curl -s "$API_URL/api/auth/me" -H "Authorization: Bearer <the token of the answer>"
 ```
 
@@ -242,10 +246,11 @@ start again when the free service sleeps or restarts.
   request after a pause takes about 30 to 60 seconds (measured: 29 s for the catalog). This, not the
   site's size, is what makes the site slow to become usable after a quiet period: the page, scripts
   and banner arrive within about a second, and the products wait for the API. The site softens it:
-  the HTML tells the browser to connect to the API and start the catalog request before any script
-  runs, a read that fails while the host wakes is repeated (up to three attempts, 30 seconds each),
-  a page that is still loading after four seconds explains why, and a returning visitor sees the
-  catalog they already have at once (see the `Cache-Control` of the product reads). It cannot make
+  the HTML tells the browser to open its connection to the API before any script runs (a
+  `preconnect`; no request is started early, because every page asks for its own products), a read
+  that fails while the host wakes is repeated (up to three attempts, 30 seconds each), a listing that
+  is still loading after four seconds explains why, and a returning visitor sees the products they
+  already have at once (see the `Cache-Control` of the product reads). It cannot make
   the first request after a pause fast: only a host that does not sleep can (a paid Render plan, or
   something that requests `/api/health` more often than every 15 minutes). `check:api` waits for
   this on purpose.

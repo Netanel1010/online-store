@@ -54,7 +54,7 @@ A signed-in visitor also talks to the API for two more things, always with their
 - **The cart** (`/api/cart`). The pages read and change the cart in the browser, so it stays instant and works offline; a small engine mirrors it to the account (a debounced `PUT`/`DELETE` of the quantities that changed, repeated when the API cannot be reached). Signing in joins a cart filled in while signed out with the account's, and signing out empties the cart in the browser while the account keeps it. How the two copies are reconciled: [`docs/state-persistence.md`](docs/state-persistence.md).
 - **The orders** (`/api/orders`). The checkout sends only product ids, quantities and the delivery details, with an `Idempotency-Key`; the API works out the prices and the total, stores an immutable snapshot of the order, and answers a repeated request with the same order, so a retry after a timeout can never place a second one.
 
-How it is deployed, configured and checked: [`docs/deployment.md`](docs/deployment.md).
+How the parts fit together and why: [`docs/architecture.md`](docs/architecture.md) and the [decision records](docs/adr/README.md). The API's contract: [`docs/openapi.yaml`](docs/openapi.yaml). How it is deployed, configured and checked: [`docs/deployment.md`](docs/deployment.md), and operated: [`docs/runbook.md`](docs/runbook.md).
 
 ---
 
@@ -226,9 +226,9 @@ The project uses multiple testing layers rather than relying on a single test ty
 
 ### Current test suite
 
-- **861** unit, component and script tests in **62** test files
-- **1,018** API tests in **47** test files, plus **88** optional MongoDB integration tests (in 5 more files) that are skipped unless `MONGODB_TEST_URI` is set
-- **298** Playwright E2E tests in **16** test files
+- **899** unit, component and script tests in **65** test files
+- **1,061** API tests in **47** test files, plus **96** optional MongoDB integration tests (in 5 more files) that are skipped unless `MONGODB_TEST_URI` is set
+- **304** Playwright E2E tests in **17** test files
 
 The API tests need **no MongoDB and no credentials**. The optional integration tests run against a real MongoDB what a fake cannot prove: the unique indexes, the atomic cart updates and the idempotent orders when requests arrive at the same moment.
 
@@ -266,10 +266,11 @@ src/
 server/           Express + TypeScript API (workspace, see server/README.md)
 e2e/              Playwright specs and support code, including a stub API
 public/           Static assets and the product data the seed copies to MongoDB
-docs/             Design, testing and deployment documentation
+docs/             Architecture, decision records, OpenAPI, runbook, testing and deployment (start at docs/README.md)
 scripts/          GitHub Pages build helpers and the production API check
 render.yaml       Render Blueprint of the production API
-.github/          CI and deployment workflow
+.github/          CI and deployment workflow, security scans, Dependabot, the pull request template
+LICENSE           MIT
 ```
 
 ---
@@ -323,7 +324,14 @@ to work correctly after deployment.
 
 ## 📚 Documentation
 
+The full index, by what you want to do, is [`docs/README.md`](docs/README.md).
+
+- 🏛️ [`docs/architecture.md`](docs/architecture.md) — the system as it is: the site, the API, the data, sessions, catalog loading, the cart and orders, security and delivery
+- 🧭 [`docs/adr/`](docs/adr/README.md) — twelve architecture decision records: why it is built this way
+- 📜 [`docs/openapi.yaml`](docs/openapi.yaml) — the API contract (OpenAPI 3.1): every endpoint, parameter, body, answer and error
+- 🛠️ [`docs/development.md`](docs/development.md) — the developer guide: setup, the map of the repository, conventions and common tasks (and [`CONTRIBUTING.md`](CONTRIBUTING.md))
 - 🚢 [`docs/deployment.md`](docs/deployment.md) — Render, Atlas and GitHub Pages: configuration, release flow, verification and troubleshooting
+- 🧯 [`docs/runbook.md`](docs/runbook.md) — production procedures: release, verify, roll back, incidents, rotating the database password
 - 🖥️ [`server/README.md`](server/README.md) — the API: running it, MongoDB, endpoints, configuration and structure
 - 🧪 [`docs/testing.md`](docs/testing.md) — testing strategy, isolation, accessibility and CI
 - 💾 [`docs/state-persistence.md`](docs/state-persistence.md) — cart and favorites persistence, and how the cart is kept in step with the account
@@ -340,6 +348,12 @@ The project originally started as a static **HTML/CSS/JavaScript** website.
 It was later rebuilt using **React and TypeScript**, with the original implementation preserved in the [`legacy-v1`](https://github.com/Netanel1010/online-store/tree/legacy-v1) tag. A backend was then added: an Express API with MongoDB, deployed to Render, which now serves the product catalog, the accounts, the carts and the orders to the site.
 
 This repository therefore also documents the evolution from a simple static site into a modern component-based frontend application with its own API.
+
+---
+
+## 📄 License
+
+Released under the [MIT License](LICENSE). The licence covers the source code and documentation of this repository. The product names, brands, logos and product images in the catalog are not covered by it: they belong to their owners and appear here only as the content of a demonstration store.
 
 ---
 
