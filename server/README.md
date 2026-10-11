@@ -396,6 +396,7 @@ name, a phone number and an address).
 | Endpoint                         | What it does                                                                                                    |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `POST /api/orders`               | Places an order. Needs an `Idempotency-Key` header. `201` with the order, `200` with the same order for a repeat. |
+| `POST /api/orders/lookup`        | Asks which order an attempt made. Body `{ "idempotencyKey": "…" }`. `200` with the account's order, or `404 order_not_found`. |
 | `GET /api/orders`                | The account's orders, newest first, paged like the products (`?page=&limit=`, 20 by default, 100 at most).      |
 | `GET /api/orders/:orderNumber`   | One of the account's orders. Anyone else's, and one that does not exist, are the same `404 order_not_found`.    |
 
@@ -421,8 +422,22 @@ and the answer is `409 price_changed` with the real `details.total`.
 token, one per checkout attempt) is stored with the order under a unique `{ userId, idempotencyKey }`
 index, together with a digest of what was ordered. The same key with the same request gets the order it
 made, even if prices changed since (`200`, not `201`); the same key with a different request is
-`409 idempotency_key_reuse`. The browser repeats a request that timed out (a Render cold start) with
-the same key, which is why this matters.
+`409 idempotency_key_reuse`, which names the order that exists in `details.orderNumber` (the account's
+own, and nothing else about it): the visitor edited the details after an answer was lost, and the order
+cannot be changed. If no order was made under the key, an edited request is simply placed. The browser
+repeats a request that timed out (a Render cold start) with the same key, which is why this matters.
+
+**Asking whether an attempt made an order.** `POST /api/orders/lookup` takes `{ "idempotencyKey": "…" }`
+(the same 16–128 characters as the header) and needs a token like every order route. It reads and
+changes nothing, and it only ever looks among the signed-in account's own orders: a key that only
+another account used is the same answer as a key nobody used. The key is in the JSON **body, never in
+the address**, so it is in no path, query string or log (the API logs neither bodies nor keys). The
+answer is `200` with the order, or `404` with `error.code` `order_not_found`, and like every order
+answer it is `Cache-Control: no-store`. **Only that explicit `order_not_found` means that no matching
+order exists.** A client must treat anything else (another status or code, an empty or unreadable body,
+a plain `404 not_found` from an API that does not have the route) as "cannot verify", and must not place
+a new order because of it. A body without a valid key is `400 invalid_input` (the field, never the
+value). Like the other reads it has no limit of its own.
 
 **Order numbers** look like `DEMO-7K2M9QX4`: eight characters from an alphabet without look-alike
 letters, drawn with `crypto.randomInt` (about 10^12 possibilities), unique by an index. The `DEMO-`
@@ -430,7 +445,7 @@ prefix stays while there is no payment.
 
 **Errors:** `400 invalid_input` (the field, never the value), `400 idempotency_key_required`, `401`,
 `404 order_not_found`, `409 product_unavailable` (`details.productIds`; nothing is dropped silently),
-`409 price_changed`, `409 idempotency_key_reuse`, `429 rate_limited`.
+`409 price_changed`, `409 idempotency_key_reuse` (`details.orderNumber`), `429 rate_limited`.
 
 **Limits.** Placing an order is limited per client address: 20 per hour (`ORDER_RATE_LIMITS` in
 `orders/routes.ts`), checked before the session is looked up and in the memory of the process. An order
