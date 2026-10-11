@@ -7,6 +7,7 @@ import { useCartStore } from '@/features/cart/cartStore'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 import { resetProductCache } from '@/features/products/productCache'
 import { resetCategoryCounts } from '@/features/products/useCategoryCounts'
+import { checkoutRecoveryPolicy } from '@/features/orders/submitOrder'
 import { fetchPolicy } from '@/lib/fetchWithRetry'
 import { suggestionPolicy } from '@/features/products/useProductSuggestions'
 
@@ -32,6 +33,9 @@ cartSyncPolicy.debounceMs = 0
 // The suggestions under the search box are asked for without waiting for a pause in the typing.
 suggestionPolicy.debounceMs = 0
 cartSyncPolicy.retryDelaysMs = [3_600_000]
+// An earlier order request is known not to be arriving any more at once, not after the real 30 s;
+// the tests of that wait set their own.
+checkoutRecoveryPolicy.settleMs = 0
 
 // `findBy*` and `waitFor` give up after 1 s by default. Registering hashes the password (scrypt, in
 // the API the tests run) and several tests then wait for a redirect, which can take longer than

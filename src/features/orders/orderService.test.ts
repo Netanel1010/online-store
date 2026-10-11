@@ -1,5 +1,11 @@
 import { fetchPolicy } from '@/lib/fetchWithRetry'
-import { fetchOrder, fetchOrders, placeOrder, type PlaceOrderRequest } from './orderService'
+import {
+  fetchOrder,
+  fetchOrders,
+  lookupOrderByKey,
+  placeOrder,
+  type PlaceOrderRequest,
+} from './orderService'
 
 const API = 'http://localhost:3001'
 const TOKEN = 'T'.repeat(43)
@@ -371,5 +377,50 @@ describe('fetchOrders', () => {
     )
 
     await expect(fetchOrders(TOKEN, 1, controller.signal)).rejects.toThrow()
+  })
+})
+
+describe('lookupOrderByKey', () => {
+  it('asks with a POST whose body holds the key, and nothing in the address or the query', async () => {
+    const fetchMock = stubFetch(() => json(ORDER, 200))
+
+    const outcome = await lookupOrderByKey(TOKEN, KEY)
+
+    expect(outcome).toEqual({ status: 'ok', order: ORDER })
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(url).toBe(`${API}/api/orders/lookup`)
+    expect(String(url)).not.toContain(KEY)
+    expect(init?.method).toBe('POST')
+    expect(init?.headers).toEqual({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${TOKEN}`,
+    })
+    expect(JSON.parse(init?.body as string)).toEqual({ idempotencyKey: KEY })
+  })
+
+  it.each([
+    [404, 'not-found'],
+    [401, 'unauthorized'],
+    [400, 'unavailable'],
+    [429, 'unavailable'],
+    [500, 'unavailable'],
+    [503, 'unavailable'],
+  ])('says %i is "%s"', async (code, status) => {
+    stubFetch(() => json({ error: { code: 'x', message: 'x' } }, code))
+
+    expect(await lookupOrderByKey(TOKEN, KEY)).toEqual({ status })
+  })
+
+  it('says "unavailable" when the request cannot be made, or the answer is not an order', async () => {
+    stubFetch(() => {
+      throw new TypeError('network down')
+    })
+    expect(await lookupOrderByKey(TOKEN, KEY)).toEqual({ status: 'unavailable' })
+
+    stubFetch(() => json({ orderNumber: 'DEMO-7K2M9QX4' }, 200))
+    expect(await lookupOrderByKey(TOKEN, KEY)).toEqual({ status: 'unavailable' })
+
+    stubFetch(() => new Response('<html>', { status: 200 }))
+    expect(await lookupOrderByKey(TOKEN, KEY)).toEqual({ status: 'unavailable' })
   })
 })

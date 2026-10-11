@@ -7,6 +7,7 @@ import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 import { makeProduct } from '@/test/fixtures'
 import { setUpAuthApi } from '@/test/authApi'
 import { signOutFromHeader } from '@/test/accountMenu'
+import { checkoutRecoveryPolicy } from '@/features/orders/submitOrder'
 import { renderApp } from '@/test/renderApp'
 
 // The real authentication and orders API answers these tests (see setUpAuthApi).
@@ -325,7 +326,7 @@ describe('invalid checkout submission', () => {
     await fillValidForm()
     await userEvent.click(submitButton())
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('לא הצלחנו להשלים את ההזמנה')
+    expect(await screen.findByRole('alert')).toHaveTextContent('לא קיבלנו אישור על ההזמנה')
     expect(screen.getByRole('alert')).toHaveTextContent('לא תיווצר הזמנה כפולה')
     expect(url()).toBe('/checkout')
     expect(useCartStore.getState().items).toEqual([{ productId: 'PSU-1', quantity: 1 }])
@@ -336,7 +337,7 @@ describe('invalid checkout submission', () => {
 
   it.each([
     [429, 'ניסיתם להזמין יותר מדי פעמים'],
-    [500, 'לא הצלחנו להשלים את ההזמנה'],
+    [500, 'לא קיבלנו אישור על ההזמנה'],
     [400, 'השרת לא קיבל את פרטי ההזמנה'],
   ])('explains a %i answer and keeps the cart', async (status, message) => {
     answerOrderRequestsWith(status)
@@ -628,5 +629,286 @@ describe('checkout form layout', () => {
     await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
 
     expect(within(summary()).getAllByText('סה"כ')).toHaveLength(1)
+  })
+})
+
+/* ----------------------------------------------------------------------------------------------
+ * An order request whose outcome the page does not know (the answer was lost, the page was left or
+ * reloaded while it was on its way). The page must not make a second order because of an edit.
+ * -------------------------------------------------------------------------------------------- */
+
+type Fate = 'ok' | 'lose-answer' | 'never-arrives' | 'placed-answer-held' | 'held'
+
+/**
+ * Decides, request by request, what happens to the order requests of the page (the first fate for
+ * the first request, ... then `ok`): `lose-answer` lets the API place the order and loses the
+ * answer; `never-arrives` loses the request before it reaches the API; `placed-answer-held` lets
+ * the API place the order and never answers; `held` waits for `release()` and then goes through.
+ * The lookups of an order by its key are recorded too, and fail while `lookupsDown` is set.
+ */
+function scriptOrderRequests(...fates: Fate[]) {
+  const posts: { key: string; body: { delivery: { phone: string } } }[] = []
+  const lookups: { url: string; body: { idempotencyKey: string } }[] = []
+  let release: () => void = () => {}
+  const released = new Promise<void>((resolve) => (release = resolve))
+  const state = { lookupsDown: false }
+  const inner = globalThis.fetch
+  vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith('/api/orders/lookup')) {
+      lookups.push({ url: String(input), body: JSON.parse(init?.body as string) })
+      if (state.lookupsDown) throw new TypeError('the lookup cannot be reached')
+      return inner(input, init)
+    }
+    if (!isOrderRequest(input, init)) return inner(input, init)
+    const headers = init?.headers as Record<string, string>
+    posts.push({ key: headers['Idempotency-Key']!, body: JSON.parse(init?.body as string) })
+    const fate = fates[posts.length - 1] ?? 'ok'
+    if (fate === 'never-arrives') throw new TypeError('the request was lost')
+    if (fate === 'held') await released
+    const response = await inner(input, init)
+    if (fate === 'lose-answer') throw new TypeError('the answer was lost')
+    if (fate === 'placed-answer-held') await new Promise(() => {})
+    return response
+  })
+  return { posts, lookups, release, state, keys: () => posts.map((post) => post.key) }
+}
+
+const clearAndType = async (name: string, text: string) => {
+  await userEvent.clear(box(name))
+  await userEvent.type(box(name), text)
+}
+
+describe('an order whose outcome is not known', () => {
+  beforeEach(async () => {
+    await signIn()
+    useCartStore.getState().addItem('PSU-1')
+    useCartStore.getState().addItem('GPU-1', 2)
+  })
+  afterEach(() => {
+    checkoutRecoveryPolicy.settleMs = 0
+  })
+
+  /** The form appears when the products of the cart have been loaded, after the page's heading. */
+  const formReady = () => screen.findByRole('textbox', { name: 'טלפון' })
+
+  async function openCheckoutAndSubmit() {
+    const app = renderApp('/checkout', catalog)
+    await formReady()
+    await fillValidForm()
+    await userEvent.click(submitButton())
+    return app
+  }
+
+  it('sends the same request again, with the same key and without a lookup, when nothing was changed', async () => {
+    const sent = scriptOrderRequests('lose-answer')
+    await openCheckoutAndSubmit()
+    await screen.findByRole('alert')
+
+    await userEvent.click(submitButton())
+
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(sent.keys()[1]).toBe(sent.keys()[0])
+    expect(sent.lookups).toHaveLength(0)
+    expect(api.orders()).toHaveLength(1)
+    expect(screen.queryByText(/ההגשה הקודמת שלכם נקלטה/)).not.toBeInTheDocument()
+  })
+
+  it('does not order again, but shows the order that exists, when a detail is edited after a lost answer', async () => {
+    const sent = scriptOrderRequests('lose-answer')
+    await openCheckoutAndSubmit()
+    await screen.findByRole('alert')
+    expect(api.orders()).toHaveLength(1) // the API did place it, and the page does not know
+
+    await clearAndType('טלפון', '052-7654321')
+    await userEvent.click(submitButton())
+
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(sent.posts).toHaveLength(1) // no second order request was made at all
+    expect(api.orders()).toHaveLength(1)
+    expect(url()).toBe(`/orders/${api.orders()[0]!.orderNumber}`)
+    // It says plainly what happened, and the order is the one that was first sent.
+    expect(screen.getByText(/ההגשה הקודמת שלכם נקלטה בשרת/)).toHaveTextContent(
+      'השינויים שערכתם אחריה לא נשמרו, כי אי אפשר לערוך הזמנת הדגמה. אפשר להזמין שוב מהעגלה.',
+    )
+    expect(screen.getByText('050-1234567')).toBeInTheDocument()
+    expect(screen.queryByText('052-7654321')).not.toBeInTheDocument()
+    // The order is confirmed, and the cart is what was ordered, so it is emptied.
+    expect(useCartStore.getState().items).toEqual([])
+    expect(localStorage.getItem('online-store:checkout-attempt')).toBeNull()
+  })
+
+  it('asks for the order by its key in the body of a request, never in the address', async () => {
+    const sent = scriptOrderRequests('lose-answer')
+    await openCheckoutAndSubmit()
+    await screen.findByRole('alert')
+    await clearAndType('טלפון', '052-7654321')
+
+    await userEvent.click(submitButton())
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+
+    expect(sent.lookups).toHaveLength(1)
+    expect(sent.lookups[0]!.body).toEqual({ idempotencyKey: sent.keys()[0] })
+    expect(sent.lookups[0]!.url).not.toContain(sent.keys()[0]!)
+  })
+
+  it('keeps the cart, and says so, when the cart was changed as well as a detail', async () => {
+    scriptOrderRequests('lose-answer')
+    await openCheckoutAndSubmit()
+    await screen.findByRole('alert')
+
+    useCartStore.getState().setQuantity('PSU-1', 3)
+    await userEvent.click(submitButton())
+
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(api.orders()).toHaveLength(1)
+    expect(
+      screen.getByText('העגלה שלכם השתנתה מאז, ולכן השארנו אותה כפי שהיא.'),
+    ).toBeInTheDocument()
+    expect(useCartStore.getState().items).toEqual([
+      { productId: 'PSU-1', quantity: 3 },
+      { productId: 'GPU-1', quantity: 2 },
+    ])
+  })
+
+  it('does not send a new order, and keeps the form and the cart, while the earlier request may still be arriving', async () => {
+    checkoutRecoveryPolicy.settleMs = 30_000
+    const sent = scriptOrderRequests('never-arrives')
+    await openCheckoutAndSubmit()
+    await screen.findByRole('alert')
+
+    await clearAndType('טלפון', '052-7654321')
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'אנחנו עדיין בודקים אם ההזמנה הקודמת שלכם נקלטה. המתינו כחצי דקה ונסו שוב.',
+    )
+    expect(sent.posts).toHaveLength(1)
+    expect(api.orders()).toHaveLength(0)
+    expect(box('טלפון')).toHaveValue('052-7654321')
+    expect(box('רחוב')).toHaveValue('דיזנגוף')
+    expect(url()).toBe('/checkout')
+    expect(useCartStore.getState().items).toHaveLength(2)
+  })
+
+  it('orders with the edited details, under a new key, once the earlier request is known not to have arrived', async () => {
+    const sent = scriptOrderRequests('never-arrives')
+    await openCheckoutAndSubmit()
+    await screen.findByRole('alert')
+
+    await clearAndType('טלפון', '052-7654321')
+    await userEvent.click(submitButton())
+
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(sent.lookups).toHaveLength(1)
+    expect(sent.keys()[1]).not.toBe(sent.keys()[0])
+    expect(api.orders()).toHaveLength(1)
+    expect(api.orders()[0]!.delivery.phone).toBe('052-7654321') // the edit was not discarded
+    expect(screen.queryByText(/ההגשה הקודמת שלכם נקלטה/)).not.toBeInTheDocument()
+    expect(useCartStore.getState().items).toEqual([])
+  })
+
+  it('sends nothing, and says why, when it cannot find out whether the earlier order exists', async () => {
+    const sent = scriptOrderRequests('lose-answer')
+    sent.state.lookupsDown = true
+    await openCheckoutAndSubmit()
+    await screen.findByRole('alert')
+
+    await clearAndType('טלפון', '052-7654321')
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'לא הצלחנו לבדוק אם ההזמנה הקודמת נקלטה, ולכן לא שלחנו הזמנה חדשה, כדי לא ליצור הזמנה כפולה.',
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('ההזמנות שלי')
+    expect(sent.posts).toHaveLength(1)
+    expect(api.orders()).toHaveLength(1)
+    expect(box('טלפון')).toHaveValue('052-7654321')
+    expect(useCartStore.getState().items).toHaveLength(2)
+
+    // Once the lookup works again, the same click recovers the order.
+    sent.state.lookupsDown = false
+    await userEvent.click(submitButton())
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(api.orders()).toHaveLength(1)
+  })
+
+  it('tells the visitor that the order may have been received, and that sending it again is safe', async () => {
+    scriptOrderRequests('lose-answer')
+    await openCheckoutAndSubmit()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'לא קיבלנו אישור על ההזמנה, ייתכן שהיא נקלטה. אם לא שיניתם דבר, אפשר ללחוץ שוב בבטחה: לא תיווצר הזמנה כפולה. אם שיניתם פרטים, נבדוק קודם אם ההזמנה הקודמת נקלטה.',
+    )
+  })
+
+  it('does not make a second order after a reload while the request was on its way', async () => {
+    const sent = scriptOrderRequests('placed-answer-held')
+    const first = await openCheckoutAndSubmit()
+    await waitFor(() => expect(api.orders()).toHaveLength(1))
+
+    first.unmount() // a reload: the answer never arrives, and the page is gone
+    renderApp('/checkout', catalog)
+    await formReady()
+    await fillValidForm({ phone: '052-7654321' })
+    await userEvent.click(submitButton())
+
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(sent.posts).toHaveLength(1)
+    expect(api.orders()).toHaveLength(1)
+    expect(screen.getByText(/ההגשה הקודמת שלכם נקלטה בשרת/)).toBeInTheDocument()
+  })
+
+  it('does not pull the visitor back to the order page when they left while it was being placed, and still empties the cart', async () => {
+    const sent = scriptOrderRequests('held')
+    await openCheckoutAndSubmit()
+    await waitFor(() => expect(sent.posts).toHaveLength(1))
+
+    await userEvent.click(screen.getByRole('link', { name: 'חזרה לעגלה' }))
+    await screen.findByRole('heading', { level: 1, name: 'עגלת קניות' })
+    sent.release()
+
+    await waitFor(() => expect(api.orders()).toHaveLength(1))
+    await waitFor(() => expect(useCartStore.getState().items).toEqual([]))
+    expect(url()).toBe('/cart')
+    expect(
+      screen.queryByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('does not treat a refused order as an unknown one: an edit after a refusal is just an edit', async () => {
+    const sent = scriptOrderRequests()
+    api.setCatalog([{ ...psu, price: { current: 1200 } }, gpu])
+    await openCheckoutAndSubmit()
+    await screen.findByRole('alert') // the price changed: nothing was ordered
+
+    await clearAndType('טלפון', '052-7654321')
+    await userEvent.click(submitButton())
+
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(sent.lookups).toHaveLength(0)
+    expect(api.orders()).toHaveLength(1)
+    expect(api.orders()[0]!.delivery.phone).toBe('052-7654321')
+  })
+
+  it('still allows a later order, with a key of its own, once an order was confirmed', async () => {
+    const sent = scriptOrderRequests('lose-answer')
+    await openCheckoutAndSubmit()
+    await screen.findByRole('alert')
+    await clearAndType('טלפון', '052-7654321')
+    await userEvent.click(submitButton())
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+
+    // The visitor shops on and checks out again, through the pages.
+    await userEvent.click(screen.getByRole('link', { name: 'המשך קנייה' }))
+    useCartStore.getState().addItem('PSU-1')
+    await userEvent.click(await screen.findByRole('link', { name: /^עגלת קניות/ }))
+    await userEvent.click(await screen.findByRole('link', { name: 'מעבר לסיום ההזמנה' }))
+    await formReady()
+    await fillValidForm({ phone: '052-7654321' })
+    await userEvent.click(submitButton())
+
+    await waitFor(() => expect(api.orders()).toHaveLength(2))
+    expect(new Set(sent.keys()).size).toBe(2)
+    expect(sent.lookups).toHaveLength(1) // only the one for the edit, none for the later order
   })
 })

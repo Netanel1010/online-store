@@ -13,6 +13,12 @@ import type { DeliveryDetails } from '@/features/checkout/delivery'
  * never used for two different orders (which the API would refuse). It is forgotten once the order
  * is placed, so the next order is a new one, and after a day, as nobody retries after that long.
  *
+ * An attempt also remembers when a request was sent and the page has not heard a definite answer
+ * ("pending"). That is the case after a lost answer, a timeout, a reload or leaving the page while the
+ * request was on its way: the order may exist. A pending attempt is what lets the checkout ask the API
+ * about that order before it sends a different one (see `submitOrder.ts`), instead of making a second
+ * order because the visitor corrected a detail.
+ *
  * What is kept is a short digest of the order, never the order: the name, the phone number and the
  * address stay out of storage. The digest is only compared for equality (it is not a secret and not
  * a defence: it only keeps the details from being readable there), so a plain 53-bit hash is enough.
@@ -26,7 +32,18 @@ const storedSchema = z.object({
   key: z.string().min(16),
   fingerprint: z.string().min(1),
   createdAt: z.number().int(),
+  /** When the last request with this key was sent or lost; absent once the API has answered for sure. */
+  pendingSince: z.number().int().optional(),
 })
+
+type Stored = z.infer<typeof storedSchema>
+
+export interface PendingAttempt {
+  key: string
+  fingerprint: string
+  /** When the request with this key was last sent, or its answer last lost. */
+  since: number
+}
 
 /** cyrb53: a small, fast, well-spread 53-bit hash of a text, as a short string. */
 function digest(text: string): string {
@@ -42,14 +59,18 @@ function digest(text: string): string {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36)
 }
 
-function fingerprintOf(userId: string, items: readonly CartItem[], delivery: DeliveryDetails) {
+export function fingerprintOf(
+  userId: string,
+  items: readonly CartItem[],
+  delivery: DeliveryDetails,
+) {
   const sorted = items
     .map(({ productId, quantity }) => ({ productId, quantity }))
     .sort((a, b) => (a.productId < b.productId ? -1 : a.productId > b.productId ? 1 : 0))
   return digest(JSON.stringify({ userId, items: sorted, delivery }))
 }
 
-function read(): z.infer<typeof storedSchema> | null {
+function read(): Stored | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw === null) return null
@@ -84,6 +105,40 @@ export function idempotencyKeyFor(
     // No storage (private mode, full): the key just is not kept.
   }
   return key
+}
+
+function write(attempt: Stored): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(attempt))
+  } catch {
+    // No storage (private mode, full): the attempt is just not kept.
+  }
+}
+
+/**
+ * The attempt whose outcome is not known, if there is one: a request was sent with its key and no
+ * definite answer came back. Older than a day it is forgotten, like the key itself.
+ */
+export function readPendingAttempt(now: number = Date.now()): PendingAttempt | null {
+  const kept = read()
+  if (!kept || kept.pendingSince === undefined || now - kept.createdAt >= MAX_AGE_MS) return null
+  return { key: kept.key, fingerprint: kept.fingerprint, since: kept.pendingSince }
+}
+
+/**
+ * Notes that a request with the kept key is on its way, or that its answer was lost. Called again
+ * when the answer is lost so that `since` is the last moment the API could have been working on it.
+ */
+export function markAttemptPending(now: number = Date.now()): void {
+  const kept = read()
+  if (kept) write({ ...kept, pendingSince: now })
+}
+
+/** Notes that the API answered for sure that no order was made: the key stays, nothing is pending. */
+export function markAttemptSettled(): void {
+  const kept = read()
+  if (kept?.pendingSince === undefined) return
+  write({ key: kept.key, fingerprint: kept.fingerprint, createdAt: kept.createdAt })
 }
 
 /** Forgets the key: the order was placed, or the key cannot be used any more. */

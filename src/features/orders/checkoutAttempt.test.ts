@@ -1,4 +1,11 @@
-import { forgetCheckoutAttempt, idempotencyKeyFor } from './checkoutAttempt'
+import {
+  fingerprintOf,
+  forgetCheckoutAttempt,
+  idempotencyKeyFor,
+  markAttemptPending,
+  markAttemptSettled,
+  readPendingAttempt,
+} from './checkoutAttempt'
 
 const STORAGE_KEY = 'online-store:checkout-attempt'
 const DELIVERY = {
@@ -150,5 +157,111 @@ describe('forgetCheckoutAttempt', () => {
       throw new Error('blocked')
     })
     expect(() => forgetCheckoutAttempt()).not.toThrow()
+  })
+})
+
+describe('an attempt whose outcome is not known', () => {
+  const START = 1_700_000_000_000
+
+  it('is not pending until a request is sent, and has no pending time in storage', () => {
+    idempotencyKeyFor('user-1', ITEMS, DELIVERY, START)
+
+    expect(readPendingAttempt(START)).toBeNull()
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).not.toHaveProperty('pendingSince')
+  })
+
+  it('is pending, with its key, its fingerprint and the time, once a request was sent', () => {
+    const key = idempotencyKeyFor('user-1', ITEMS, DELIVERY, START)
+
+    markAttemptPending(START + 5)
+
+    expect(readPendingAttempt(START + 10)).toEqual({
+      key,
+      fingerprint: fingerprintOf('user-1', ITEMS, DELIVERY),
+      since: START + 5,
+    })
+  })
+
+  it('moves its time on when the answer is lost again, so the wait counts from the last try', () => {
+    idempotencyKeyFor('user-1', ITEMS, DELIVERY, START)
+    markAttemptPending(START)
+
+    markAttemptPending(START + 60_000)
+
+    expect(readPendingAttempt(START + 60_001)?.since).toBe(START + 60_000)
+  })
+
+  it('stays pending through a reload: a fresh call finds it in storage', () => {
+    const key = idempotencyKeyFor('user-1', ITEMS, DELIVERY, START)
+    markAttemptPending(START)
+    const stored = localStorage.getItem(STORAGE_KEY)
+
+    localStorage.clear()
+    localStorage.setItem(STORAGE_KEY, stored!)
+
+    expect(readPendingAttempt(START)?.key).toBe(key)
+  })
+
+  it('is settled when the API says it made no order: the key stays, nothing is pending', () => {
+    const key = idempotencyKeyFor('user-1', ITEMS, DELIVERY, START)
+    markAttemptPending(START)
+
+    markAttemptSettled()
+
+    expect(readPendingAttempt(START)).toBeNull()
+    expect(idempotencyKeyFor('user-1', ITEMS, DELIVERY, START)).toBe(key)
+  })
+
+  it('is forgotten with the key, and after a day like the key', () => {
+    idempotencyKeyFor('user-1', ITEMS, DELIVERY, START)
+    markAttemptPending(START)
+    const day = 24 * 60 * 60 * 1000
+
+    expect(readPendingAttempt(START + day - 1)).not.toBeNull()
+    expect(readPendingAttempt(START + day)).toBeNull()
+    forgetCheckoutAttempt()
+    expect(readPendingAttempt(START)).toBeNull()
+  })
+
+  it('reads a record from before pending existed as settled', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ key: 'k'.repeat(36), fingerprint: 'abc', createdAt: START }),
+    )
+
+    expect(readPendingAttempt(START)).toBeNull()
+  })
+
+  it.each([
+    ['a pending time that is not a number', { pendingSince: 'soon' }],
+    ['a fractional pending time', { pendingSince: 1.5 }],
+  ])('ignores a record with %s', (_name, extra) => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ key: 'k'.repeat(36), fingerprint: 'abc', createdAt: START, ...extra }),
+    )
+
+    expect(readPendingAttempt(START)).toBeNull()
+  })
+
+  it('does nothing, and does not throw, when there is no attempt or no storage', () => {
+    expect(() => markAttemptPending(START)).not.toThrow()
+    expect(() => markAttemptSettled()).not.toThrow()
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    expect(readPendingAttempt(START)).toBeNull()
+    expect(() => markAttemptPending(START)).not.toThrow()
+  })
+
+  it('keeps the same digest-only storage: no detail of the order is added by being pending', () => {
+    idempotencyKeyFor('user-1', ITEMS, DELIVERY, START)
+    markAttemptPending(START)
+
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+    expect(Object.keys(stored).sort()).toEqual(['createdAt', 'fingerprint', 'key', 'pendingSince'])
+    expect(localStorage.getItem(STORAGE_KEY)).not.toContain('050-1234567')
   })
 })

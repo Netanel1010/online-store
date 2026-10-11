@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { paths } from '@/app/paths'
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
@@ -9,13 +9,14 @@ import { EmptyState } from '@/components/shared/StateMessages'
 import { Button } from '@/components/ui/Button'
 import { buttonStyles } from '@/components/ui/buttonStyles'
 import { useAuthStore, useCurrentUser } from '@/features/auth/authStore'
-import { useCartStore } from '@/features/cart/cartStore'
+import { useCartStore, type CartItem } from '@/features/cart/cartStore'
 import { useCartIsLoading } from '@/features/cart/cartSyncStatus'
 import { OrderLines } from '@/features/cart/OrderLines'
 import { OrderSummary } from '@/features/cart/OrderSummary'
 import { buildCartLines, summarizeCart } from '@/features/cart/summary'
 import { CheckoutForm, type SubmitOutcome } from '@/features/checkout/CheckoutForm'
 import type { CheckoutValues } from '@/features/checkout/schema'
+import type { Order } from '@/features/orders/orderSchema'
 import { submitOrder } from '@/features/orders/submitOrder'
 import { ProductsBoundary } from '@/features/products/components/ProductsBoundary'
 import type { Product } from '@/features/products/schema'
@@ -40,6 +41,16 @@ type Problem =
 
 const GENERIC_FAILURE = 'לא הצלחנו להשלים את ההזמנה. נסו שוב.'
 
+/** Whether the cart holds exactly what the order has: the same products in the same quantities. */
+function cartIsTheOrder(cart: readonly CartItem[], order: Order): boolean {
+  return (
+    cart.length === order.lines.length &&
+    order.lines.every((line) =>
+      cart.some((item) => item.productId === line.productId && item.quantity === line.quantity),
+    )
+  )
+}
+
 /** Reached only through RequireAuth, so a signed-in visitor is guaranteed here. */
 export function CheckoutPage() {
   const user = useCurrentUser()
@@ -49,6 +60,15 @@ export function CheckoutPage() {
   const [problem, setProblem] = useState<Problem | null>(null)
   // The total the visitor agreed to after being told that it changed.
   const [agreedTotal, setAgreedTotal] = useState<number | null>(null)
+  // The request outlives this page: a visitor who leaves while it is on its way must not be sent to
+  // the order page when the answer comes back (the order is theirs all the same, see below).
+  const onPage = useRef(true)
+  useEffect(() => {
+    onPage.current = true
+    return () => {
+      onPage.current = false
+    }
+  }, [])
 
   const placeOrder =
     (products: readonly Product[]) =>
@@ -70,11 +90,18 @@ export function CheckoutPage() {
       })
 
       if (outcome.ok) {
-        navigate(paths.order(outcome.order.orderNumber), {
-          replace: true,
-          state: { justPlaced: true },
-        })
-        useCartStore.getState().clear()
+        // The order exists: this is the one moment the cart may be emptied. After a recovery the cart
+        // may have been changed since the order was sent: then it is not the order, and it stays.
+        const recovered = 'recovered' in outcome
+        const emptyTheCart =
+          !recovered || cartIsTheOrder(useCartStore.getState().items, outcome.order)
+        if (onPage.current) {
+          navigate(paths.order(outcome.order.orderNumber), {
+            replace: true,
+            state: { justPlaced: true, recovered, cartKept: !emptyTheCart },
+          })
+        }
+        if (emptyTheCart) useCartStore.getState().clear()
         return { ok: true }
       }
 
@@ -96,11 +123,22 @@ export function CheckoutPage() {
           return { ok: false, message: 'השרת לא קיבל את פרטי ההזמנה. בדקו את הפרטים ונסו שוב.' }
         case 'key-reused':
           return { ok: false, message: GENERIC_FAILURE }
+        case 'still-checking':
+          return {
+            ok: false,
+            message: 'אנחנו עדיין בודקים אם ההזמנה הקודמת שלכם נקלטה. המתינו כחצי דקה ונסו שוב.',
+          }
+        case 'cannot-verify':
+          return {
+            ok: false,
+            message:
+              'לא הצלחנו לבדוק אם ההזמנה הקודמת נקלטה, ולכן לא שלחנו הזמנה חדשה, כדי לא ליצור הזמנה כפולה. בדקו את החיבור ונסו שוב, או עיינו ב״ההזמנות שלי״.',
+          }
         case 'unavailable':
           return {
             ok: false,
             message:
-              'לא הצלחנו להשלים את ההזמנה. בדקו את החיבור ונסו שוב. אם ההזמנה כבר נשלחה, לא תיווצר הזמנה כפולה.',
+              'לא קיבלנו אישור על ההזמנה, ייתכן שהיא נקלטה. אם לא שיניתם דבר, אפשר ללחוץ שוב בבטחה: לא תיווצר הזמנה כפולה. אם שיניתם פרטים, נבדוק קודם אם ההזמנה הקודמת נקלטה.',
           }
       }
     }

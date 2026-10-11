@@ -77,7 +77,15 @@ function DeliveryDetails({ delivery }: { delivery: Order['delivery'] }) {
 export function OrderPage() {
   const { orderNumber = '' } = useParams()
   const location = useLocation()
-  const justPlaced = (location.state as { justPlaced?: unknown } | null)?.justPlaced === true
+  const state = location.state as {
+    justPlaced?: unknown
+    recovered?: unknown
+    cartKept?: unknown
+  } | null
+  const justPlaced = state?.justPlaced === true
+  // Reached after an order whose confirmation was lost and a detail changed since: said once, here.
+  const recovered = justPlaced && state?.recovered === true
+  const cartKept = recovered && state?.cartKept === true
   const { view, retry } = useOrder(orderNumber)
 
   if (view.status === 'loading') {
@@ -134,6 +142,19 @@ export function OrderPage() {
         {' · '}
         <time dateTime={order.createdAt}>{formatDateTime(order.createdAt)}</time>
       </p>
+
+      {recovered && (
+        <div
+          role="status"
+          className="mb-6 rounded-lg border border-brand/30 bg-white px-4 py-3 text-sm"
+        >
+          <p>
+            ההזמנה כבר התקבלה. ההגשה הקודמת שלכם נקלטה בשרת, אף על פי שלא קיבלתם אישור. השינויים
+            שערכתם אחריה לא נשמרו, כי אי אפשר לערוך הזמנת הדגמה. אפשר להזמין שוב מהעגלה.
+          </p>
+          {cartKept && <p className="mt-1">העגלה שלכם השתנתה מאז, ולכן השארנו אותה כפי שהיא.</p>}
+        </div>
+      )}
 
       <DemoNotice>
         זו הייתה הזמנת הדגמה: לא בוצע חיוב, לא יישלח מוצר, ולא נשלח אימייל אל{' '}

@@ -104,6 +104,41 @@ function readConflict(body: unknown): PlaceOrderOutcome {
   return { ok: false, reason: 'unavailable' }
 }
 
+export type LookupOrderOutcome =
+  | { status: 'ok'; order: Order }
+  /** The account has no order placed with this key: the request never made one (or never arrived). */
+  | { status: 'not-found' }
+  | { status: 'unauthorized' }
+  | { status: 'unavailable' }
+
+/**
+ * Asks whether the order that was sent with this `Idempotency-Key` was placed: what to do when the
+ * answer to `placeOrder` was lost. The key goes in the body of a POST, never in the address, because
+ * addresses are logged. It reads and changes nothing, so it is repeated like a read when the host is
+ * waking up.
+ */
+export async function lookupOrderByKey(
+  token: string,
+  idempotencyKey: string,
+  signal?: AbortSignal,
+): Promise<LookupOrderOutcome> {
+  let response: Response
+  try {
+    response = await fetchWithRetry(apiUrl('/api/orders/lookup'), signal, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ idempotencyKey }),
+    })
+  } catch {
+    return { status: 'unavailable' }
+  }
+  if (response.status === 404) return { status: 'not-found' }
+  if (response.status === 401) return { status: 'unauthorized' }
+  if (!response.ok) return { status: 'unavailable' }
+  const parsed = orderSchema.safeParse(await response.json().catch(() => null))
+  return parsed.success ? { status: 'ok', order: parsed.data } : { status: 'unavailable' }
+}
+
 export type FetchOrderOutcome =
   | { status: 'ok'; order: Order }
   /** No such order in this account: it does not exist, or it is somebody else's. */
