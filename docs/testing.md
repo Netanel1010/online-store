@@ -114,6 +114,34 @@ The synchronization of the cart (`src/features/cart/cartSync.ts`) is tested at t
 - `src/pages/cartSync.test.tsx` and the checkout tests: the whole app, including that an empty cart
   shows "loading" and not "the cart is empty" until the account's cart has arrived.
 
+### An order whose answer was lost
+
+The rule is that an unresolved attempt keeps one `Idempotency-Key`, and the API decides
+([ADR 0005](adr/0005-orders-priced-and-deduplicated-by-the-api.md)). It is tested where it can break:
+
+- `server/src/orders/service.test.ts`, `routes.test.ts` and `schemas.test.ts`: the `409` names the
+  account's own order and nothing else, an edited request under a key no order has used is placed,
+  the first request and an edited one at the same moment make one order, `POST /api/orders/lookup`
+  (found, `order_not_found`, another account's key, an invalid body, no GET variant, and that the key
+  is in no log line).
+- `server/src/orders/orders.integration.test.ts`: the same race on a real MongoDB, and the lookup
+  through the whole API.
+- `src/features/orders/checkoutAttempt.test.ts`, `submitOrder.test.ts` and `orderService.test.ts`: the
+  key is kept across edits of the details and of the cart, is per account, is forgotten only when an
+  order exists, and stays when storage cannot be written; a double submit sends one request; and
+  `lookupOrder` treats only an explicit `404 order_not_found` as "no order" (every other answer, such
+  as a route-level `404 not_found`, an empty body or HTML, is "cannot verify").
+- `src/pages/checkout.test.tsx`: the page, with a first answer that is lost after the API made the
+  order (`watchOrderRequests('lose-first-answer')`). An edited retry makes no second order, keeps the
+  edit in the form and shows the order that exists; a reload finds the order before anything is sent;
+  a separate order needs the confirmation; an older API that cannot say keeps the key, places nothing
+  and points to "My orders"; Enter twice and a double click send one request; a page left while the
+  order is on its way does not move the visitor; and a later, confirmed order gets a key of its own.
+  `holdOrderRequests` keeps a request on its way until a test lets it go; release it in a `finally`,
+  because a request that never ends would be joined by the next test's order.
+- `e2e/orders.spec.ts`: the same flow in a real browser, where the answer the page gets back is not the
+  order. The suite fails any request that fails, so a dropped connection cannot be used to simulate it.
+
 In the browser, `e2e/cart-sync.spec.ts` checks that signing out empties this browser and signing in
 brings the cart back, that a browser that has never seen the cart reads it from the API, that a cart
 filled in while signed out joins the account's at sign-in, and that a change on the cart page is
