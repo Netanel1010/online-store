@@ -491,7 +491,7 @@ describe('POST /api/orders/lookup', () => {
   it.each([
     ['no key', {}],
     ['a key that is too short', { idempotencyKey: 'short' }],
-    ['a key that is not text', { idempotencyKey: 12345678901234567 }],
+    ['a key that is not text', { idempotencyKey: 1234567890123456 }],
   ])('answers 400 invalid_input for %s', async (_name, payload) => {
     const { token } = await account('netanel')
 
