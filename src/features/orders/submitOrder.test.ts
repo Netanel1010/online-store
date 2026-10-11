@@ -226,6 +226,25 @@ describe('a different order sent after an answer was lost', () => {
     expect(readPendingAttempt(START + 2 * SETTLE)).not.toBeNull()
   })
 
+  // The site is deployed before the API: until the API has the lookup route it answers 404 to it.
+  it.each([
+    ['a route the API does not have', () => refusal(404, 'not_found')],
+    ['a page that is not the API', () => new Response('<html>Not Found</html>', { status: 404 })],
+    ['an empty answer', () => new Response(null, { status: 404 })],
+  ])(
+    'sends nothing, even after the wait, when a 404 comes from %s: it does not say that no order exists',
+    async (_name, answer) => {
+      await loseAnAnswer()
+      const calls = stubApi({ lookups: [answer()] })
+
+      const outcome = await submit({ values: { phone: '052-7654321' }, now: START + 2 * SETTLE })
+
+      expect(outcome).toEqual({ ok: false, reason: 'cannot-verify' })
+      expect(calls).toEqual(['lookup']) // no order request followed
+      expect(readPendingAttempt(START + 2 * SETTLE)).not.toBeNull() // the earlier key is kept
+    },
+  )
+
   it('reports an ended session, and sends nothing', async () => {
     await loseAnAnswer()
     const calls = stubApi({ lookups: [refusal(401, 'unauthorized')] })

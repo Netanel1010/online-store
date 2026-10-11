@@ -399,7 +399,6 @@ describe('lookupOrderByKey', () => {
   })
 
   it.each([
-    [404, 'not-found'],
     [401, 'unauthorized'],
     [400, 'unavailable'],
     [429, 'unavailable'],
@@ -409,6 +408,28 @@ describe('lookupOrderByKey', () => {
     stubFetch(() => json({ error: { code: 'x', message: 'x' } }, code))
 
     expect(await lookupOrderByKey(TOKEN, KEY)).toEqual({ status })
+  })
+
+  it('says "not-found" only for the 404 that the API gives for an order it does not have', async () => {
+    stubFetch(() => refusal(404, 'order_not_found'))
+
+    expect(await lookupOrderByKey(TOKEN, KEY)).toEqual({ status: 'not-found' })
+  })
+
+  // An API that does not have the route yet (the site is deployed before the API), a proxy, or a
+  // host that is not the API answer 404 too, and none of them says that no order was placed.
+  it.each([
+    ['an API without the route', () => refusal(404, 'not_found')],
+    ['an error with another code', () => refusal(404, 'product_not_found')],
+    ['an error without a code', () => json({ error: { message: 'x' } }, 404)],
+    ['a body that is not an error', () => json({ nothing: true }, 404)],
+    ['a body that is not JSON', () => new Response('<html>Not Found</html>', { status: 404 })],
+    ['an empty body', () => new Response(null, { status: 404 })],
+    ['JSON that is not an object', () => json(null, 404)],
+  ])('says "unavailable", not "not-found", for a 404 from %s', async (_name, answer) => {
+    stubFetch(answer)
+
+    expect(await lookupOrderByKey(TOKEN, KEY)).toEqual({ status: 'unavailable' })
   })
 
   it('says "unavailable" when the request cannot be made, or the answer is not an order', async () => {

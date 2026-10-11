@@ -33,6 +33,8 @@ const errorBodySchema = z.object({
   }),
 })
 const productIdsSchema = z.array(z.string().min(1)).min(1)
+/** The answer of the API to an order it does not have (and only that one: see `lookupOrderByKey`). */
+const notFoundOrderSchema = z.object({ error: z.object({ code: z.literal('order_not_found') }) })
 
 export interface PlaceOrderRequest {
   token: string
@@ -132,7 +134,15 @@ export async function lookupOrderByKey(
   } catch {
     return { status: 'unavailable' }
   }
-  if (response.status === 404) return { status: 'not-found' }
+  if (response.status === 404) {
+    // Only the API's own "no such order" says that no order was placed. Any other 404 is an API
+    // that does not have this route yet (the site is deployed before the API), a proxy or a host that
+    // is not the API: it says nothing about the order, so it must not be read as "there is none".
+    const body: unknown = await response.json().catch(() => null)
+    return notFoundOrderSchema.safeParse(body).success
+      ? { status: 'not-found' }
+      : { status: 'unavailable' }
+  }
   if (response.status === 401) return { status: 'unauthorized' }
   if (!response.ok) return { status: 'unavailable' }
   const parsed = orderSchema.safeParse(await response.json().catch(() => null))

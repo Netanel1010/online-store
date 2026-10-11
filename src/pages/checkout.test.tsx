@@ -651,12 +651,20 @@ function scriptOrderRequests(...fates: Fate[]) {
   const lookups: { url: string; body: { idempotencyKey: string } }[] = []
   let release: () => void = () => {}
   const released = new Promise<void>((resolve) => (release = resolve))
-  const state = { lookupsDown: false }
+  // lookupsDown: the lookup cannot be reached. oldApi: the API does not have the lookup route yet (the
+  // site is deployed before the API) and gives its answer to any unknown route.
+  const state = { lookupsDown: false, oldApi: false }
   const inner = globalThis.fetch
   vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
     if (String(input).endsWith('/api/orders/lookup')) {
       lookups.push({ url: String(input), body: JSON.parse(init?.body as string) })
       if (state.lookupsDown) throw new TypeError('the lookup cannot be reached')
+      if (state.oldApi) {
+        return Response.json(
+          { error: { code: 'not_found', message: 'Route not found: POST /api/orders/lookup' } },
+          { status: 404 },
+        )
+      }
       return inner(input, init)
     }
     if (!isOrderRequest(input, init)) return inner(input, init)
@@ -830,6 +838,35 @@ describe('an order whose outcome is not known', () => {
     await userEvent.click(submitButton())
     await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
     expect(api.orders()).toHaveLength(1)
+  })
+
+  it('does not order again when the API is older than the site and cannot say whether the earlier order exists', async () => {
+    const sent = scriptOrderRequests('lose-answer')
+    sent.state.oldApi = true
+    await openCheckoutAndSubmit()
+    await screen.findByRole('alert')
+    expect(api.orders()).toHaveLength(1) // the API did place it, and neither the page nor the lookup knows
+
+    await clearAndType('טלפון', '052-7654321')
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'לא הצלחנו לבדוק אם ההזמנה הקודמת נקלטה, ולכן לא שלחנו הזמנה חדשה, כדי לא ליצור הזמנה כפולה.',
+    )
+    expect(sent.lookups).toHaveLength(1)
+    expect(sent.posts).toHaveLength(1) // no second order request, although the 30 s wait is over
+    expect(api.orders()).toHaveLength(1)
+    expect(box('טלפון')).toHaveValue('052-7654321')
+    expect(url()).toBe('/checkout')
+    expect(useCartStore.getState().items).toHaveLength(2)
+
+    // Once the API has the route, the same click finds the order instead of ordering again.
+    sent.state.oldApi = false
+    await userEvent.click(submitButton())
+    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    expect(sent.posts).toHaveLength(1)
+    expect(api.orders()).toHaveLength(1)
+    expect(screen.getByText(/ההגשה הקודמת שלכם נקלטה בשרת/)).toBeInTheDocument()
   })
 
   it('tells the visitor that the order may have been received, and that sending it again is safe', async () => {
