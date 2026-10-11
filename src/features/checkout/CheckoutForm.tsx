@@ -16,9 +16,10 @@ interface CheckoutFormProps {
   totalNote?: ReactNode
   /**
    * A problem with the order that needs more than a line of text (for example an action to take),
-   * shown at the top of the form.
+   * shown at the top of the form. A function gets `submit`, which sends the form as it is filled in
+   * (checked first, like the button) for a notice that offers an action of its own.
    */
-  notice?: ReactNode
+  notice?: ReactNode | ((controls: { submit: () => void }) => ReactNode)
 }
 
 export function CheckoutForm({ defaultValues, onSubmit, totalNote, notice }: CheckoutFormProps) {
@@ -51,7 +52,7 @@ export function CheckoutForm({ defaultValues, onSubmit, totalNote, notice }: Che
   return (
     <form onSubmit={submit} noValidate className="space-y-6">
       {errors.root?.message && <FormAlert>{errors.root.message}</FormAlert>}
-      {notice}
+      {typeof notice === 'function' ? notice({ submit: () => void submit() }) : notice}
 
       <p className="text-sm text-muted">שדות חובה מסומנים בכוכבית (*).</p>
 

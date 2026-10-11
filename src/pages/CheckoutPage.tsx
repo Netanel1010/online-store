@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { paths } from '@/app/paths'
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
@@ -16,6 +16,9 @@ import { OrderSummary } from '@/features/cart/OrderSummary'
 import { buildCartLines, summarizeCart } from '@/features/cart/summary'
 import { CheckoutForm, type SubmitOutcome } from '@/features/checkout/CheckoutForm'
 import type { CheckoutValues } from '@/features/checkout/schema'
+import { forgetCheckoutAttempt, unresolvedAttemptKey } from '@/features/orders/checkoutAttempt'
+import { lookupOrder } from '@/features/orders/orderService'
+import { OrderAttemptNotice, type AttemptRecovery } from '@/features/orders/OrderAttemptNotice'
 import { submitOrder } from '@/features/orders/submitOrder'
 import { ProductsBoundary } from '@/features/products/components/ProductsBoundary'
 import type { Product } from '@/features/products/schema'
@@ -49,6 +52,46 @@ export function CheckoutPage() {
   const [problem, setProblem] = useState<Problem | null>(null)
   // The total the visitor agreed to after being told that it changed.
   const [agreedTotal, setAgreedTotal] = useState<number | null>(null)
+  // An order from an earlier, unresolved attempt that the API has (or that it could not tell about).
+  const [recovery, setRecovery] = useState<AttemptRecovery | null>(null)
+  const token = useAuthStore((state) => state.token)
+  const userId = user?.id
+  // The page may be left while the order is on its way: the answer then changes the cart, not the page.
+  const mounted = useRef(true)
+  // The visitor confirmed another order besides the one that exists: the next order starts a new attempt.
+  const separateOrderConfirmed = useRef(false)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+
+  // A page that opens with an unresolved attempt (after a reload, a lost answer, a return from the
+  // login page) asks the API whether that attempt made an order, before the visitor retypes anything.
+  // Only a clear "this order exists" or "cannot be verified" is shown; "no order" needs nothing.
+  useEffect(() => {
+    if (!userId || !token) return
+    const key = unresolvedAttemptKey(userId)
+    if (!key) return
+    const controller = new AbortController()
+    lookupOrder(token, key, controller.signal)
+      .then((outcome) => {
+        if (controller.signal.aborted) return
+        if (outcome.status === 'found') {
+          setRecovery({ kind: 'placed', orderNumber: outcome.order.orderNumber, submitted: false })
+        } else if (outcome.status === 'unverified') {
+          setRecovery({ kind: 'unverified' })
+        } else if (outcome.status === 'unauthorized') {
+          useAuthStore.getState().logout()
+        }
+      })
+      .catch(() => {
+        // Only a request the page cancelled by being left rejects; nobody is waiting for it.
+      })
+    return () => controller.abort()
+  }, [userId, token])
 
   const placeOrder =
     (products: readonly Product[]) =>
@@ -57,6 +100,13 @@ export function CheckoutPage() {
       if (!user || !token) return { ok: false, message: GENERIC_FAILURE }
 
       setProblem(null)
+      setRecovery(null)
+      if (separateOrderConfirmed.current) {
+        // The visitor said they want another order besides the one that exists: only now is the key
+        // of the earlier attempt let go, so that this one is an order of its own.
+        separateOrderConfirmed.current = false
+        forgetCheckoutAttempt()
+      }
       // Read the cart at submit time: it may have changed in another tab since this page rendered.
       const cart = useCartStore.getState().items
       const outcome = await submitOrder({
@@ -70,10 +120,14 @@ export function CheckoutPage() {
       })
 
       if (outcome.ok) {
-        navigate(paths.order(outcome.order.orderNumber), {
-          replace: true,
-          state: { justPlaced: true },
-        })
+        // Left the page meanwhile: the order exists and the cart is emptied, but the visitor stays
+        // where they went instead of being pulled to the confirmation.
+        if (mounted.current) {
+          navigate(paths.order(outcome.order.orderNumber), {
+            replace: true,
+            state: { justPlaced: true },
+          })
+        }
         useCartStore.getState().clear()
         return { ok: true }
       }
@@ -95,7 +149,15 @@ export function CheckoutPage() {
         case 'invalid-input':
           return { ok: false, message: 'השרת לא קיבל את פרטי ההזמנה. בדקו את הפרטים ונסו שוב.' }
         case 'key-reused':
-          return { ok: false, message: GENERIC_FAILURE }
+          // An earlier attempt made an order, and these details are not that order: nothing new was
+          // placed. Show the order that exists. An older API does not name it: say that it cannot be
+          // verified and point to the orders. The key is kept either way.
+          setRecovery(
+            outcome.orderNumber
+              ? { kind: 'placed', orderNumber: outcome.orderNumber, submitted: true }
+              : { kind: 'unverified' },
+          )
+          return { ok: false, message: '' }
         case 'unavailable':
           return {
             ok: false,
@@ -105,7 +167,23 @@ export function CheckoutPage() {
       }
     }
 
-  const notice = (products: readonly Product[]) => {
+  const notice = (products: readonly Product[]) => (controls: { submit: () => void }) => (
+    <>
+      {recovery && (
+        <OrderAttemptNotice
+          recovery={recovery}
+          onConfirmSeparateOrder={() => {
+            separateOrderConfirmed.current = true
+            setRecovery(null)
+            controls.submit()
+          }}
+        />
+      )}
+      {problemNotice(products)}
+    </>
+  )
+
+  const problemNotice = (products: readonly Product[]) => {
     if (!problem) return null
     if (problem.kind === 'price-changed') {
       return (
