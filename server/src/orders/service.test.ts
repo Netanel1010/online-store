@@ -316,6 +316,45 @@ describe('placing an order: the same request twice', () => {
     expect(orders.stored).toHaveLength(1)
   })
 
+  it('names the order that exists when it refuses a key, and nothing else about it', async () => {
+    const first = await service.place(ME, input(), KEY)
+
+    const error = await failure(
+      service.place(ME, input({ delivery: { ...DELIVERY, street: 'אחרת' } }), KEY),
+    )
+
+    expect(error.details).toEqual({ orderNumber: first.order.orderNumber })
+  })
+
+  it('places an edited request under a key that no order has used, with the edited details', async () => {
+    // The first attempt never reached the server: the key is free, and an edit is not lost.
+    const edited = await service.place(
+      ME,
+      input({ delivery: { ...DELIVERY, street: 'אחרת' } }),
+      KEY,
+    )
+
+    expect(edited.created).toBe(true)
+    expect(edited.order.delivery.street).toBe('אחרת')
+    expect(orders.stored).toHaveLength(1)
+  })
+
+  it('makes one order when the first request and an edited one arrive at the same moment', async () => {
+    const edited = input({ delivery: { ...DELIVERY, street: 'אחרת' } })
+
+    const results = await Promise.allSettled([
+      service.place(ME, input(), KEY),
+      service.place(ME, edited, KEY),
+    ])
+
+    expect(orders.stored).toHaveLength(1)
+    const refused = results.filter((result) => result.status === 'rejected')
+    expect(refused).toHaveLength(1)
+    const error = (refused[0] as PromiseRejectedResult).reason as HttpError
+    expect(error.code).toBe('idempotency_key_reuse')
+    expect(error.details).toEqual({ orderNumber: orders.stored[0]!.orderNumber })
+  })
+
   it('makes a second order for the same content under another key', async () => {
     await service.place(ME, input(), KEY)
 

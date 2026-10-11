@@ -63,11 +63,18 @@ function hashRequest({ items, delivery }: PlaceOrderInput): string {
     .digest('hex')
 }
 
-const keyReused = () =>
+/**
+ * The key belongs to an order the account already has, made from a different request (the visitor
+ * edited the details after an answer was lost). The order number is the account's own, and it is
+ * how the storefront shows the visitor the order that exists instead of making a second one.
+ */
+const keyReused = (orderNumber: string) =>
   new HttpError(
     409,
     'idempotency_key_reuse',
     'This Idempotency-Key was already used for a different order',
+    {},
+    { orderNumber },
   )
 
 /**
@@ -89,7 +96,7 @@ export function createOrderService({
 }: Dependencies): OrderService {
   /** The order that was placed before, if it is the same request; otherwise the key is misused. */
   function replay(existing: Order, requestHash: string) {
-    if (existing.requestHash !== requestHash) throw keyReused()
+    if (existing.requestHash !== requestHash) throw keyReused(existing.orderNumber)
     return { order: toPublic(existing), created: false }
   }
 

@@ -256,6 +256,35 @@ describe('POST /api/orders', () => {
     expect(orders.stored).toHaveLength(1)
   })
 
+  it('names the order that exists in the 409 for a key used with edited delivery details', async () => {
+    const { token } = await account('netanel')
+    const placed = await orderOf(await place(token))
+
+    const response = await place(token, body({ delivery: { ...DELIVERY, street: 'אחרת' } }))
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'idempotency_key_reuse',
+        message: 'This Idempotency-Key was already used for a different order',
+        details: { orderNumber: placed.orderNumber },
+      },
+    })
+    expect(orders.stored).toHaveLength(1)
+  })
+
+  it('never names the order of another account in that 409', async () => {
+    const mine = await account('netanel')
+    const theirs = await account('dana')
+    await place(mine.token)
+
+    // The same key under another account is that account's own, new order: nothing is named.
+    const response = await place(theirs.token, body({ delivery: { ...DELIVERY, street: 'אחרת' } }))
+
+    expect(response.status).toBe(201)
+    expect(orders.stored).toHaveLength(2)
+  })
+
   it('does not share a key between accounts', async () => {
     const mine = await account('netanel')
     const theirs = await account('dana')
