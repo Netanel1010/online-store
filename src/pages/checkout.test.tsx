@@ -481,7 +481,7 @@ describe('placing the order', () => {
     expect(useCartStore.getState().items).toEqual([])
   })
 
-  it('uses a key of its own for an order that is not the same', async () => {
+  it('keeps the key of an attempt that is not resolved when the cart changes, and still places the changed order', async () => {
     const sent = watchOrderRequests('fail-first')
     renderApp('/checkout', catalog)
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
@@ -489,12 +489,14 @@ describe('placing the order', () => {
     await userEvent.click(submitButton())
     await screen.findByRole('alert')
 
-    useCartStore.getState().setQuantity('PSU-1', 3) // another order
+    useCartStore.getState().setQuantity('PSU-1', 3) // the request never arrived: this is the order
     await userEvent.click(submitButton())
 
     await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
-    expect(sent.keys()[1]).not.toBe(sent.keys()[0])
+    // The API knows whether the key made an order; it made none, so the changed order is placed.
+    expect(sent.keys()[1]).toBe(sent.keys()[0])
     expect(api.orders()).toHaveLength(1)
+    expect(api.orders()[0]!.lines.find((line) => line.productId === 'PSU-1')!.quantity).toBe(3)
   })
 
   it('uses the price the API has, not the one the page showed, and says so first', async () => {

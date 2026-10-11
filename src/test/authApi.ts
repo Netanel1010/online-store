@@ -83,6 +83,7 @@ export function setUpAuthApi() {
     createOrdersRouter(
       {
         place: (userId, input, key) => orderService.place(userId, input, key),
+        lookup: (userId, key) => orderService.lookup(userId, key),
         get: (userId, orderNumber) => orderService.get(userId, orderNumber),
         list: (userId, params) => orderService.list(userId, params),
       },

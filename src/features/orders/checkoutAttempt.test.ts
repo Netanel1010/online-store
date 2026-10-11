@@ -1,109 +1,77 @@
-import { forgetCheckoutAttempt, idempotencyKeyFor } from './checkoutAttempt'
+import { forgetCheckoutAttempt, idempotencyKeyFor, unresolvedAttemptKey } from './checkoutAttempt'
 
 const STORAGE_KEY = 'online-store:checkout-attempt'
-const DELIVERY = {
-  fullName: 'נתנאל כהן',
-  email: 'netanel@example.com',
-  phone: '050-1234567',
-  city: 'חיפה',
-  street: 'הנשיא',
-  houseNumber: '12',
-  apartment: '',
-  postalCode: '',
-  notes: '',
-}
-const ITEMS = [
-  { productId: 'A-1', quantity: 2 },
-  { productId: 'B-2', quantity: 1 },
-]
+const DAY = 24 * 60 * 60 * 1000
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+
+// What this page remembers when storage is blocked outlives a test: start each one without it.
+afterEach(() => forgetCheckoutAttempt())
 
 describe('idempotencyKeyFor', () => {
   it('makes a UUID, and keeps it in localStorage', () => {
-    const key = idempotencyKeyFor('user-1', ITEMS, DELIVERY)
+    const key = idempotencyKeyFor('user-1')
 
     expect(key).toMatch(UUID)
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toMatchObject({ key })
   })
 
-  it('gives the same key to the same order, however many times it is asked', () => {
-    const first = idempotencyKeyFor('user-1', ITEMS, DELIVERY)
+  it('gives the same key to the same unresolved attempt, however many times it is asked', () => {
+    const first = idempotencyKeyFor('user-1')
 
-    expect(idempotencyKeyFor('user-1', ITEMS, DELIVERY)).toBe(first)
-    expect(idempotencyKeyFor('user-1', ITEMS, DELIVERY)).toBe(first)
+    expect(idempotencyKeyFor('user-1')).toBe(first)
+    expect(idempotencyKeyFor('user-1')).toBe(first)
   })
 
-  it('gives the same key when the products are listed in another order', () => {
-    const first = idempotencyKeyFor('user-1', ITEMS, DELIVERY)
+  it('gives another account a key of its own, so one account never sends the key of another', () => {
+    const first = idempotencyKeyFor('user-1')
 
-    expect(idempotencyKeyFor('user-1', [...ITEMS].reverse(), DELIVERY)).toBe(first)
-  })
-
-  it.each([
-    ['another account', () => idempotencyKeyFor('user-2', ITEMS, DELIVERY)],
-    [
-      'another quantity',
-      () => idempotencyKeyFor('user-1', [{ productId: 'A-1', quantity: 3 }, ITEMS[1]!], DELIVERY),
-    ],
-    ['another product', () => idempotencyKeyFor('user-1', [ITEMS[0]!], DELIVERY)],
-    ['another address', () => idempotencyKeyFor('user-1', ITEMS, { ...DELIVERY, city: 'תל אביב' })],
-    [
-      'other notes',
-      () => idempotencyKeyFor('user-1', ITEMS, { ...DELIVERY, notes: 'בבקשה לצלצל' }),
-    ],
-  ])('gives %s a key of its own, so the API never sees one key for two orders', (_name, other) => {
-    const first = idempotencyKeyFor('user-1', ITEMS, DELIVERY)
-
-    const second = other()
+    const second = idempotencyKeyFor('user-2')
 
     expect(second).not.toBe(first)
     expect(second).toMatch(UUID)
   })
 
-  it('keeps only the latest attempt: going back to an earlier order gives it a new key', () => {
-    const first = idempotencyKeyFor('user-1', ITEMS, DELIVERY)
-    idempotencyKeyFor('user-1', [ITEMS[0]!], DELIVERY)
+  it('keeps only the latest attempt: going back to the first account gives it a new key', () => {
+    const first = idempotencyKeyFor('user-1')
+    idempotencyKeyFor('user-2')
 
-    expect(idempotencyKeyFor('user-1', ITEMS, DELIVERY)).not.toBe(first)
+    expect(idempotencyKeyFor('user-1')).not.toBe(first)
   })
 
   it('forgets a key after a day, as nobody retries after that long', () => {
     const start = 1_700_000_000_000
-    const first = idempotencyKeyFor('user-1', ITEMS, DELIVERY, start)
+    const first = idempotencyKeyFor('user-1', start)
 
-    expect(idempotencyKeyFor('user-1', ITEMS, DELIVERY, start + 24 * 60 * 60 * 1000 - 1)).toBe(
-      first,
-    )
-    expect(idempotencyKeyFor('user-1', ITEMS, DELIVERY, start + 24 * 60 * 60 * 1000)).not.toBe(
-      first,
-    )
+    expect(idempotencyKeyFor('user-1', start + DAY - 1)).toBe(first)
+    expect(idempotencyKeyFor('user-1', start + DAY)).not.toBe(first)
   })
 
   it('survives a reload: a fresh call finds the key in storage', () => {
-    const first = idempotencyKeyFor('user-1', ITEMS, DELIVERY)
+    const first = idempotencyKeyFor('user-1')
     const stored = localStorage.getItem(STORAGE_KEY)
 
     localStorage.clear()
     localStorage.setItem(STORAGE_KEY, stored!)
 
-    expect(idempotencyKeyFor('user-1', ITEMS, DELIVERY)).toBe(first)
+    expect(idempotencyKeyFor('user-1')).toBe(first)
   })
 
   it.each([
     ['not JSON', 'oops'],
+    ['an object of the wrong shape', JSON.stringify({ key: 'short', owner: 'x', createdAt: 1 })],
     [
-      'an object of the wrong shape',
-      JSON.stringify({ key: 'short', fingerprint: 'x', createdAt: 1 }),
+      'a record of the earlier kind, tied to the details of one order',
+      JSON.stringify({ key: 'k'.repeat(36), fingerprint: 'abc', createdAt: Date.now() }),
     ],
     ['a list', JSON.stringify([1, 2])],
     ['null', 'null'],
   ])('ignores stored data that is %s, and makes a key', (_name, stored) => {
     localStorage.setItem(STORAGE_KEY, stored)
 
-    expect(idempotencyKeyFor('user-1', ITEMS, DELIVERY)).toMatch(UUID)
+    expect(idempotencyKeyFor('user-1')).toMatch(UUID)
   })
 
-  it('still makes a key when localStorage cannot be used', () => {
+  it('still makes a key, and repeats it in the same page, when localStorage cannot be used at all', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked')
     })
@@ -111,37 +79,87 @@ describe('idempotencyKeyFor', () => {
       throw new Error('full')
     })
 
-    expect(idempotencyKeyFor('user-1', ITEMS, DELIVERY)).toMatch(UUID)
+    const first = idempotencyKeyFor('user-1')
+
+    expect(first).toMatch(UUID)
+    expect(idempotencyKeyFor('user-1')).toBe(first)
   })
 
-  it('keeps no name, phone number, address or account in storage, only a digest of them', () => {
-    idempotencyKeyFor('user-1', ITEMS, DELIVERY)
+  it('repeats the key in the same page when storage can be read but not written', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('full')
+    })
+
+    const first = idempotencyKeyFor('user-1')
+
+    expect(idempotencyKeyFor('user-1')).toBe(first)
+    expect(unresolvedAttemptKey('user-1')).toBe(first)
+  })
+
+  it('keeps no name, phone number, address or account in storage, only a digest of the account', () => {
+    idempotencyKeyFor('user-1')
 
     const raw = localStorage.getItem(STORAGE_KEY)!
-    for (const secret of [
-      'נתנאל',
-      'netanel@example.com',
-      '050-1234567',
-      'חיפה',
-      'הנשיא',
-      'user-1',
-    ]) {
-      expect(raw).not.toContain(secret)
-    }
+    expect(raw).not.toContain('user-1')
     const stored = JSON.parse(raw)
-    expect(Object.keys(stored).sort()).toEqual(['createdAt', 'fingerprint', 'key'])
-    expect(stored.fingerprint).toMatch(/^[0-9a-z]{1,11}$/)
+    expect(Object.keys(stored).sort()).toEqual(['createdAt', 'key', 'owner'])
+    expect(stored.owner).toMatch(/^[0-9a-z]{1,11}$/)
+  })
+})
+
+describe('unresolvedAttemptKey', () => {
+  it('is null when nothing was ever sent, and makes nothing', () => {
+    expect(unresolvedAttemptKey('user-1')).toBeNull()
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+  })
+
+  it('is the key of the attempt that was started', () => {
+    const key = idempotencyKeyFor('user-1')
+
+    expect(unresolvedAttemptKey('user-1')).toBe(key)
+  })
+
+  it('is null for another account', () => {
+    idempotencyKeyFor('user-1')
+
+    expect(unresolvedAttemptKey('user-2')).toBeNull()
+  })
+
+  it('is null after a day', () => {
+    const start = 1_700_000_000_000
+    idempotencyKeyFor('user-1', start)
+
+    expect(unresolvedAttemptKey('user-1', start + DAY - 1)).not.toBeNull()
+    expect(unresolvedAttemptKey('user-1', start + DAY)).toBeNull()
+  })
+
+  it('is null for stored data that is not an attempt', () => {
+    localStorage.setItem(STORAGE_KEY, 'oops')
+
+    expect(unresolvedAttemptKey('user-1')).toBeNull()
   })
 })
 
 describe('forgetCheckoutAttempt', () => {
   it('makes the next order a new one', () => {
-    const first = idempotencyKeyFor('user-1', ITEMS, DELIVERY)
+    const first = idempotencyKeyFor('user-1')
 
     forgetCheckoutAttempt()
 
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
-    expect(idempotencyKeyFor('user-1', ITEMS, DELIVERY)).not.toBe(first)
+    expect(unresolvedAttemptKey('user-1')).toBeNull()
+    expect(idempotencyKeyFor('user-1')).not.toBe(first)
+  })
+
+  it('forgets what the page remembered when storage could not be used', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('full')
+    })
+    const first = idempotencyKeyFor('user-1')
+
+    forgetCheckoutAttempt()
+
+    expect(idempotencyKeyFor('user-1')).not.toBe(first)
   })
 
   it('does nothing, and does not throw, when there is nothing to forget or no storage', () => {
