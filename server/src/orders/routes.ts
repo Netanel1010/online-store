@@ -2,7 +2,12 @@ import { Router, type RequestHandler } from 'express'
 import { getAuth } from '../auth/middleware.ts'
 import { createRateLimiter, type RateLimitOptions } from '../middleware/rateLimit.ts'
 import { parsePaginationQuery } from '../products/schemas.ts'
-import { parseIdempotencyKey, parseOrderNumber, parsePlaceOrderBody } from './schemas.ts'
+import {
+  parseIdempotencyKey,
+  parseLookupBody,
+  parseOrderNumber,
+  parsePlaceOrderBody,
+} from './schemas.ts'
 import type { OrderService } from './service.ts'
 
 /** How often one client may place orders. `null`: no limit. */
@@ -52,6 +57,15 @@ export function createOrdersRouter(
       res.status(created ? 201 : 200).json(order)
     },
   )
+
+  // Asks whether an attempt made an order: for a checkout whose request may have arrived while its
+  // answer was lost. A POST with the key in the body, so the key is in no address and no log; it is a
+  // read (nothing is made), answered 200 with the order or 404 `order_not_found`. Like the other
+  // reads it has no limit of its own: it needs a live session and only ever finds the account's own.
+  router.post('/lookup', requireAuth, async (req, res) => {
+    const idempotencyKey = parseLookupBody(req.body)
+    res.json(await service.lookup(getAuth(res).user.id, idempotencyKey))
+  })
 
   router.get('/', requireAuth, async (req, res) => {
     res.json(await service.list(getAuth(res).user.id, parsePaginationQuery(req.query)))

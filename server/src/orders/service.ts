@@ -25,6 +25,12 @@ export interface OrderService {
     input: PlaceOrderInput,
     idempotencyKey: string,
   ): Promise<{ order: PublicOrder; created: boolean }>
+  /**
+   * The order this account placed under an idempotency key, for a checkout that does not know
+   * whether its request arrived. No such order is `404 order_not_found`; a key of another account
+   * is not found either.
+   */
+  lookup(userId: string, idempotencyKey: string): Promise<PublicOrder>
   /** One of the account's own orders. Anyone else's, and one that does not exist, are the same 404. */
   get(userId: string, orderNumber: string): Promise<PublicOrder>
   /** The account's orders, the newest first. */
@@ -181,6 +187,12 @@ export function createOrderService({
         }
       }
       throw new Error('No free order number was found')
+    },
+
+    async lookup(userId, idempotencyKey) {
+      const order = await orders.findByIdempotencyKey(userId, idempotencyKey)
+      if (!order) throw orderNotFound()
+      return toPublic(order)
     },
 
     async get(userId, orderNumber) {

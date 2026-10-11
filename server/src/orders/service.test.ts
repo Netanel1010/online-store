@@ -470,6 +470,43 @@ describe('an account only sees its own orders', () => {
   })
 })
 
+describe('looking up the order of an attempt', () => {
+  it('finds the order that was placed under the key', async () => {
+    const placed = await service.place(ME, input(), KEY)
+
+    expect(await service.lookup(ME, KEY)).toEqual(placed.order)
+  })
+
+  it('answers 404 order_not_found for a key that made no order', async () => {
+    const error = await failure(service.lookup(ME, KEY))
+
+    expect(error.status).toBe(404)
+    expect(error.code).toBe('order_not_found')
+  })
+
+  it('answers the same 404 for a key that only another account used', async () => {
+    await service.place(SOMEONE, input(), KEY)
+
+    const mine = await failure(service.lookup(ME, KEY))
+    const unknown = await failure(service.lookup(ME, `${KEY}-other`))
+
+    expect(mine.status).toBe(404)
+    expect({ code: mine.code, message: mine.message }).toEqual({
+      code: unknown.code,
+      message: unknown.message,
+    })
+  })
+
+  it('makes and changes nothing', async () => {
+    await service.place(ME, input(), KEY)
+
+    await service.lookup(ME, KEY)
+    await failure(service.lookup(ME, `${KEY}-other`))
+
+    expect(orders.stored).toHaveLength(1)
+  })
+})
+
 describe('listing orders', () => {
   async function place(userId: string, minutes: number, key: string) {
     clock = new Date(Date.UTC(2026, 0, 1, 10, minutes))
