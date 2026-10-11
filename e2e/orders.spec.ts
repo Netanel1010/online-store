@@ -180,6 +180,85 @@ test.describe('placing the order twice', () => {
   })
 })
 
+test.describe('an order whose answer was lost', () => {
+  /**
+   * The first order request reaches the API, which makes the order; the browser gets back something
+   * that is not the order (what a proxy that cuts an answer short sends), so it cannot tell. A
+   * dropped connection would say the same to the page, but the suite fails any request that fails.
+   */
+  async function loseTheFirstAnswer(page: Page) {
+    let lost = false
+    await page.route('**/api/orders', async (route) => {
+      if (route.request().method() !== 'POST' || lost) return route.fallback()
+      lost = true
+      const response = await route.fetch()
+      await route.fulfill({
+        response,
+        status: 200,
+        contentType: 'text/html',
+        body: '<html>The gateway cut the answer short</html>',
+      })
+    })
+  }
+
+  const street = (page: Page) => page.getByRole('textbox', { name: 'רחוב', exact: true })
+
+  test('an edited retry shows the order that exists and places no second one', async ({ page }) => {
+    const keys = recordOrderKeys(page)
+    await loseTheFirstAnswer(page)
+    await checkoutWithOneProduct(page)
+
+    await order(page).click()
+    await expect(page.getByRole('alert')).toContainText('לא הצלחנו להשלים את ההזמנה')
+    expect((await accountOrders(page)).total).toBe(1)
+    await street(page).fill('אלנבי')
+    await order(page).click()
+
+    const notice = page.getByRole('alert')
+    await expect(notice).toContainText('כבר נקלטה')
+    const [placed] = (await accountOrders(page)).items
+    await expect(notice).toContainText(placed!.orderNumber)
+    expect((await accountOrders(page)).total).toBe(1)
+    expect(placed!.delivery.street).toBe('דיזנגוף')
+    // The edit is still in the form, and the same key went with it.
+    await expect(street(page)).toHaveValue('אלנבי')
+    expect(keys).toHaveLength(2)
+    expect(keys[1]).toBe(keys[0])
+    await expect(page).toHaveURL(/\/online-store\/checkout$/)
+  })
+
+  test('after a reload the page finds the order on its own, and a separate order needs a confirmation', async ({
+    page,
+  }) => {
+    await loseTheFirstAnswer(page)
+    await checkoutWithOneProduct(page)
+    await order(page).click()
+    await expect(page.getByRole('alert')).toContainText('לא הצלחנו להשלים את ההזמנה')
+
+    await page.reload()
+
+    const notice = page.getByRole('alert')
+    await expect(notice).toContainText('כבר נקלטה')
+    await expect(notice).toContainText('בדקו אותה לפני שתמשיכו')
+    expect((await accountOrders(page)).total).toBe(1)
+
+    await fillDeliveryForm(page)
+    await street(page).fill('אלנבי')
+    await notice.getByRole('button', { name: 'הזמנה נפרדת בפרטים שהזנתי עכשיו' }).click()
+    await expect(
+      notice.getByText('האם ליצור הזמנה חדשה? פעולה זו תיצור הזמנה נוספת בנוסף להזמנה שכבר נקלטה.'),
+    ).toBeVisible()
+    expect((await accountOrders(page)).total).toBe(1)
+
+    await notice.getByRole('button', { name: 'כן, ליצור הזמנה חדשה' }).click()
+
+    await confirmed(page)
+    const orders = await accountOrders(page)
+    expect(orders.total).toBe(2)
+    expect(orders.items.map((o) => o.delivery.street).sort()).toEqual(['אלנבי', 'דיזנגוף'])
+  })
+})
+
 test.describe('what the API refuses', () => {
   test('tells the visitor when the total is not what was shown, then orders at the total the API has', async ({
     page,
