@@ -232,6 +232,61 @@ describe.skipIf(!uri)('orders on a real MongoDB (integration, needs MONGODB_TEST
     expect(await rawOrders().countDocuments({ userId: id })).toBe(1)
   })
 
+  it('makes one order, and names it to the edited request, when the original and an edited one arrive at once', async () => {
+    const { id, token } = await account()
+    const key = randomUUID()
+    const edited = (street: string) =>
+      fetch(`${api.url}/api/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'Idempotency-Key': key,
+        },
+        body: JSON.stringify({
+          items: [{ productId: 'GV-N4060', quantity: 2 }],
+          delivery: { ...DELIVERY, street },
+        }),
+      })
+
+    const responses = await Promise.all([edited('הנשיא'), edited('אחרת'), edited('אחרת')])
+
+    expect(await rawOrders().countDocuments({ userId: id })).toBe(1)
+    const placed = (await rawOrders().findOne({ userId: id })) as unknown as Order
+    const refused = responses.filter((response) => response.status === 409)
+    expect(refused.length).toBeGreaterThanOrEqual(1)
+    for (const response of refused) {
+      const { error } = (await response.json()) as {
+        error: { code: string; details: { orderNumber: string } }
+      }
+      expect(error.code).toBe('idempotency_key_reuse')
+      expect(error.details).toEqual({ orderNumber: placed.orderNumber })
+    }
+  })
+
+  it('finds the order of an attempt through the API, and says order_not_found for a key that made none', async () => {
+    const { token } = await account()
+    const other = await account()
+    const key = randomUUID()
+    const placed = (await (await place(token, key)).json()) as PublicOrder
+    const lookup = (as: string, idempotencyKey: string) =>
+      fetch(`${api.url}/api/orders/lookup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${as}` },
+        body: JSON.stringify({ idempotencyKey }),
+      })
+
+    const found = await lookup(token, key)
+    const none = await lookup(token, randomUUID())
+    const someoneElses = await lookup(other.token, key)
+
+    expect(found.status).toBe(200)
+    expect(await found.json()).toEqual(placed)
+    expect(none.status).toBe(404)
+    expect(((await none.json()) as { error: { code: string } }).error.code).toBe('order_not_found')
+    expect(someoneElses.status).toBe(404)
+  })
+
   it('prices the order from the products in the database, and freezes it', async () => {
     const { token } = await account()
 
