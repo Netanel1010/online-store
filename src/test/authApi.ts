@@ -84,6 +84,7 @@ export function setUpAuthApi() {
       {
         place: (userId, input, key) => orderService.place(userId, input, key),
         get: (userId, orderNumber) => orderService.get(userId, orderNumber),
+        getByIdempotencyKey: (userId, key) => orderService.getByIdempotencyKey(userId, key),
         list: (userId, params) => orderService.list(userId, params),
       },
       createRequireAuth({ authenticate: (token) => service.authenticate(token) }),

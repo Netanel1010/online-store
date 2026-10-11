@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { HttpError } from '../lib/httpError.ts'
-import { parseIdempotencyKey, parseOrderNumber, parsePlaceOrderBody } from './schemas.ts'
+import {
+  parseIdempotencyKey,
+  parseLookupBody,
+  parseOrderNumber,
+  parsePlaceOrderBody,
+} from './schemas.ts'
 
 const DELIVERY = {
   fullName: 'נתנאל כהן',
@@ -161,3 +166,32 @@ function line(productId: string, quantity: unknown) {
 function lines(count: number) {
   return Array.from({ length: count }, (_, index) => line(`P-${index}`, 1))
 }
+
+describe('parseLookupBody', () => {
+  const KEY = '3f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b'
+
+  it('reads the key from the body', () => {
+    expect(parseLookupBody({ idempotencyKey: KEY })).toBe(KEY)
+  })
+
+  it.each([undefined, null, 'text', 5, [], {}, { idempotencyKey: 5 }, { idempotencyKey: null }])(
+    'answers 400 invalid_input, naming the field and never a value, for the body %j',
+    (value) => {
+      const error = failure(() => parseLookupBody(value))
+
+      expect(error.status).toBe(400)
+      expect(error.code).toBe('invalid_input')
+      expect(error.message).toBe('The field "idempotencyKey" is not valid')
+    },
+  )
+
+  it.each(['', 'short', 'a b c d e f g h i j k l', '../etc/passwd', '{"$ne":""}', 'x'.repeat(129)])(
+    'says "not found", like for a key nobody used, for text that cannot be a key: %j',
+    (value) => {
+      const error = failure(() => parseLookupBody({ idempotencyKey: value }))
+
+      expect(error.status).toBe(404)
+      expect(error.code).toBe('order_not_found')
+    },
+  )
+})

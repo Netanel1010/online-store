@@ -5,7 +5,9 @@ import { createRequireAuth } from '../auth/middleware.ts'
 import { createAuthService, SESSION_TTL_MS } from '../auth/service.ts'
 import { createLoginThrottle } from '../auth/throttle.ts'
 import { generateToken, hashToken } from '../auth/tokens.ts'
+import { createJsonLogger } from '../lib/logger.ts'
 import { errorHandler, type ErrorBody } from '../middleware/errorHandler.ts'
+import { requestLogging } from '../middleware/requestLogging.ts'
 import { notFound } from '../middleware/notFound.ts'
 import { listen } from '../testing/listen.ts'
 import {
@@ -439,6 +441,129 @@ describe('GET /api/orders/:orderNumber', () => {
 
     expect(again.total).toBe(3000)
     expect(again.lines[0]!.unitPrice).toBe(1500)
+  })
+})
+
+const lookup = (
+  token: string | undefined,
+  payload: unknown = { idempotencyKey: KEY },
+  raw?: string,
+) =>
+  fetch(`${api.url}/api/orders/lookup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: raw ?? JSON.stringify(payload),
+  })
+
+describe('POST /api/orders/lookup', () => {
+  it('returns the order that was placed with the key, the same as the order that was answered', async () => {
+    const { token } = await account('netanel')
+    const placed = await orderOf(await place(token))
+
+    const response = await lookup(token)
+
+    expect(response.status).toBe(200)
+    expect(await orderOf(response)).toEqual(placed)
+  })
+
+  it('needs a signed-in visitor, and checks the session before it reads the body', async () => {
+    expect((await lookup(undefined)).status).toBe(401)
+    expect((await lookup('x'.repeat(43))).status).toBe(401)
+    expect((await lookup(undefined, { nonsense: true })).status).toBe(401)
+  })
+
+  it('answers 404 order_not_found for a key nobody used, and for the key of another account', async () => {
+    const mine = await account('netanel')
+    const theirs = await account('dana')
+    await place(mine.token)
+
+    const other = await lookup(theirs.token)
+    const unused = await lookup(theirs.token, { idempotencyKey: 'key-never-used-0000' })
+
+    expect(other.status).toBe(404)
+    expect(unused.status).toBe(404)
+    expect(await other.json()).toEqual(await unused.json())
+  })
+
+  it('answers 404 for text that cannot be a key, and 400 for a body that is not a key at all', async () => {
+    const { token } = await account('netanel')
+
+    expect((await lookup(token, { idempotencyKey: '../etc/passwd' })).status).toBe(404)
+    expect((await lookup(token, { idempotencyKey: { $ne: '' } })).status).toBe(400)
+    expect((await lookup(token, {})).status).toBe(400)
+    expect((await lookup(token, null, '{not json')).status).toBe(400)
+  })
+
+  it('is a read: it places nothing, and a refused order leaves nothing to find', async () => {
+    const { token } = await account('netanel')
+    await place(token, body({ items: [{ productId: 'NOPE-1', quantity: 1 }] }))
+
+    const response = await lookup(token)
+
+    expect(response.status).toBe(404)
+    expect(orders.stored).toHaveLength(0)
+  })
+
+  it('is never kept by a browser or a proxy', async () => {
+    const { token } = await account('netanel')
+    await place(token)
+
+    expect((await lookup(token)).headers.get('cache-control')).toBe('no-store')
+    expect(
+      (await lookup(token, { idempotencyKey: 'key-never-used-0000' })).headers.get('cache-control'),
+    ).toBe('no-store')
+  })
+
+  it('does not count against the limit on placing orders', async () => {
+    build({ place: { max: 1, windowMs: 60_000 } })
+    const { token } = await account('netanel')
+    await place(token)
+
+    for (let attempt = 0; attempt < 5; attempt += 1) expect((await lookup(token)).status).toBe(200)
+  })
+
+  it('does not put the key in the address, the log or an answer', async () => {
+    const lines: string[] = []
+    const logging = createJsonLogger({
+      write: (line) => lines.push(line),
+      writeError: (line) => lines.push(line),
+    })
+    const watched = express()
+    watched.use(requestLogging(logging))
+    watched.use(express.json({ limit: '100kb' }))
+    watched.use('/api/orders', (req, res, next) => router.current(req, res, next))
+    watched.use(notFound)
+    watched.use(errorHandler(logging))
+    const server = await listen(watched)
+    try {
+      const { token } = await account('netanel')
+      await place(token)
+      const send = (payload: unknown, raw?: string) =>
+        fetch(`${server.url}/api/orders/lookup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: raw ?? JSON.stringify(payload),
+        })
+
+      const answers = [
+        await send({ idempotencyKey: KEY }),
+        await send({ idempotencyKey: 'key-never-used-0000' }),
+        await send({ idempotencyKey: '../etc/passwd' }),
+        await send({ idempotencyKey: KEY }, `{"idempotencyKey":"${KEY}"`),
+      ]
+      const texts = await Promise.all(answers.map((answer) => answer.text()))
+
+      expect(lines.length).toBeGreaterThan(0)
+      expect(lines.join('\n')).not.toContain(KEY)
+      expect(lines.join('\n')).not.toContain('key-never-used-0000')
+      for (const text of texts.slice(1)) expect(text).not.toContain(KEY)
+      expect(JSON.parse(lines[0]!).path).toBe('/api/orders/lookup')
+    } finally {
+      await server.close()
+    }
   })
 })
 

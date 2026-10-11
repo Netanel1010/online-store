@@ -27,6 +27,12 @@ export interface OrderService {
   ): Promise<{ order: PublicOrder; created: boolean }>
   /** One of the account's own orders. Anyone else's, and one that does not exist, are the same 404. */
   get(userId: string, orderNumber: string): Promise<PublicOrder>
+  /**
+   * The account's own order that was placed with this idempotency key. It is how a browser that lost
+   * the answer to a request finds out whether the order exists. Another account's key, and one that
+   * was never used, are the same 404.
+   */
+  getByIdempotencyKey(userId: string, idempotencyKey: string): Promise<PublicOrder>
   /** The account's orders, the newest first. */
   list(userId: string, params?: { page?: number; limit?: number }): Promise<OrderPage>
 }
@@ -178,6 +184,12 @@ export function createOrderService({
 
     async get(userId, orderNumber) {
       const order = await orders.findByOrderNumber(userId, orderNumber)
+      if (!order) throw orderNotFound()
+      return toPublic(order)
+    },
+
+    async getByIdempotencyKey(userId, idempotencyKey) {
+      const order = await orders.findByIdempotencyKey(userId, idempotencyKey)
       if (!order) throw orderNotFound()
       return toPublic(order)
     },

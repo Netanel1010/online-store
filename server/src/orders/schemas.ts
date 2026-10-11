@@ -46,6 +46,22 @@ export function parsePlaceOrderBody(body: unknown): PlaceOrderInput {
   )
 }
 
+/**
+ * The body of the lookup of an order by the key it was placed with: `{ "idempotencyKey": "…" }`. The
+ * key is a credential-like token of the attempt, so it travels in the body and never in an address
+ * (addresses are logged, bodies are not). A body that is not an object with a text key is a client
+ * bug (400); text that cannot be a key is the same "not found" as a key nobody used, so the answer
+ * does not say which keys could exist.
+ */
+export function parseLookupBody(body: unknown): string {
+  const value = (body as { idempotencyKey?: unknown } | null)?.idempotencyKey
+  if (typeof value !== 'string') {
+    throw new HttpError(400, 'invalid_input', 'The field "idempotencyKey" is not valid')
+  }
+  if (!idempotencyKeySchema.safeParse(value).success) throw orderNotFound()
+  return value
+}
+
 /** The `Idempotency-Key` header. Without one a retry could not be told from a second order. */
 export function parseIdempotencyKey(value: unknown): string {
   if (value === undefined) {

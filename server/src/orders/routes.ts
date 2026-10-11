@@ -2,7 +2,12 @@ import { Router, type RequestHandler } from 'express'
 import { getAuth } from '../auth/middleware.ts'
 import { createRateLimiter, type RateLimitOptions } from '../middleware/rateLimit.ts'
 import { parsePaginationQuery } from '../products/schemas.ts'
-import { parseIdempotencyKey, parseOrderNumber, parsePlaceOrderBody } from './schemas.ts'
+import {
+  parseIdempotencyKey,
+  parseLookupBody,
+  parseOrderNumber,
+  parsePlaceOrderBody,
+} from './schemas.ts'
 import type { OrderService } from './service.ts'
 
 /** How often one client may place orders. `null`: no limit. */
@@ -52,6 +57,13 @@ export function createOrdersRouter(
       res.status(created ? 201 : 200).json(order)
     },
   )
+
+  // After a request whose answer was lost, "did that order get placed?". A POST with the key in the
+  // body, not a GET with it in the address: addresses end up in logs, bodies do not. It reads and
+  // changes nothing, and only the account's own orders can be found.
+  router.post('/lookup', requireAuth, async (req, res) => {
+    res.json(await service.getByIdempotencyKey(getAuth(res).user.id, parseLookupBody(req.body)))
+  })
 
   router.get('/', requireAuth, async (req, res) => {
     res.json(await service.list(getAuth(res).user.id, parsePaginationQuery(req.query)))

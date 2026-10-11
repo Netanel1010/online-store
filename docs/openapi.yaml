@@ -649,6 +649,54 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
+  /api/orders/lookup:
+    post:
+      tags: [Orders]
+      operationId: lookupOrder
+      summary: The order that was placed with an idempotency key
+      description: |
+        For a browser that sent `POST /api/orders` and never saw the answer: "was that order placed?".
+        Only the signed-in account's own orders can be found. The key is sent in the body, not in the
+        address, because addresses are logged. It reads and changes nothing, and does not count against
+        the limit on placing orders.
+
+        `404 order_not_found` is the answer for a key nobody used, for a key of another account and for
+        text that cannot be a key. A request that was refused (`400`, `409`) leaves nothing to find.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idempotencyKey]
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: The `Idempotency-Key` of the order request.
+      responses:
+        '200':
+          description: The order.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400':
+          description: '`invalid_input`: the body has no text `idempotencyKey`.'
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: '`order_not_found`.'
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
   /api/orders/{orderNumber}:
     get:
       tags: [Orders]

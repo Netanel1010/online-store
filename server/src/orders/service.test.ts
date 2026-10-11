@@ -520,3 +520,43 @@ describe('listing orders', () => {
     await expect(service.list(ME, { limit: 100 })).resolves.toMatchObject({ limit: 100 })
   })
 })
+
+describe('finding an order by the key it was placed with', () => {
+  it("returns the account's order for the key, as the public order", async () => {
+    const service = setUp()
+    const { order } = await service.place(ME, input(), KEY)
+
+    expect(await service.getByIdempotencyKey(ME, KEY)).toEqual(order)
+  })
+
+  it('does not return the digest, the key or the account', async () => {
+    const service = setUp()
+    await service.place(ME, input(), KEY)
+
+    const found = await service.getByIdempotencyKey(ME, KEY)
+
+    expect(Object.keys(found)).not.toContain('requestHash')
+    expect(Object.keys(found)).not.toContain('idempotencyKey')
+    expect(Object.keys(found)).not.toContain('userId')
+  })
+
+  it('answers 404 order_not_found for a key nobody used, and for a key of another account', async () => {
+    const service = setUp()
+    await service.place(SOMEONE, input(), KEY)
+
+    const unused = await failure(service.getByIdempotencyKey(ME, 'key-never-used-0000'))
+    const theirs = await failure(service.getByIdempotencyKey(ME, KEY))
+
+    expect(unused.status).toBe(404)
+    expect(theirs.status).toBe(404)
+    expect(unused.code).toBe('order_not_found')
+    expect(theirs.message).toBe(unused.message)
+  })
+
+  it('finds nothing for an order that was refused, so a refusal leaves no trace', async () => {
+    const service = setUp()
+    await failure(service.place(ME, input({ items: [{ productId: 'NOPE-1', quantity: 1 }] }), KEY))
+
+    expect((await failure(service.getByIdempotencyKey(ME, KEY))).status).toBe(404)
+  })
+})

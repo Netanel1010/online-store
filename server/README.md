@@ -398,6 +398,7 @@ name, a phone number and an address).
 | `POST /api/orders`               | Places an order. Needs an `Idempotency-Key` header. `201` with the order, `200` with the same order for a repeat. |
 | `GET /api/orders`                | The account's orders, newest first, paged like the products (`?page=&limit=`, 20 by default, 100 at most).      |
 | `GET /api/orders/:orderNumber`   | One of the account's orders. Anyone else's, and one that does not exist, are the same `404 order_not_found`.    |
+| `POST /api/orders/lookup`        | After an order request whose answer was lost: the account's order placed with `{ "idempotencyKey": "…" }` (in the body, never in the address), or `404`. |
 
 ```json
 {
