@@ -180,6 +180,132 @@ test.describe('placing the order twice', () => {
   })
 })
 
+/**
+ * Every order request of the page is answered with a gateway error (503) until `answers()` is called,
+ * as a host does when it gives up on a slow request: with `arrive` the API has meanwhile placed the
+ * order (and recognises the repeats by their key), without it the request never got there. The page
+ * repeats a request that is answered like this, so it takes a few seconds, as the production build does.
+ */
+async function loseTheAnswersToOrderRequests(page: Page, { arrive }: { arrive: boolean }) {
+  let lose = true
+  await page.route('**/api/orders', async (route) => {
+    if (route.request().method() !== 'POST' || !lose) return route.fallback()
+    if (arrive) await route.fetch()
+    await route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'server_busy', message: 'Busy' } }),
+    })
+  })
+  return { answers: () => (lose = false) }
+}
+
+const LOST = 'לא קיבלנו אישור על ההזמנה, ייתכן שהיא נקלטה'
+
+test.describe('an order whose answer was lost', () => {
+  test('shows the order that exists, and does not order again, when a detail is edited afterwards', async ({
+    page,
+  }) => {
+    const keys = recordOrderKeys(page)
+    const network = await loseTheAnswersToOrderRequests(page, { arrive: true })
+    await checkoutWithOneProduct(page)
+
+    await order(page).click()
+    await expect(page.getByRole('alert')).toContainText(LOST, { timeout: 20_000 })
+    expect((await accountOrders(page)).total).toBe(1) // the API did place it, and the page does not know
+    const requests = keys.length
+
+    network.answers()
+    await page.getByLabel('טלפון').fill('052-7654321')
+    await order(page).click()
+
+    await confirmed(page)
+    await expect(page.getByText('ההגשה הקודמת שלכם נקלטה בשרת')).toBeVisible()
+    const { total, items } = await accountOrders(page)
+    expect(total).toBe(1)
+    expect(items[0]!.delivery.phone).toBe('050-1234567')
+    expect(keys).toHaveLength(requests) // no second order request was sent at all
+    expect(new Set(keys).size).toBe(1)
+    await expect(cartLink(page)).toHaveAccessibleName('עגלת קניות')
+  })
+
+  test('orders with the edited details, under a new key, once the earlier request is known not to have arrived', async ({
+    page,
+  }) => {
+    const keys = recordOrderKeys(page)
+    const network = await loseTheAnswersToOrderRequests(page, { arrive: false })
+    await checkoutWithOneProduct(page)
+
+    await order(page).click()
+    await expect(page.getByRole('alert')).toContainText(LOST, { timeout: 20_000 })
+    expect((await accountOrders(page)).total).toBe(0)
+
+    // At once the earlier request may still be arriving: nothing new is sent, and nothing is lost.
+    network.answers()
+    const requests = keys.length
+    await page.getByLabel('טלפון').fill('052-7654321')
+    await order(page).click()
+    await expect(page.getByRole('alert')).toContainText('עדיין בודקים')
+    expect(keys).toHaveLength(requests)
+    await expect(page.getByLabel('טלפון')).toHaveValue('052-7654321')
+    await expect(cartLink(page)).toHaveAccessibleName('עגלת קניות, 1 פריטים')
+
+    // Half a minute later it is not: the edited order goes ahead.
+    await page.evaluate(() => {
+      const stored = JSON.parse(localStorage.getItem('online-store:checkout-attempt')!)
+      stored.pendingSince -= 31_000
+      localStorage.setItem('online-store:checkout-attempt', JSON.stringify(stored))
+    })
+    await order(page).click()
+
+    await confirmed(page)
+    const { total, items } = await accountOrders(page)
+    expect(total).toBe(1)
+    expect(items[0]!.delivery.phone).toBe('052-7654321')
+    expect(new Set(keys).size).toBe(2)
+  })
+
+  test('does not order again when the checkout is reloaded and edited after the answer was lost', async ({
+    page,
+  }) => {
+    const network = await loseTheAnswersToOrderRequests(page, { arrive: true })
+    await checkoutWithOneProduct(page)
+    await order(page).click()
+    await expect(page.getByRole('alert')).toContainText(LOST, { timeout: 20_000 })
+    network.answers()
+
+    await page.reload()
+    await expect(page.getByRole('heading', { level: 1, name: 'סיום הזמנה' })).toBeVisible()
+    await fillDeliveryForm(page)
+    await page.getByLabel('טלפון').fill('052-7654321')
+    await order(page).click()
+
+    await confirmed(page)
+    expect((await accountOrders(page)).total).toBe(1)
+  })
+
+  test('still allows a later order once the first is confirmed', async ({ page }) => {
+    const keys = recordOrderKeys(page)
+    const network = await loseTheAnswersToOrderRequests(page, { arrive: true })
+    await checkoutWithOneProduct(page)
+    await order(page).click()
+    await expect(page.getByRole('alert')).toContainText(LOST, { timeout: 20_000 })
+    network.answers()
+    await page.getByLabel('טלפון').fill('052-7654321')
+    await order(page).click()
+    await confirmed(page)
+
+    await addToCartFromProductPage(page, PSU)
+    await page.goto('checkout')
+    await fillDeliveryForm(page)
+    await order(page).click()
+
+    await expect(page).toHaveURL(ORDER_URL)
+    expect((await accountOrders(page)).total).toBe(2)
+    expect(new Set(keys).size).toBe(2)
+  })
+})
+
 test.describe('what the API refuses', () => {
   test('tells the visitor when the total is not what was shown, then orders at the total the API has', async ({
     page,
