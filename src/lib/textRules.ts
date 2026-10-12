@@ -40,7 +40,7 @@ const JOINERS = /[\u200C\u200D]/g
 /** The first character that makes a spreadsheet read a cell as a formula. */
 const FORMULA_START = /^[=+\-@]/
 
-const ARABIC_AND_FULLWIDTH_DIGITS = /[٠-٩۰-۹\uFF10-\uFF19]/g
+const ARABIC_AND_FULLWIDTH_DIGITS = /[\u0660-\u0669\u06F0-\u06F9\uFF10-\uFF19]/g
 
 /** The number of characters a person sees (an emoji is one), not UTF-16 units. */
 export function characterCount(value: string): number {
