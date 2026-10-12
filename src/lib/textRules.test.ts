@@ -67,11 +67,31 @@ describe('normalizeLine', () => {
     expect(normalizeLine('a\tb')).toBe('a\tb')
     expect(normalizeLine('a\u0000b')).toBe('a\u0000b')
   })
+
+  it('removes spaces at either end and nothing else: not a tab, a line break or a separator', () => {
+    for (const control of ['\t', '\n', '\r', '\u000b', '\u000c', '\u2028', '\u2029']) {
+      expect(normalizeLine(`${control}a${control}`), JSON.stringify(control)).toBe(
+        `${control}a${control}`,
+      )
+      expect(normalizeLine(` ${control}a${control} `), JSON.stringify(control)).toBe(
+        `${control}a${control}`,
+      )
+    }
+  })
 })
 
 describe('normalizeLines', () => {
   it('turns every kind of line break into \\n and trims each line', () => {
     expect(normalizeLines(' שורה 1 \r\n  שורה 2\rשורה 3 ')).toBe('שורה 1\nשורה 2\nשורה 3')
+  })
+
+  it('removes blank lines around the lines and spaces around each line, but not another control character', () => {
+    for (const control of ['\t', '\u000b', '\u000c', '\u2028', '\u2029']) {
+      expect(normalizeLines(`${control}a${control}`), JSON.stringify(control)).toBe(
+        `${control}a${control}`,
+      )
+    }
+    expect(normalizeLines('\n\n a \n\n')).toBe('a')
   })
 
   it('does not change a value it already changed', () => {
@@ -140,10 +160,35 @@ describe('hasNonText', () => {
     expect(hasNonText(value)).toBe(false)
   })
 
+  it('does not find the marks that normalizing drops, nor the joiners', () => {
+    for (const mark of [
+      '\u200B',
+      '\u200E',
+      '\u200F',
+      '\u061C',
+      '\u2060',
+      '\uFEFF',
+      '\u200C',
+      '\u200D',
+    ]) {
+      expect(hasNonText(`a${mark}b`), mark).toBe(false)
+    }
+  })
+
+  it('finds a control character that sits at the start or at the end, where trim() would hide it', () => {
+    for (const control of ['\t', '\n', '\r', '\u000b', '\u000c', '\u2028', '\u2029']) {
+      expect(hasNonText(`${control}a`), JSON.stringify(control)).toBe(true)
+      expect(hasNonText(`a${control}`), JSON.stringify(control)).toBe(true)
+    }
+  })
+
   it('allows a line break only when asked to', () => {
     expect(hasNonText('a\nb')).toBe(true)
-    expect(hasNonText('a\nb', { allowNewLine: true })).toBe(false)
-    expect(hasNonText('a\u0000b', { allowNewLine: true })).toBe(true)
+    expect(hasNonText('a\nb', { allowLineBreaks: true })).toBe(false)
+    expect(hasNonText('a\rb', { allowLineBreaks: true })).toBe(false)
+    expect(hasNonText('a\tb', { allowLineBreaks: true })).toBe(true)
+    expect(hasNonText('a\u2028b', { allowLineBreaks: true })).toBe(true)
+    expect(hasNonText('a\u0000b', { allowLineBreaks: true })).toBe(true)
   })
 })
 

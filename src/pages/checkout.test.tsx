@@ -1381,6 +1381,35 @@ describe('the rules for the delivery details', () => {
     })
   })
 
+  it('refuses a tab among the digits of a phone number or a postal code, and sends nothing', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+
+    await userEvent.click(box('טלפון'))
+    await userEvent.paste('050\t1234567')
+    await fillAddress()
+    await userEvent.click(box('מיקוד (לא חובה)'))
+    await userEvent.paste('64369\t01')
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByText('מספר הטלפון אינו תקין')).toBeInTheDocument()
+    expect(screen.getByText('המיקוד חייב להכיל 7 ספרות')).toBeInTheDocument()
+    expect(sent.bodies()).toEqual([])
+    expect(api.orders()).toHaveLength(0)
+  })
+
+  it('refuses a tab at the end of a name, which is not a space to be tidied away', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+
+    await userEvent.type(box('טלפון'), '0501234567')
+    await fillAddress({ city: 'תל אביב\t' })
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByText('עיר מכיל תווים שאינם מותרים')).toBeInTheDocument()
+    expect(sent.bodies()).toEqual([])
+  })
+
   it('does not say that an address exists or can be delivered to', async () => {
     await openCheckout()
 

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 // The extension is required because the API (server/) imports this file through the checkout schema.
-import { asciiDigits, stripInvisible } from './textRules.ts'
+import { asciiDigits, hasNonText, stripInvisible } from './textRules.ts'
 
 /** Building blocks shared by the login, registration and checkout forms (Hebrew messages). */
 
@@ -31,14 +31,16 @@ const PHONE_INVALID = 'מספר הטלפון אינו תקין'
  */
 const ISRAELI_NUMBER = /^0(?:[23489]\d{7}|5\d{8}|7\d{8})$/
 
-/** Spaces, any dash, dots and brackets: what people put between the digits of a number. */
-const PHONE_SEPARATORS = /[\s\p{Z}\p{Pd}.()]/gu
+/** Spaces of any kind, any dash, dots and brackets: what people put between the digits of a number. */
+const PHONE_SEPARATORS = /[\p{Zs}\p{Pd}.()]/gu
 
 /**
  * A phone number as it is stored: the digits as written locally (`0501234567`). It takes the
- * separators out, the invisible marks that a copy from a right-to-left page brings, Arabic-Indic
- * and full-width digits, and the international prefix (`+972`, `00972` or `972`, with or without
- * the 0 that some write after it). What cannot be read as a number stays as it is, for the check.
+ * separators out (spaces of any kind, dashes, dots and brackets, and nothing else: not a tab or a
+ * line break), the invisible marks that a copy from a right-to-left page brings, Arabic-Indic and
+ * full-width digits, and the international prefix (`+972`, `00972` or `972`, with or without the 0
+ * that some write after it). What cannot be read as a number stays as it is, for the check. It
+ * is meant for a value that `hasNonText` has found nothing wrong with, and `phoneField` asks first.
  */
 export function normalizePhone(value: string): string {
   const digits = asciiDigits(stripInvisible(value)).replace(PHONE_SEPARATORS, '')
@@ -53,5 +55,7 @@ export function normalizePhone(value: string): string {
 export const phoneField = z
   .string()
   .max(PHONE_RAW_MAX_LENGTH, PHONE_INVALID)
+  // As typed, before anything is removed: a tab or a line break among the digits is not a separator.
+  .refine((value) => !hasNonText(value), PHONE_INVALID)
   .transform(normalizePhone)
   .pipe(z.string().min(1, 'יש להזין מספר טלפון').regex(ISRAELI_NUMBER, PHONE_INVALID))

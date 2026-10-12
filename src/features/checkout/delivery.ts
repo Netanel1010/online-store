@@ -10,7 +10,6 @@ import {
   normalizeLine,
   normalizeLines,
   startsLikeFormula,
-  stripInvisible,
 } from '../../lib/textRules.ts'
 
 /**
@@ -32,27 +31,38 @@ const EMAIL_TOO_LONG = 'כתובת האימייל ארוכה מדי'
 const EMAIL_INVALID = 'כתובת האימייל אינה תקינה'
 
 /**
+ * A one-line value, read in the only safe order: first the value **as it was typed** is refused if
+ * it holds anything that is not text (a tab, a line break, a control or direction character, ...),
+ * and only then is it normalized. A value that is refused is never normalized, so that the
+ * normalizing (which removes spaces and the marks of a right-to-left copy) cannot be what hides a
+ * character from the check.
+ */
+function oneLine(refusal: string, tooLong: string) {
+  return z
+    .string()
+    .max(RAW_LINE_MAX_LENGTH, tooLong)
+    .refine((value) => !hasNonText(value), refusal)
+    .transform(normalizeLine)
+}
+
+/**
  * An address to send the order confirmation to. Written the way a copy from a right-to-left page
  * leaves it (with a direction mark in it) it is still read, and the mark is not stored. The
  * limits are those of the address itself, and it cannot begin with `+` or `-`, which a
  * spreadsheet reads as the start of a formula.
  */
-export const deliveryEmailField = z
-  .string()
-  .max(RAW_LINE_MAX_LENGTH, EMAIL_TOO_LONG)
-  .transform((value) => stripInvisible(value).trim())
-  .pipe(
-    z
-      .string()
-      .min(1, 'יש להזין כתובת אימייל')
-      .pipe(z.email(EMAIL_INVALID))
-      .refine((value) => value.length <= EMAIL_MAX_LENGTH, EMAIL_TOO_LONG)
-      .refine(
-        (value) => value.slice(0, value.lastIndexOf('@')).length <= EMAIL_LOCAL_PART_MAX_LENGTH,
-        EMAIL_TOO_LONG,
-      )
-      .refine((value) => !/^[+-]/.test(value), EMAIL_INVALID),
-  )
+export const deliveryEmailField = oneLine(EMAIL_INVALID, EMAIL_TOO_LONG).pipe(
+  z
+    .string()
+    .min(1, 'יש להזין כתובת אימייל')
+    .pipe(z.email(EMAIL_INVALID))
+    .refine((value) => value.length <= EMAIL_MAX_LENGTH, EMAIL_TOO_LONG)
+    .refine(
+      (value) => value.slice(0, value.lastIndexOf('@')).length <= EMAIL_LOCAL_PART_MAX_LENGTH,
+      EMAIL_TOO_LONG,
+    )
+    .refine((value) => !/^[+-]/.test(value), EMAIL_INVALID),
+)
 
 /**
  * What a name, a city or a street may be made of: letters of any script (Hebrew, Arabic, Latin, ...)
@@ -84,16 +94,12 @@ function nameProblem(value: string, { label, min, max }: NameOptions): string | 
 }
 
 function nameField(options: NameOptions) {
-  return z
-    .string()
-    .max(RAW_LINE_MAX_LENGTH, `${options.label} ארוך מדי`)
-    .transform(normalizeLine)
-    .pipe(
-      z.string().superRefine((value, ctx) => {
-        const message = nameProblem(value, options)
-        if (message) ctx.addIssue({ code: 'custom', message })
-      }),
-    )
+  return oneLine(`${options.label} מכיל תווים שאינם מותרים`, `${options.label} ארוך מדי`).pipe(
+    z.string().superRefine((value, ctx) => {
+      const message = nameProblem(value, options)
+      if (message) ctx.addIssue({ code: 'custom', message })
+    }),
+  )
 }
 
 /** What is written in the house number of an address that has none (a moshav, a kibbutz). */
@@ -107,10 +113,8 @@ const HOUSE_NUMBER_MAX_LENGTH = 10
  * The house number. It holds a digit (`0` is not a house) unless it says that there is none
  * (`ללא מספר`, `ללא`). Digits typed as Arabic-Indic are stored as 0-9.
  */
-const houseNumberField = z
-  .string()
-  .max(RAW_LINE_MAX_LENGTH, 'מספר הבית ארוך מדי')
-  .transform((value) => asciiDigits(normalizeLine(value)))
+const houseNumberField = oneLine('מספר הבית אינו תקין', 'מספר הבית ארוך מדי')
+  .transform(asciiDigits)
   .pipe(
     z.string().superRefine((value, ctx) => {
       const length = characterCount(value)
@@ -133,10 +137,8 @@ const houseNumberField = z
 const APARTMENT_CHARACTERS = /^[\p{L}\p{Nd}/'"’׳״ \p{Pd}]+$/u
 const APARTMENT_MAX_LENGTH = 10
 
-const apartmentField = z
-  .string()
-  .max(RAW_LINE_MAX_LENGTH, 'מספר הדירה ארוך מדי')
-  .transform((value) => asciiDigits(normalizeLine(value)))
+const apartmentField = oneLine('מספר הדירה מכיל תווים שאינם מותרים', 'מספר הדירה ארוך מדי')
+  .transform(asciiDigits)
   .pipe(
     z.string().superRefine((value, ctx) => {
       const message =
@@ -157,6 +159,8 @@ const POSTAL_CODE_INVALID = 'המיקוד חייב להכיל 7 ספרות'
 const POSTAL_CODE_RAW_MAX_LENGTH = 20
 /** An Israeli postal code: seven digits, none of them leading with 0. Only the shape is checked. */
 const POSTAL_CODE = /^[1-9]\d{6}$/
+/** What may be written between the digits of a postal code: a space of any kind, or any dash. */
+const POSTAL_CODE_SEPARATORS = /[\p{Zs}\p{Pd}]/gu
 
 /**
  * The postal code, when there is one: seven digits, written with or without spaces or dashes in
@@ -165,12 +169,14 @@ const POSTAL_CODE = /^[1-9]\d{6}$/
 const postalCodeField = z
   .string()
   .max(POSTAL_CODE_RAW_MAX_LENGTH, POSTAL_CODE_INVALID)
-  .transform((value) => asciiDigits(stripInvisible(value)).replace(/[\s\p{Z}\p{Pd}]/gu, ''))
+  .refine((value) => !hasNonText(value), POSTAL_CODE_INVALID)
+  .transform((value) => asciiDigits(normalizeLine(value)).replace(POSTAL_CODE_SEPARATORS, ''))
   .pipe(z.string().refine((value) => value === '' || POSTAL_CODE.test(value), POSTAL_CODE_INVALID))
 
 const NOTES_MAX_LENGTH = 300
 const NOTES_MAX_LINES = 6
 const NOTES_RAW_MAX_LENGTH = 2000
+const NOTES_NOT_ALLOWED = 'ההערות מכילות תווים שאינם מותרים'
 
 /**
  * A note for the delivery: a few lines of any script, and emoji. It cannot hold a control or
@@ -180,6 +186,7 @@ const NOTES_RAW_MAX_LENGTH = 2000
 const notesField = z
   .string()
   .max(NOTES_RAW_MAX_LENGTH, 'ההערות ארוכות מדי (עד 300 תווים)')
+  .refine((value) => !hasNonText(value, { allowLineBreaks: true }), NOTES_NOT_ALLOWED)
   .transform(normalizeLines)
   .pipe(
     z.string().superRefine((value, ctx) => {
@@ -188,8 +195,8 @@ const notesField = z
           ? 'ההערות ארוכות מדי (עד 300 תווים)'
           : value.split('\n').length > NOTES_MAX_LINES
             ? 'יש עד 6 שורות בהערות'
-            : hasNonText(value, { allowNewLine: true }) || /[<>]/.test(value)
-              ? 'ההערות מכילות תווים שאינם מותרים'
+            : /[<>]/.test(value)
+              ? NOTES_NOT_ALLOWED
               : startsLikeFormula(value)
                 ? 'ההערות לא יכולות להתחיל בסימן מיוחד'
                 : null

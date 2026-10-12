@@ -110,4 +110,36 @@ describe('phoneField', () => {
     expect(parse('050\u00001234567').success).toBe(false)
     expect(parse('050\u202E1234567').success).toBe(false)
   })
+
+  it.each([
+    ['a tab', '\t'],
+    ['a line feed', '\n'],
+    ['a carriage return', '\r'],
+    ['a vertical tab', '\u000b'],
+    ['a form feed', '\u000c'],
+    ['a next line', '\u0085'],
+    ['a line separator', '\u2028'],
+    ['a paragraph separator', '\u2029'],
+    ['a NUL', '\u0000'],
+    ['a right-to-left override', '\u202e'],
+  ])(
+    'rejects %s, among the digits, at the start and at the end, and does not remove it',
+    (_name, character) => {
+      for (const typed of [
+        `050${character}1234567`,
+        `${character}050-1234567`,
+        `050-1234567${character}`,
+        `+972${character}50-123-4567`,
+      ]) {
+        expect(message(typed), JSON.stringify(typed)).toBe('מספר הטלפון אינו תקין')
+      }
+    },
+  )
+
+  it('removes only the separators that it names', () => {
+    expect(normalizePhone('050\t1234567')).toBe('050\t1234567')
+    expect(normalizePhone('050\n1234567')).toBe('050\n1234567')
+    expect(normalizePhone('050\u20281234567')).toBe('050\u20281234567')
+    expect(normalizePhone('050/1234567')).toBe('050/1234567')
+  })
 })

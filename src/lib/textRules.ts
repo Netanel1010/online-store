@@ -8,6 +8,12 @@
  * rejection the visitor cannot see the reason for is worse than no check. What can do harm (control
  * characters, the characters that reorder text, a formula in a spreadsheet cell) is rejected.
  *
+ * **Order.** A value is first looked at as it was typed (`hasNonText`), and only a value that holds
+ * nothing prohibited is normalized. Normalizing is never what makes a prohibited character go away
+ * before it is looked for: all it removes is the marks below, spaces, the blank lines around a note,
+ * and the separators that a field names for itself. Nothing here uses `trim()` or `\s`, which also
+ * remove tabs, line breaks and the line and paragraph separators.
+ *
  * This is a check of the shape of a value. It does not say that an address exists or can be
  * delivered to; nothing here knows that.
  */
@@ -34,7 +40,7 @@ const JOINERS = /[\u200C\u200D]/g
 /** The first character that makes a spreadsheet read a cell as a formula. */
 const FORMULA_START = /^[=+\-@]/
 
-const ARABIC_AND_FULLWIDTH_DIGITS = /[\u0660-\u0669\u06F0-\u06F9\uFF10-\uFF19]/g
+const ARABIC_AND_FULLWIDTH_DIGITS = /[٠-٩۰-۹\uFF10-\uFF19]/g
 
 /** The number of characters a person sees (an emoji is one), not UTF-16 units. */
 export function characterCount(value: string): number {
@@ -46,27 +52,34 @@ export function stripInvisible(value: string): string {
   return value.replace(HARMLESS_INVISIBLE, '')
 }
 
-/**
- * A one-line value as it is stored: the invisible marks dropped, composed to the usual form (the
- * same Hebrew word is the same bytes however it was typed), every kind of space one space, trimmed.
- * Applying it again changes nothing.
- */
-export function normalizeLine(value: string): string {
-  return stripInvisible(value).normalize('NFC').replace(SPACE_RUNS, ' ').trim()
+/** Collapses every run of spaces (of any kind) to one space and removes the one at either end. */
+function tidySpaces(value: string): string {
+  return value.replace(SPACE_RUNS, ' ').replace(/^ | $/g, '')
 }
 
 /**
- * A multi-line value as it is stored: like `normalizeLine` for each line, and every kind of line
- * break as `\n`. Applying it again changes nothing.
+ * A one-line value as it is stored: the invisible marks dropped, composed to the usual form (the
+ * same Hebrew word is the same bytes however it was typed), every kind of space one space, and no
+ * space at either end. Only spaces are removed there, never a tab or a line break: call it on a
+ * value that `hasNonText` has found nothing wrong with. Applying it again changes nothing.
+ */
+export function normalizeLine(value: string): string {
+  return tidySpaces(stripInvisible(value).normalize('NFC'))
+}
+
+/**
+ * A multi-line value as it is stored: like `normalizeLine` for each line, every kind of line break
+ * (`\r\n`, `\r`, `\n`) as `\n`, and no blank line before the first line or after the last. Those
+ * blank lines are the only line breaks that this removes. Applying it again changes nothing.
  */
 export function normalizeLines(value: string): string {
   return stripInvisible(value)
     .normalize('NFC')
     .replace(/\r\n?/g, '\n')
     .split('\n')
-    .map((line) => line.replace(SPACE_RUNS, ' ').trim())
+    .map(tidySpaces)
     .join('\n')
-    .trim()
+    .replace(/^\n+|\n+$/g, '')
 }
 
 /** Arabic-Indic, Persian and full-width digits as 0-9, as they are typed on some keyboards. */
@@ -78,10 +91,15 @@ export function asciiDigits(value: string): string {
   })
 }
 
-/** Whether the text holds something that is not text (see `NOT_TEXT`). A new line is allowed when `allowNewLine`. */
-export function hasNonText(value: string, { allowNewLine = false } = {}): boolean {
-  const checked = allowNewLine ? value.replace(/\n/g, '') : value
-  return NOT_TEXT.test(checked.replace(JOINERS, ''))
+/**
+ * Whether the text holds something that is not text (see `NOT_TEXT`). Ask it of the value **as it
+ * was typed**, before `normalizeLine` or `normalizeLines`. The invisible marks that normalizing drops
+ * and the joiners are not "something": a copy from a right-to-left page is read, not refused. A line
+ * break (`\n` or `\r`) is something unless `allowLineBreaks`.
+ */
+export function hasNonText(value: string, { allowLineBreaks = false } = {}): boolean {
+  const withoutMarks = stripInvisible(value).replace(JOINERS, '')
+  return NOT_TEXT.test(allowLineBreaks ? withoutMarks.replace(/[\n\r]/g, '') : withoutMarks)
 }
 
 /** Whether a spreadsheet would read the value as a formula: it starts with `=`, `+`, `-` or `@`. */
