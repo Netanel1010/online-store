@@ -129,7 +129,7 @@ The rule is that an unresolved attempt keeps one `Idempotency-Key`, and the API 
 - `src/features/orders/checkoutAttempt.test.ts`, `submitOrder.test.ts` and `orderService.test.ts`: the
   key is kept across edits of the details and of the cart, is kept separately for each account (another
   account ordering in between does not take it away), is forgotten only when an order exists, and stays
-  when storage cannot be written; a double submit sends one request, and only within one session; and
+  when storage cannot be written (even while an older copy can still be read); a double submit sends one request, and only within one session; and
   `lookupOrder` treats only an explicit `404 order_not_found` as "no order" (every other answer, such
   as a route-level `404 not_found`, an empty body or HTML, is "cannot verify").
 - `src/pages/checkout.test.tsx`: the page, with a first answer that is lost after the API made the

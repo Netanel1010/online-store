@@ -157,6 +157,61 @@ describe('idempotencyKeyFor', () => {
     expect(unresolvedAttemptKey('user-2')).toBe(second)
   })
 
+  describe('when storage holds an earlier attempt and then refuses to be written', () => {
+    /** An attempt of user-1 is in storage; from now on writing to storage fails but reading works. */
+    function storageThatCannotBeWrittenAnyMore() {
+      const first = idempotencyKeyFor('user-1')
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('full')
+      })
+      vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+        throw new Error('full')
+      })
+      return first
+    }
+
+    it('keeps the new key stable when reads still succeed with the old copy', () => {
+      const earlier = storageThatCannotBeWrittenAnyMore()
+
+      const fresh = idempotencyKeyFor('user-2')
+
+      expect(fresh).not.toBe(earlier)
+      expect(idempotencyKeyFor('user-2')).toBe(fresh)
+      expect(idempotencyKeyFor('user-2')).toBe(fresh)
+      expect(unresolvedAttemptKey('user-2')).toBe(fresh)
+    })
+
+    it('keeps the earlier attempt too, with the same key', () => {
+      const earlier = storageThatCannotBeWrittenAnyMore()
+
+      idempotencyKeyFor('user-2')
+
+      expect(idempotencyKeyFor('user-1')).toBe(earlier)
+      expect(unresolvedAttemptKey('user-1')).toBe(earlier)
+    })
+
+    it('does not bring back an attempt that was forgotten after the write failed', () => {
+      const earlier = storageThatCannotBeWrittenAnyMore()
+
+      forgetCheckoutAttempt('user-1')
+
+      expect(unresolvedAttemptKey('user-1')).toBeNull()
+      expect(idempotencyKeyFor('user-1')).not.toBe(earlier)
+    })
+
+    it('brings storage up to date with the page once a write works again', () => {
+      const earlier = storageThatCannotBeWrittenAnyMore()
+      const fresh = idempotencyKeyFor('user-2')
+      vi.restoreAllMocks()
+
+      const third = idempotencyKeyFor('user-3')
+
+      const stored = localStorage.getItem(STORAGE_KEY)!
+      for (const key of [earlier, fresh, third]) expect(stored).toContain(key)
+      expect(unresolvedAttemptKey('user-2')).toBe(fresh)
+    })
+  })
+
   it('keeps no name, phone number, address or account in storage, only digests of the accounts', () => {
     idempotencyKeyFor('user-1')
     idempotencyKeyFor('user-2')

@@ -49,7 +49,10 @@ type Attempts = Record<string, Attempt>
  * used (private mode, blocked), so that a retry in the same tab still carries the same key.
  */
 let remembered: Attempts = {}
-/** Writing to storage failed the last time: an empty storage then says nothing about the attempts. */
+/**
+ * Writing to storage failed the last time: storage is then behind this page, whether it is empty or
+ * still holds an older copy, and `remembered` is what to go by until a write works again.
+ */
 let storageRefusedWrite = false
 
 /** cyrb53: a small, fast, well-spread 53-bit hash of a text, as a short string. */
@@ -67,9 +70,13 @@ function digest(text: string): string {
 }
 
 function readAll(): Attempts {
+  // A write was refused: this page's copy has what storage was not given (a new key, or a forgotten
+  // one), so it is newer than whatever storage still holds, valid or not. Reading storage instead
+  // would lose a key that was just made, or bring back one that was forgotten.
+  if (storageRefusedWrite) return remembered
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw === null) return storageRefusedWrite ? remembered : {}
+    if (raw === null) return {}
     // Stored data is untrusted (it can be edited or corrupted): validate, never spread it in.
     const parsed = storedSchema.safeParse(JSON.parse(raw))
     return parsed.success ? Object.fromEntries(Object.entries(parsed.data.attempts)) : {}
