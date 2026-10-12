@@ -111,8 +111,31 @@ test.describe('an order is kept by the API', () => {
 
     const { total, items } = await accountOrders(page)
     expect(total).toBe(1)
-    expect(items[0]!.delivery).toMatchObject({ street: 'דיזנגוף', phone: '050-1234567' })
+    expect(items[0]!.delivery).toMatchObject({ street: 'דיזנגוף', phone: '0501234567' })
     expect(items[0]!.total).toBe(PSU.price.current)
+  })
+
+  test('stores the phone number written locally, and refuses a city that is not a name', async ({
+    page,
+  }) => {
+    await checkoutWithOneProduct(page)
+    await page.getByLabel('טלפון').fill('+972 50-123-4567')
+    const city = page.getByRole('textbox', { name: 'עיר', exact: true })
+    await city.fill('=cmd|calc')
+
+    await order(page).click()
+
+    await expect(page.getByText('עיר מכיל תווים שאינם מותרים')).toBeVisible()
+    await expect(page).toHaveURL(/\/checkout$/)
+    expect((await accountOrders(page)).total).toBe(0)
+
+    await city.fill('תל אביב')
+    await order(page).click()
+    await confirmed(page)
+
+    const { total, items } = await accountOrders(page)
+    expect(total).toBe(1)
+    expect(items[0]!.delivery).toMatchObject({ phone: '0501234567' })
   })
 
   test('says on the checkout that the order is saved in the account', async ({ page }) => {
