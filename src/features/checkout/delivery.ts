@@ -3,7 +3,15 @@ import { z } from 'zod'
 // ES modules, which do not resolve extensionless imports or the `@` alias. The app is not affected.
 import { EMAIL_MAX_LENGTH } from '../auth/rules.ts'
 import { phoneField } from '../../lib/validation.ts'
-import { characterCount, normalizeLine, stripInvisible } from '../../lib/textRules.ts'
+import {
+  asciiDigits,
+  characterCount,
+  hasNonText,
+  normalizeLine,
+  normalizeLines,
+  startsLikeFormula,
+  stripInvisible,
+} from '../../lib/textRules.ts'
 
 /**
  * Who an order is for and where it goes: the part of the checkout form that the API also stores.
@@ -88,19 +96,117 @@ function nameField(options: NameOptions) {
     )
 }
 
+/** What is written in the house number of an address that has none (a moshav, a kibbutz). */
+const NO_HOUSE_NUMBER = ['ללא מספר', 'ללא']
+/** A house number: digits and letters, and what joins them (`12א`, `12/4`, `12-14`, `12 א'`). */
+const HOUSE_NUMBER_CHARACTERS = /^[\p{L}\p{Nd}/'"’׳״ .\p{Pd}]+$/u
+const NOT_ZERO = /[1-9]/
+const HOUSE_NUMBER_MAX_LENGTH = 10
+
+/**
+ * The house number. It holds a digit (`0` is not a house) unless it says that there is none
+ * (`ללא מספר`, `ללא`). Digits typed as Arabic-Indic are stored as 0-9.
+ */
+const houseNumberField = z
+  .string()
+  .max(RAW_LINE_MAX_LENGTH, 'מספר הבית ארוך מדי')
+  .transform((value) => asciiDigits(normalizeLine(value)))
+  .pipe(
+    z.string().superRefine((value, ctx) => {
+      const length = characterCount(value)
+      const message =
+        length === 0
+          ? 'יש להזין מספר בית'
+          : length > HOUSE_NUMBER_MAX_LENGTH
+            ? 'מספר הבית ארוך מדי'
+            : NO_HOUSE_NUMBER.includes(value) ||
+                (HOUSE_NUMBER_CHARACTERS.test(value) &&
+                  STARTS_WITH_LETTER_OR_DIGIT.test(value) &&
+                  NOT_ZERO.test(value))
+              ? null
+              : 'מספר הבית אינו תקין'
+      if (message) ctx.addIssue({ code: 'custom', message })
+    }),
+  )
+
+/** An apartment, a floor or an entrance (`4`, `4א`, `קרקע`), when there is one. */
+const APARTMENT_CHARACTERS = /^[\p{L}\p{Nd}/'"’׳״ \p{Pd}]+$/u
+const APARTMENT_MAX_LENGTH = 10
+
+const apartmentField = z
+  .string()
+  .max(RAW_LINE_MAX_LENGTH, 'מספר הדירה ארוך מדי')
+  .transform((value) => asciiDigits(normalizeLine(value)))
+  .pipe(
+    z.string().superRefine((value, ctx) => {
+      const message =
+        value === ''
+          ? null
+          : characterCount(value) > APARTMENT_MAX_LENGTH
+            ? 'מספר הדירה ארוך מדי'
+            : !APARTMENT_CHARACTERS.test(value)
+              ? 'מספר הדירה מכיל תווים שאינם מותרים'
+              : !STARTS_WITH_LETTER_OR_DIGIT.test(value)
+                ? 'מספר הדירה חייב להתחיל באות או בספרה'
+                : null
+      if (message) ctx.addIssue({ code: 'custom', message })
+    }),
+  )
+
+const POSTAL_CODE_INVALID = 'המיקוד חייב להכיל 7 ספרות'
+const POSTAL_CODE_RAW_MAX_LENGTH = 20
+/** An Israeli postal code: seven digits, none of them leading with 0. Only the shape is checked. */
+const POSTAL_CODE = /^[1-9]\d{6}$/
+
+/**
+ * The postal code, when there is one: seven digits, written with or without spaces or dashes in
+ * them, stored as the seven digits. A code does not begin with 0, so `0000000` is not one.
+ */
+const postalCodeField = z
+  .string()
+  .max(POSTAL_CODE_RAW_MAX_LENGTH, POSTAL_CODE_INVALID)
+  .transform((value) => asciiDigits(stripInvisible(value)).replace(/[\s\p{Z}\p{Pd}]/gu, ''))
+  .pipe(z.string().refine((value) => value === '' || POSTAL_CODE.test(value), POSTAL_CODE_INVALID))
+
+const NOTES_MAX_LENGTH = 300
+const NOTES_MAX_LINES = 6
+const NOTES_RAW_MAX_LENGTH = 2000
+
+/**
+ * A note for the delivery: a few lines of any script, and emoji. It cannot hold a control or
+ * direction character, `<` or `>`, nor begin with `=`, `+`, `-` or `@` (a formula in a
+ * spreadsheet): a note is shown, and may be sent or exported, as it is.
+ */
+const notesField = z
+  .string()
+  .max(NOTES_RAW_MAX_LENGTH, 'ההערות ארוכות מדי (עד 300 תווים)')
+  .transform(normalizeLines)
+  .pipe(
+    z.string().superRefine((value, ctx) => {
+      const message =
+        characterCount(value) > NOTES_MAX_LENGTH
+          ? 'ההערות ארוכות מדי (עד 300 תווים)'
+          : value.split('\n').length > NOTES_MAX_LINES
+            ? 'יש עד 6 שורות בהערות'
+            : hasNonText(value, { allowNewLine: true }) || /[<>]/.test(value)
+              ? 'ההערות מכילות תווים שאינם מותרים'
+              : startsLikeFormula(value)
+                ? 'ההערות לא יכולות להתחיל בסימן מיוחד'
+                : null
+      if (message) ctx.addIssue({ code: 'custom', message })
+    }),
+  )
+
 export const deliveryDetailsSchema = z.object({
   fullName: nameField({ label: 'שם מלא', min: 2, max: 80 }),
   email: deliveryEmailField,
   phone: phoneField,
   city: nameField({ label: 'עיר', min: 2, max: 60 }),
   street: nameField({ label: 'רחוב', min: 2, max: 80 }),
-  houseNumber: z.string().trim().min(1, 'יש להזין מספר בית').max(10, 'מספר הבית ארוך מדי'),
-  apartment: z.string().trim().max(10, 'מספר הדירה ארוך מדי'),
-  postalCode: z
-    .string()
-    .trim()
-    .refine((value) => value === '' || /^\d{7}$/.test(value), 'המיקוד חייב להכיל 7 ספרות'),
-  notes: z.string().trim().max(300, 'ההערות ארוכות מדי (עד 300 תווים)'),
+  houseNumber: houseNumberField,
+  apartment: apartmentField,
+  postalCode: postalCodeField,
+  notes: notesField,
 })
 
 export type DeliveryDetails = z.infer<typeof deliveryDetailsSchema>

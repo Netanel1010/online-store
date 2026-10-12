@@ -88,6 +88,11 @@ describe('parsePlaceOrderBody', () => {
     ['fullName', "=cmd|' /C calc'!A0"],
     ['city', '<script>alert(1)</script>'],
     ['street', '@SUM(1,2)'],
+    ['houseNumber', '=1+1'],
+    ['apartment', '=1+1'],
+    ['notes', '=HYPERLINK("http://example.com")'],
+    ['notes', 'x\u202Ey'],
+    ['postalCode', '0000000'],
     ['phone', '0000000000'],
     ['email', `${'a'.repeat(260)}@example.com`],
   ])('refuses %s %j, and says only which field is wrong', (name, value) => {
