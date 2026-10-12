@@ -1226,6 +1226,21 @@ describe('checkout form layout', () => {
     expect(screen.getByText('שדות חובה מסומנים בכוכבית (*).')).toBeInTheDocument()
   })
 
+  it('shows the email, the phone number and the postal code left to right, as they are read', async () => {
+    await signIn()
+    useCartStore.getState().addItem('PSU-1')
+    renderApp('/checkout', catalog)
+    await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+    for (const name of ['אימייל', 'טלפון', 'מיקוד (לא חובה)']) {
+      expect(box(name), name).toHaveAttribute('dir', 'ltr')
+    }
+    // A name or an address is Hebrew as often as not, and follows the page.
+    for (const name of ['שם מלא', 'עיר', 'רחוב', 'דירה (לא חובה)']) {
+      expect(box(name), name).not.toHaveAttribute('dir')
+    }
+  })
+
   it('repeats the total just above the submit button, for a phone where the summary is far away', async () => {
     await signIn()
     useCartStore.getState().addItem('PSU-1')

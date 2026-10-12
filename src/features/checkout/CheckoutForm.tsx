@@ -69,6 +69,7 @@ export function CheckoutForm({ defaultValues, onSubmit, totalNote, notice }: Che
           <TextField
             label="אימייל"
             type="email"
+            dir="ltr"
             autoComplete="email"
             required
             error={errors.email?.message}
@@ -77,6 +78,7 @@ export function CheckoutForm({ defaultValues, onSubmit, totalNote, notice }: Che
           <TextField
             label="טלפון"
             type="tel"
+            dir="ltr"
             autoComplete="tel"
             inputMode="tel"
             required
@@ -121,6 +123,7 @@ export function CheckoutForm({ defaultValues, onSubmit, totalNote, notice }: Che
           />
           <TextField
             label="מיקוד (לא חובה)"
+            dir="ltr"
             autoComplete="postal-code"
             inputMode="numeric"
             error={errors.postalCode?.message}
