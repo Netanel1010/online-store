@@ -33,6 +33,11 @@ request that times out may well have succeeded, and the browser repeats it.
   the `409` with the order's number, the storefront shows that order, and nothing new is placed. An
   order cannot be edited, so the visitor is told that the details they changed were not applied.
   Tying the key to the details instead would mint a new key for every edit and place a second order.
+- **Each account keeps its own unresolved attempt.** The browser keeps the attempts side by side, one
+  per account (a digest of the account, never the account itself; at most ten, none older than a day).
+  Another account signing in on the same browser does not take the key from the first: that order may
+  still be made on the server, and coming back with a new key would place it twice. An account only
+  sends, looks up and forgets its own key.
 - **The key is let go only when the attempt is resolved:** an order exists (`200`/`201`), the visitor
   confirmed that they want a separate order besides the one that exists, or a day passed. A refusal
   such as `price_changed` or `product_unavailable` does not resolve it, because an earlier request
@@ -60,8 +65,10 @@ request that times out may well have succeeded, and the browser repeats it.
   own orders.
 - Two requests with one key and different content that arrive at the same moment make one order: the
   unique index decides, and the other is told which order exists (proved against a real MongoDB).
-- While a request is on its way, a second submit (a double click, Enter twice) joins it instead of
-  sending another. Choosing a separate order is the one way to place another order after an uncertain
+- While a request is on its way, a second submit of the same session (a double click, Enter twice)
+  joins it instead of sending another. Another account never joins it, and an answer that arrives
+  after the visitor switched accounts only resolves the attempt of the account that sent it: it does
+  not empty the new account's cart, move its page or sign it out. Choosing a separate order is the one way to place another order after an uncertain
   attempt, and it asks first. Reconciling the cart with an order that turned out to exist is a separate
   piece of work: until then the cart is left as it is.
 

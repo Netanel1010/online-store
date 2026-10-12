@@ -127,8 +127,9 @@ The rule is that an unresolved attempt keeps one `Idempotency-Key`, and the API 
 - `server/src/orders/orders.integration.test.ts`: the same race on a real MongoDB, and the lookup
   through the whole API.
 - `src/features/orders/checkoutAttempt.test.ts`, `submitOrder.test.ts` and `orderService.test.ts`: the
-  key is kept across edits of the details and of the cart, is per account, is forgotten only when an
-  order exists, and stays when storage cannot be written; a double submit sends one request; and
+  key is kept across edits of the details and of the cart, is kept separately for each account (another
+  account ordering in between does not take it away), is forgotten only when an order exists, and stays
+  when storage cannot be written; a double submit sends one request, and only within one session; and
   `lookupOrder` treats only an explicit `404 order_not_found` as "no order" (every other answer, such
   as a route-level `404 not_found`, an empty body or HTML, is "cannot verify").
 - `src/pages/checkout.test.tsx`: the page, with a first answer that is lost after the API made the
@@ -136,7 +137,10 @@ The rule is that an unresolved attempt keeps one `Idempotency-Key`, and the API 
   edit in the form and shows the order that exists; a reload finds the order before anything is sent;
   a separate order needs the confirmation; an older API that cannot say keeps the key, places nothing
   and points to "My orders"; Enter twice and a double click send one request; a page left while the
-  order is on its way does not move the visitor; and a later, confirmed order gets a key of its own.
+  order is on its way does not move the visitor; another account that orders in between leaves the
+  first account's attempt to be found when it comes back; an answer that arrives after the visitor
+  switched accounts touches neither the new account's cart, page nor session; and a later, confirmed
+  order gets a key of its own.
   `holdOrderRequests` keeps a request on its way until a test lets it go; release it in a `finally`,
   because a request that never ends would be joined by the next test's order.
 - `e2e/orders.spec.ts`: the same flow in a real browser, where the answer the page gets back is not the
