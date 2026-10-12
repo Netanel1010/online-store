@@ -1010,6 +1010,67 @@ describe('one order at a time', () => {
     expect(localStorage.getItem('online-store:checkout-attempt')).toBeNull()
   })
 
+  describe('when the visitor switches accounts while the order is on its way', () => {
+    const DANA = { name: 'דנה', email: 'dana@example.com', password: 'Passw0rdOK' }
+
+    it('leaves the cart, the page and the session of the new account alone when the first order comes back', async () => {
+      const held = holdOrderRequests()
+      try {
+        renderApp('/checkout', catalog)
+        await screen.findByRole('textbox', { name: 'טלפון' })
+        await fillValidForm()
+        await userEvent.click(submitButton())
+        await waitFor(() => expect(held.count()).toBe(1))
+
+        // Another account takes the browser over; the first account's request is still on its way.
+        await useAuthStore.getState().register(DANA)
+        act(() => useCartStore.getState().addItem('GPU-1'))
+        await waitFor(() =>
+          expect(useCartStore.getState().items).toEqual([{ productId: 'GPU-1', quantity: 1 }]),
+        )
+      } finally {
+        held.release()
+      }
+
+      // The first account's order is made, as the server does not know about the switch...
+      await waitFor(() => expect(api.orders()).toHaveLength(1))
+      await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
+      // ...but its answer is not the new account's: nothing of theirs is emptied, moved or signed out.
+      expect(useCartStore.getState().items).toEqual([{ productId: 'GPU-1', quantity: 1 }])
+      expect(url()).toBe('/checkout')
+      expect(useAuthStore.getState().user?.email).toBe(DANA.email)
+      expect(useAuthStore.getState().status).toBe('authenticated')
+      // The new account has no order and no unresolved attempt of the first one's.
+      expect(api.orders()[0]!.userId).not.toBe(useAuthStore.getState().user?.id)
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('does not sign the new account out when the first account session has ended by then', async () => {
+      const held = holdOrderRequests()
+      try {
+        renderApp('/checkout', catalog)
+        await screen.findByRole('textbox', { name: 'טלפון' })
+        await fillValidForm()
+        await userEvent.click(submitButton())
+        await waitFor(() => expect(held.count()).toBe(1))
+
+        // The first account signs out (which ends its session on the server) and another signs in.
+        useAuthStore.getState().logout()
+        await useAuthStore.getState().register(DANA)
+        act(() => useCartStore.getState().addItem('GPU-1'))
+      } finally {
+        // The request now carries a session the server has ended: it is answered 401.
+        held.release()
+      }
+
+      await act(() => new Promise((resolve) => setTimeout(resolve, 100)))
+      expect(api.orders()).toHaveLength(0)
+      expect(useAuthStore.getState().user?.email).toBe(DANA.email)
+      expect(useAuthStore.getState().status).toBe('authenticated')
+      expect(useCartStore.getState().items).toEqual([{ productId: 'GPU-1', quantity: 1 }])
+    })
+  })
+
   it('opens a stale checkout page after the order without placing anything', async () => {
     const sent = watchOrderRequests()
     renderApp('/checkout', catalog)

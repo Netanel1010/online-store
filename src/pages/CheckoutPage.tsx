@@ -120,6 +120,15 @@ export function CheckoutPage() {
         expectedTotal: agreedTotal ?? summarizeCart(buildCartLines(cart, products)).total,
       })
 
+      // The visitor signed out, or into another account, while the order was on its way. The answer
+      // is the earlier account's: its order exists (or does not) on the server, and its key is dealt
+      // with, but nothing here may touch what the visitor has now: not the cart, not the page they
+      // are on, and not their session (an ended one would otherwise sign the new account out).
+      const current = useAuthStore.getState()
+      if (current.token !== token || current.user?.id !== user.id) {
+        return outcome.ok ? { ok: true } : { ok: false, message: '' }
+      }
+
       if (outcome.ok) {
         // Left the page meanwhile: the order exists and the cart is emptied, but the visitor stays
         // where they went instead of being pulled to the confirmation.

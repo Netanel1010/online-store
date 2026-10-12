@@ -17,8 +17,12 @@ interface SubmitOrderRequest {
   expectedTotal: number
 }
 
-/** The order being sent right now, if any: a second click or key press joins it instead of sending. */
-let inFlight: Promise<PlaceOrderOutcome> | null = null
+/**
+ * The orders being sent right now, by the session that sent them: a second click or key press of the
+ * same session joins its request instead of sending another. Another account (or the same account
+ * signed in again) never joins it: its answer is that account's, and must not be taken for another's.
+ */
+const inFlight = new Map<string, Promise<PlaceOrderOutcome>>()
 
 /**
  * Places the order of the checkout. The key belongs to the account's unresolved attempt (see
@@ -27,15 +31,18 @@ let inFlight: Promise<PlaceOrderOutcome> | null = null
  * whether an order already exists. The key is forgotten only once an order exists for the visitor.
  * A refusal, even `key-reused`, keeps it: the checkout has to show the order that exists first.
  *
- * While a request is on its way, a second call (a double click, Enter pressed twice) gets the same
- * answer instead of sending a second request.
+ * While a request is on its way, a second call of the same session (a double click, Enter pressed
+ * twice) gets the same answer instead of sending a second request.
  */
 export function submitOrder(request: SubmitOrderRequest): Promise<PlaceOrderOutcome> {
-  if (inFlight) return inFlight
+  // An account id and a token are made of letters, digits and dashes: "|" cannot blur the two.
+  const session = `${request.userId}|${request.token}`
+  const joined = inFlight.get(session)
+  if (joined) return joined
   const attempt = send(request)
-  inFlight = attempt
+  inFlight.set(session, attempt)
   const done = () => {
-    if (inFlight === attempt) inFlight = null
+    if (inFlight.get(session) === attempt) inFlight.delete(session)
   }
   attempt.then(done, done)
   return attempt

@@ -204,7 +204,73 @@ describe('submitOrder: the key of an attempt', () => {
   })
 })
 
-describe('submitOrder: one request at a time', () => {
+describe('submitOrder: one request at a time per session', () => {
+  const ORDER_B = { ...ORDER, orderNumber: 'DEMO-B2B2B2B2' }
+
+  /** The first reply waits for `release()`; the others answer at once. */
+  function holdFirstReply(...later: (() => Response)[]) {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    const sent = answers(
+      async () => {
+        await gate
+        return json(ORDER, 201)
+      },
+      ...later,
+    )
+    return { sent, release: () => release() }
+  }
+
+  it('does not give an account the answer to the request of another account that is on its way', async () => {
+    const { sent, release } = holdFirstReply(() => json(ORDER_B, 201))
+
+    const first = submit({ userId: 'user-1', token: 'A'.repeat(43) })
+    const second = await submit({ userId: 'user-2', token: 'B'.repeat(43) })
+
+    // The second account sent a request of its own and got its own order, while the first is still waiting.
+    expect(sent).toHaveLength(2)
+    expect(second).toEqual({ ok: true, order: ORDER_B })
+    release()
+    expect(await first).toEqual({ ok: true, order: ORDER })
+    expect(sent[0]!.key).not.toBe(sent[1]!.key)
+  })
+
+  it('does not give the same account the request of an earlier session either', async () => {
+    const { sent, release } = holdFirstReply(() => json(ORDER_B, 201))
+
+    const earlier = submit({ token: 'A'.repeat(43) })
+    const later = await submit({ token: 'B'.repeat(43) })
+
+    expect(sent).toHaveLength(2)
+    expect(later.ok && later.order.orderNumber).toBe(ORDER_B.orderNumber)
+    release()
+    expect((await earlier).ok).toBe(true)
+  })
+
+  it('still joins a second submit of a session after another account sent its own', async () => {
+    const { sent, release } = holdFirstReply(() => json(ORDER_B, 201))
+
+    const first = submit({ userId: 'user-1', token: 'A'.repeat(43) })
+    await submit({ userId: 'user-2', token: 'B'.repeat(43) })
+    const again = submit({ userId: 'user-1', token: 'A'.repeat(43) })
+    release()
+
+    expect(await again).toEqual(await first)
+    expect(sent).toHaveLength(2)
+  })
+
+  it('forgets the key of the account whose order came back late, and not the key of the one now signed in', async () => {
+    const { release } = holdFirstReply(() => Promise.reject(new TypeError('lost')) as never)
+
+    const late = submit({ userId: 'user-1', token: 'A'.repeat(43) })
+    await submit({ userId: 'user-2', token: 'B'.repeat(43) })
+    release()
+    await late
+
+    expect(unresolvedAttemptKey('user-1')).toBeNull()
+    expect(unresolvedAttemptKey('user-2')).not.toBeNull()
+  })
+
   it('sends one request for a double click, and gives both calls the same answer', async () => {
     let release!: () => void
     const gate = new Promise<void>((resolve) => (release = resolve))
