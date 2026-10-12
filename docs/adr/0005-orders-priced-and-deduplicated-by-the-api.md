@@ -38,7 +38,7 @@ request that times out may well have succeeded, and the browser repeats it.
   Another account signing in on the same browser does not take the key from the first: that order may
   still be made on the server, and coming back with a new key would place it twice. An account only
   sends, looks up and forgets its own key.
-- **The key is let go only when the attempt is resolved:** an order exists (`200`/`201`), the visitor
+- **The key is let go only when the attempt is resolved:** an order exists for the visitor who is signed in (`200`/`201`), the visitor
   confirmed that they want a separate order besides the one that exists, or a day passed. A refusal
   such as `price_changed` or `product_unavailable` does not resolve it, because an earlier request
   that is still on its way could place the order afterwards.
@@ -66,11 +66,17 @@ request that times out may well have succeeded, and the browser repeats it.
 - Two requests with one key and different content that arrive at the same moment make one order: the
   unique index decides, and the other is told which order exists (proved against a real MongoDB).
 - While a request is on its way, a second submit of the same session (a double click, Enter twice)
-  joins it instead of sending another. Another account never joins it, and an answer that arrives
-  after the visitor switched accounts only resolves the attempt of the account that sent it: it does
-  not empty the new account's cart, move its page or sign it out. Choosing a separate order is the one way to place another order after an uncertain
-  attempt, and it asks first. Reconciling the cart with an order that turned out to exist is a separate
-  piece of work: until then the cart is left as it is.
+  joins it instead of sending another. Another account never joins it.
+- An answer that arrives after the visitor switched accounts is the earlier account's, and resolves
+  nothing: it does not empty the new account's cart, move its page or sign it out, and the key of the
+  account that sent it is **kept**, even for an order that was placed. That account has not seen the
+  order, and the cart in its account still holds what it ordered (the browser cannot send the emptied
+  cart once the session is gone). When it comes back, the checkout finds the order by its key and shows
+  it, instead of letting it order the same cart again with a key of its own. The checkout page also
+  starts afresh for each account, so one account's notice is never shown to the next.
+- Choosing a separate order is the one way to place another order after an uncertain attempt, and it
+  asks first. Reconciling the cart with an order that turned out to exist is a separate piece of work:
+  until then the cart is left as it is.
 
 ## In the code
 

@@ -139,8 +139,10 @@ The rule is that an unresolved attempt keeps one `Idempotency-Key`, and the API 
   and points to "My orders"; Enter twice and a double click send one request; a page left while the
   order is on its way does not move the visitor; another account that orders in between leaves the
   first account's attempt to be found when it comes back; an answer that arrives after the visitor
-  switched accounts touches neither the new account's cart, page nor session; and a later, confirmed
-  order gets a key of its own.
+  switched accounts (the order came back late, or its answer was lost) touches neither the new
+  account's cart, page nor session, and keeps the first account's key, so that account finds its order
+  when it comes back and cannot order the same cart again; the page starts afresh for each account;
+  and a later, confirmed order gets a key of its own.
   `holdOrderRequests` keeps a request on its way until a test lets it go; release it in a `finally`,
   because a request that never ends would be joined by the next test's order.
 - `e2e/orders.spec.ts`: the same flow in a real browser, where the answer the page gets back is not the
