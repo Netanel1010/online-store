@@ -43,8 +43,17 @@ type Problem =
 
 const GENERIC_FAILURE = 'לא הצלחנו להשלים את ההזמנה. נסו שוב.'
 
-/** Reached only through RequireAuth, so a signed-in visitor is guaranteed here. */
+/**
+ * Reached only through RequireAuth, so a signed-in visitor is guaranteed here. The page is started
+ * afresh for each account: what one account saw on it (an order from an earlier attempt, a changed
+ * price, what they typed) is never shown to the account that signs in next.
+ */
 export function CheckoutPage() {
+  const user = useCurrentUser()
+  return <CheckoutContent key={user?.id ?? 'signed-out'} />
+}
+
+function CheckoutContent() {
   const user = useCurrentUser()
   const items = useCartStore((state) => state.items)
   const waitingForCart = useCartIsLoading()
@@ -121,15 +130,19 @@ export function CheckoutPage() {
       })
 
       // The visitor signed out, or into another account, while the order was on its way. The answer
-      // is the earlier account's: its order exists (or does not) on the server, and its key is dealt
-      // with, but nothing here may touch what the visitor has now: not the cart, not the page they
-      // are on, and not their session (an ended one would otherwise sign the new account out).
+      // is the earlier account's: nothing here may touch what the visitor has now: not the cart, not
+      // the page they are on, and not their session (an ended one would otherwise sign the new account
+      // out). The key of the earlier account's attempt is kept too, even for an order that was placed:
+      // that visitor has not seen it, and the cart in their account still holds what they ordered, so
+      // when they come back the checkout finds the order by its key instead of ordering again.
       const current = useAuthStore.getState()
       if (current.token !== token || current.user?.id !== user.id) {
         return outcome.ok ? { ok: true } : { ok: false, message: '' }
       }
 
       if (outcome.ok) {
+        // The order exists for the visitor who is here: the attempt is resolved.
+        forgetCheckoutAttempt(user.id)
         // Left the page meanwhile: the order exists and the cart is emptied, but the visitor stays
         // where they went instead of being pulled to the confirmation.
         if (mounted.current) {

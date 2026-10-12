@@ -1,6 +1,6 @@
 import type { CartItem } from '@/features/cart/cartStore'
 import type { CheckoutValues } from '@/features/checkout/schema'
-import { forgetCheckoutAttempt, idempotencyKeyFor } from './checkoutAttempt'
+import { idempotencyKeyFor } from './checkoutAttempt'
 import { placeOrder, type PlaceOrderOutcome } from './orderService'
 
 /** The part of the checkout form that is an order's delivery details (not the demo tick box). */
@@ -28,8 +28,9 @@ const inFlight = new Map<string, Promise<PlaceOrderOutcome>>()
  * Places the order of the checkout. The key belongs to the account's unresolved attempt (see
  * `checkoutAttempt.ts`), so every request after an uncertain one (this call again, a reload, the
  * repeats inside `placeOrder`, an edit of the details) carries the same key and the API decides
- * whether an order already exists. The key is forgotten only once an order exists for the visitor.
- * A refusal, even `key-reused`, keeps it: the checkout has to show the order that exists first.
+ * whether an order already exists. The key is kept whatever the answer is, even an order that was
+ * placed or `key-reused`: the caller forgets it once the order is the signed-in visitor's own, and
+ * the checkout has to show the order that exists first.
  *
  * While a request is on its way, a second call of the same session (a double click, Enter pressed
  * twice) gets the same answer instead of sending a second request.
@@ -56,15 +57,15 @@ async function send({
   expectedTotal,
 }: SubmitOrderRequest): Promise<PlaceOrderOutcome> {
   const idempotencyKey = idempotencyKeyFor(userId)
-  const outcome = await placeOrder({
+  // The attempt is not resolved here, not even by an order that exists: only the caller knows whether
+  // the visitor who is signed in now is the one who sent it (see `forgetCheckoutAttempt`). If they
+  // switched accounts meanwhile, the order exists but they have not seen it, so its key must stay,
+  // to be found when that account comes back.
+  return placeOrder({
     token,
     idempotencyKey,
     items,
     delivery: deliveryOf(values),
     expectedTotal,
   })
-
-  // Only this account's attempt: another account's unresolved order is not resolved by this one.
-  if (outcome.ok) forgetCheckoutAttempt(userId)
-  return outcome
 }

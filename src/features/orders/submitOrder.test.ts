@@ -1,6 +1,10 @@
 import type { CheckoutValues } from '@/features/checkout/schema'
 import { fetchPolicy } from '@/lib/fetchWithRetry'
-import { forgetAllCheckoutAttempts, unresolvedAttemptKey } from './checkoutAttempt'
+import {
+  forgetAllCheckoutAttempts,
+  forgetCheckoutAttempt,
+  unresolvedAttemptKey,
+} from './checkoutAttempt'
 import { submitOrder } from './submitOrder'
 
 const TOKEN = 'T'.repeat(43)
@@ -67,13 +71,13 @@ afterEach(() => {
 })
 
 describe('submitOrder: the key of an attempt', () => {
-  it('forgets the key once the order exists', async () => {
+  it('keeps the key even when the order exists: only the caller knows whose order it is', async () => {
     answers(() => json(ORDER, 201))
 
     const outcome = await submit()
 
     expect(outcome).toEqual({ ok: true, order: ORDER })
-    expect(unresolvedAttemptKey(USER)).toBeNull()
+    expect(unresolvedAttemptKey(USER)).not.toBeNull()
   })
 
   it.each([
@@ -145,10 +149,11 @@ describe('submitOrder: the key of an attempt', () => {
     expect(sent.map((request) => request.delivery.street)).toEqual(['הנשיא', 'אחרת'])
   })
 
-  it('uses a new key for the next order once one was placed', async () => {
+  it('uses a new key for the next order once the caller has resolved the attempt', async () => {
     const sent = answers(() => json(ORDER, 201))
 
     await submit()
+    forgetCheckoutAttempt(USER)
     await submit()
 
     expect(sent[1]!.key).not.toBe(sent[0]!.key)
@@ -175,7 +180,7 @@ describe('submitOrder: the key of an attempt', () => {
     expect(unresolvedAttemptKey('user-2')).toBe(sent[1]!.key)
   })
 
-  it('resolves only the account whose order exists, and leaves the other attempt alone', async () => {
+  it('lets the caller resolve one account and leave the other attempt alone', async () => {
     const sent = answers(
       () => Promise.reject(new TypeError('lost')),
       () => json(ORDER, 201),
@@ -183,6 +188,7 @@ describe('submitOrder: the key of an attempt', () => {
 
     await submit({ userId: 'user-1' })
     const second = await submit({ userId: 'user-2' })
+    forgetCheckoutAttempt('user-2')
 
     expect(second.ok).toBe(true)
     expect(unresolvedAttemptKey('user-2')).toBeNull()
@@ -259,16 +265,16 @@ describe('submitOrder: one request at a time per session', () => {
     expect(sent).toHaveLength(2)
   })
 
-  it('forgets the key of the account whose order came back late, and not the key of the one now signed in', async () => {
-    const { release } = holdFirstReply(() => Promise.reject(new TypeError('lost')) as never)
+  it('keeps the key of the account whose order came back late, so it can be found when that account returns', async () => {
+    const { sent, release } = holdFirstReply(() => Promise.reject(new TypeError('lost')) as never)
 
     const late = submit({ userId: 'user-1', token: 'A'.repeat(43) })
     await submit({ userId: 'user-2', token: 'B'.repeat(43) })
     release()
-    await late
+    expect((await late).ok).toBe(true)
 
-    expect(unresolvedAttemptKey('user-1')).toBeNull()
-    expect(unresolvedAttemptKey('user-2')).not.toBeNull()
+    expect(unresolvedAttemptKey('user-1')).toBe(sent[0]!.key)
+    expect(unresolvedAttemptKey('user-2')).toBe(sent[1]!.key)
   })
 
   it('sends one request for a double click, and gives both calls the same answer', async () => {

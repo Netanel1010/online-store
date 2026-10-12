@@ -106,8 +106,11 @@ function watchLookups(answer?: { status: number; code: string }) {
   return { count: () => seen.length, requests: () => seen }
 }
 
-/** Holds every order request until `release()`; the API sees it only then. */
-function holdOrderRequests() {
+/**
+ * Holds every order request until `release()`; the API sees it only then. With `loseAnswer`, the API
+ * then makes the order and the answer never reaches the page (a timeout on a slow host).
+ */
+function holdOrderRequests({ loseAnswer = false } = {}) {
   let release!: () => void
   const gate = new Promise<void>((resolve) => (release = resolve))
   const inner = globalThis.fetch
@@ -116,7 +119,9 @@ function holdOrderRequests() {
     if (!isOrderRequest(input, init)) return inner(input, init)
     count += 1
     await gate
-    return inner(input, init)
+    const response = await inner(input, init)
+    if (loseAnswer) throw new TypeError('the answer was lost')
+    return response
   })
   return { release: () => release(), count: () => count }
 }
@@ -872,6 +877,23 @@ describe('an order whose answer was lost', () => {
       expect(api.orders()).toHaveLength(2)
     })
 
+    it('does not show the first account order to the account that signs in on the page', async () => {
+      await loseTheFirstAnswer()
+      await editAndSendAgain()
+      const { orderNumber } = api.orders()[0]!
+
+      // Another account takes the page over without leaving it, and has something to order.
+      await useAuthStore.getState().register(DANA)
+      act(() => useCartStore.getState().addItem('GPU-1'))
+      await waitFor(() => expect(useCartStore.getState().items).toHaveLength(1))
+
+      // The form is there for the new account, and nothing of the first account's is on it.
+      expect(await screen.findByRole('textbox', { name: 'טלפון' })).toHaveValue('')
+      expect(screen.queryByText(/כבר נקלטה/)).not.toBeInTheDocument()
+      expect(screen.queryByText(orderNumber)).not.toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
     it('sends the first account own key again when it retries after the other account ordered', async () => {
       const sent = await loseTheFirstAnswer()
       cleanup()
@@ -1068,6 +1090,84 @@ describe('one order at a time', () => {
       expect(useAuthStore.getState().user?.email).toBe(DANA.email)
       expect(useAuthStore.getState().status).toBe('authenticated')
       expect(useCartStore.getState().items).toEqual([{ productId: 'GPU-1', quantity: 1 }])
+    })
+
+    /**
+     * The first account sends its order, another account takes the browser over, and the first
+     * account's request is answered afterwards (`held.release()`): either the order comes back, or
+     * the answer is lost. Either way the new account is left alone (nothing of theirs changes).
+     */
+    async function sendThenSwitchThenAnswer(held: ReturnType<typeof holdOrderRequests>) {
+      try {
+        renderApp('/checkout', catalog)
+        await screen.findByRole('textbox', { name: 'טלפון' })
+        await fillValidForm()
+        await userEvent.click(submitButton())
+        await waitFor(() => expect(held.count()).toBe(1))
+
+        await useAuthStore.getState().register(DANA)
+        act(() => useCartStore.getState().addItem('GPU-1'))
+        await waitFor(() =>
+          expect(useCartStore.getState().items).toEqual([{ productId: 'GPU-1', quantity: 1 }]),
+        )
+      } finally {
+        held.release()
+      }
+      await waitFor(() => expect(api.orders()).toHaveLength(1))
+      await act(() => new Promise((resolve) => setTimeout(resolve, 50)))
+      expect(useCartStore.getState().items).toEqual([{ productId: 'GPU-1', quantity: 1 }])
+      expect(useAuthStore.getState().user?.email).toBe(DANA.email)
+      expect(url()).toBe('/checkout')
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    }
+
+    /** The first account signs in again: its cart comes back from its account, with what it ordered. */
+    async function firstAccountComesBack() {
+      cleanup()
+      await useAuthStore.getState().login({ email: GOOD.email, password: GOOD.password })
+      renderApp('/checkout', catalog)
+    }
+
+    it('finds the first account order when it comes back, instead of letting it order again, when the order came back late', async () => {
+      const sent = watchOrderRequests()
+      await sendThenSwitchThenAnswer(holdOrderRequests())
+      const lookups = watchLookups()
+
+      await firstAccountComesBack()
+
+      // Its cart still holds what it ordered, but its attempt was not forgotten: the order is found.
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('כבר נקלטה'))
+      expect(screen.getByRole('alert')).toHaveTextContent(api.orders()[0]!.orderNumber)
+      expect(lookups.requests()[0]!.body).toEqual({ idempotencyKey: sent.keys()[0] })
+      expect(api.orders()).toHaveLength(1)
+    })
+
+    it('finds the first account order when it comes back, when the answer to its order was lost', async () => {
+      const sent = watchOrderRequests()
+      await sendThenSwitchThenAnswer(holdOrderRequests({ loseAnswer: true }))
+      const lookups = watchLookups()
+
+      await firstAccountComesBack()
+
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('כבר נקלטה'))
+      expect(screen.getByRole('alert')).toHaveTextContent(api.orders()[0]!.orderNumber)
+      expect(lookups.requests()[0]!.body).toEqual({ idempotencyKey: sent.keys()[0] })
+      expect(api.orders()).toHaveLength(1)
+    })
+
+    it('does not let the first account order the same cart again with a key of its own', async () => {
+      const sent = watchOrderRequests()
+      await sendThenSwitchThenAnswer(holdOrderRequests())
+      await firstAccountComesBack()
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('כבר נקלטה'))
+
+      // Sending the same details again gets the order that exists, not a second one.
+      await fillValidForm()
+      await userEvent.click(submitButton())
+
+      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      expect(api.orders()).toHaveLength(1)
+      expect(sent.keys()[1]).toBe(sent.keys()[0])
     })
   })
 
