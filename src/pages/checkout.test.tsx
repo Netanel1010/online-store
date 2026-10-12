@@ -1410,6 +1410,41 @@ describe('the rules for the delivery details', () => {
     expect(sent.bodies()).toEqual([])
   })
 
+  it('does not cut a long note short in the field: it counts characters, as the API does', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+    const notes = box('הערות למשלוח (לא חובה)')
+
+    // 300 emoji are 600 units of the browser's own length, and 300 characters for the rules.
+    await userEvent.type(box('טלפון'), '0501234567')
+    await fillAddress()
+    await userEvent.click(notes)
+    await userEvent.paste('🙏'.repeat(300))
+    expect(notes).toHaveValue('🙏'.repeat(300))
+    await userEvent.click(submitButton())
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+    ).toBeInTheDocument()
+    expect(sent.bodies()[0]).toMatchObject({ delivery: { notes: '🙏'.repeat(300) } })
+  })
+
+  it('tells the visitor that a note is too long, and keeps all of it', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+    const notes = box('הערות למשלוח (לא חובה)')
+
+    await userEvent.type(box('טלפון'), '0501234567')
+    await fillAddress()
+    await userEvent.click(notes)
+    await userEvent.paste('א'.repeat(301))
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByText('ההערות ארוכות מדי (עד 300 תווים)')).toBeInTheDocument()
+    expect(notes).toHaveValue('א'.repeat(301))
+    expect(sent.bodies()).toEqual([])
+  })
+
   it('does not say that an address exists or can be delivered to', async () => {
     await openCheckout()
 

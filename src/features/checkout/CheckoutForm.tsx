@@ -132,7 +132,6 @@ export function CheckoutForm({ defaultValues, onSubmit, totalNote, notice }: Che
         </div>
         <TextAreaField
           label="הערות למשלוח (לא חובה)"
-          maxLength={300}
           error={errors.notes?.message}
           {...register('notes')}
         />
