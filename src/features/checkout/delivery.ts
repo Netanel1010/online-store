@@ -2,7 +2,7 @@ import { z } from 'zod'
 // The extensions are required because the API (server/) imports this file as well: it runs as Node
 // ES modules, which do not resolve extensionless imports or the `@` alias. The app is not affected.
 import { EMAIL_MAX_LENGTH } from '../auth/rules.ts'
-import { phoneField } from '../../lib/validation.ts'
+import { PHONE_RAW_MAX_LENGTH, phoneField } from '../../lib/validation.ts'
 import {
   asciiDigits,
   characterCount,
@@ -22,10 +22,34 @@ import {
  * whether anything can be delivered to it, and no message may say so.
  */
 
-/** The longest part before the @ of an address that can be delivered to (RFC 5321). */
-const EMAIL_LOCAL_PART_MAX_LENGTH = 64
-/** No value is read at all when it is longer than this, whatever the field: a limit on the work. */
+/** No one-line value is read at all when it is longer than this, as it was typed: a limit on the work. */
 const RAW_LINE_MAX_LENGTH = 500
+
+/**
+ * The limits of each field, in characters (an emoji is one).
+ *
+ * `raw` is the longest value that is read at all **as it was typed**, with its spaces, separators
+ * and invisible marks: a limit on the work, and the only limit that a client can check without
+ * normalizing the value first. The other limits are those of the value **once normalized**. They
+ * are different things (`'א' + 499 spaces` is a valid name of one character and 500 raw ones), and
+ * docs/openapi.yaml states both; a test keeps it in step with this table.
+ */
+export const DELIVERY_LIMITS = {
+  fullName: { raw: RAW_LINE_MAX_LENGTH, min: 2, max: 80 },
+  email: {
+    raw: RAW_LINE_MAX_LENGTH,
+    max: EMAIL_MAX_LENGTH,
+    /** The longest part before the @ of an address that can be delivered to (RFC 5321). */
+    localPartMax: 64,
+  },
+  phone: { raw: PHONE_RAW_MAX_LENGTH },
+  city: { raw: RAW_LINE_MAX_LENGTH, min: 2, max: 60 },
+  street: { raw: RAW_LINE_MAX_LENGTH, min: 2, max: 80 },
+  houseNumber: { raw: RAW_LINE_MAX_LENGTH, max: 10 },
+  apartment: { raw: RAW_LINE_MAX_LENGTH, max: 10 },
+  postalCode: { raw: 20 },
+  notes: { raw: 2000, max: 300, maxLines: 6 },
+} as const
 
 const EMAIL_TOO_LONG = 'כתובת האימייל ארוכה מדי'
 const EMAIL_INVALID = 'כתובת האימייל אינה תקינה'
@@ -37,10 +61,10 @@ const EMAIL_INVALID = 'כתובת האימייל אינה תקינה'
  * normalizing (which removes spaces and the marks of a right-to-left copy) cannot be what hides a
  * character from the check.
  */
-function oneLine(refusal: string, tooLong: string) {
+function oneLine(refusal: string, tooLong: string, rawMax: number) {
   return z
     .string()
-    .max(RAW_LINE_MAX_LENGTH, tooLong)
+    .max(rawMax, tooLong)
     .refine((value) => !hasNonText(value), refusal)
     .transform(normalizeLine)
 }
@@ -51,14 +75,19 @@ function oneLine(refusal: string, tooLong: string) {
  * limits are those of the address itself, and it cannot begin with `+` or `-`, which a
  * spreadsheet reads as the start of a formula.
  */
-export const deliveryEmailField = oneLine(EMAIL_INVALID, EMAIL_TOO_LONG).pipe(
+export const deliveryEmailField = oneLine(
+  EMAIL_INVALID,
+  EMAIL_TOO_LONG,
+  DELIVERY_LIMITS.email.raw,
+).pipe(
   z
     .string()
     .min(1, 'יש להזין כתובת אימייל')
     .pipe(z.email(EMAIL_INVALID))
-    .refine((value) => value.length <= EMAIL_MAX_LENGTH, EMAIL_TOO_LONG)
+    .refine((value) => value.length <= DELIVERY_LIMITS.email.max, EMAIL_TOO_LONG)
     .refine(
-      (value) => value.slice(0, value.lastIndexOf('@')).length <= EMAIL_LOCAL_PART_MAX_LENGTH,
+      (value) =>
+        value.slice(0, value.lastIndexOf('@')).length <= DELIVERY_LIMITS.email.localPartMax,
       EMAIL_TOO_LONG,
     )
     .refine((value) => !/^[+-]/.test(value), EMAIL_INVALID),
@@ -81,6 +110,12 @@ interface NameOptions {
   max: number
 }
 
+interface NameLimits {
+  raw: number
+  min: number
+  max: number
+}
+
 /** The first thing wrong with a name, a city or a street (already normalized), or null. */
 function nameProblem(value: string, { label, min, max }: NameOptions): string | null {
   const length = characterCount(value)
@@ -93,8 +128,9 @@ function nameProblem(value: string, { label, min, max }: NameOptions): string | 
   return null
 }
 
-function nameField(options: NameOptions) {
-  return oneLine(`${options.label} מכיל תווים שאינם מותרים`, `${options.label} ארוך מדי`).pipe(
+function nameField(label: string, { raw, min, max }: NameLimits) {
+  const options: NameOptions = { label, min, max }
+  return oneLine(`${label} מכיל תווים שאינם מותרים`, `${label} ארוך מדי`, raw).pipe(
     z.string().superRefine((value, ctx) => {
       const message = nameProblem(value, options)
       if (message) ctx.addIssue({ code: 'custom', message })
@@ -107,13 +143,16 @@ const NO_HOUSE_NUMBER = ['ללא מספר', 'ללא']
 /** A house number: digits and letters, and what joins them (`12א`, `12/4`, `12-14`, `12 א'`). */
 const HOUSE_NUMBER_CHARACTERS = /^[\p{L}\p{Nd}/'"’׳״ .\p{Pd}]+$/u
 const NOT_ZERO = /[1-9]/
-const HOUSE_NUMBER_MAX_LENGTH = 10
 
 /**
  * The house number. It holds a digit (`0` is not a house) unless it says that there is none
  * (`ללא מספר`, `ללא`). Digits typed as Arabic-Indic are stored as 0-9.
  */
-const houseNumberField = oneLine('מספר הבית אינו תקין', 'מספר הבית ארוך מדי')
+const houseNumberField = oneLine(
+  'מספר הבית אינו תקין',
+  'מספר הבית ארוך מדי',
+  DELIVERY_LIMITS.houseNumber.raw,
+)
   .transform(asciiDigits)
   .pipe(
     z.string().superRefine((value, ctx) => {
@@ -121,7 +160,7 @@ const houseNumberField = oneLine('מספר הבית אינו תקין', 'מספ�
       const message =
         length === 0
           ? 'יש להזין מספר בית'
-          : length > HOUSE_NUMBER_MAX_LENGTH
+          : length > DELIVERY_LIMITS.houseNumber.max
             ? 'מספר הבית ארוך מדי'
             : NO_HOUSE_NUMBER.includes(value) ||
                 (HOUSE_NUMBER_CHARACTERS.test(value) &&
@@ -135,16 +174,19 @@ const houseNumberField = oneLine('מספר הבית אינו תקין', 'מספ�
 
 /** An apartment, a floor or an entrance (`4`, `4א`, `קרקע`), when there is one. */
 const APARTMENT_CHARACTERS = /^[\p{L}\p{Nd}/'"’׳״ \p{Pd}]+$/u
-const APARTMENT_MAX_LENGTH = 10
 
-const apartmentField = oneLine('מספר הדירה מכיל תווים שאינם מותרים', 'מספר הדירה ארוך מדי')
+const apartmentField = oneLine(
+  'מספר הדירה מכיל תווים שאינם מותרים',
+  'מספר הדירה ארוך מדי',
+  DELIVERY_LIMITS.apartment.raw,
+)
   .transform(asciiDigits)
   .pipe(
     z.string().superRefine((value, ctx) => {
       const message =
         value === ''
           ? null
-          : characterCount(value) > APARTMENT_MAX_LENGTH
+          : characterCount(value) > DELIVERY_LIMITS.apartment.max
             ? 'מספר הדירה ארוך מדי'
             : !APARTMENT_CHARACTERS.test(value)
               ? 'מספר הדירה מכיל תווים שאינם מותרים'
@@ -156,9 +198,8 @@ const apartmentField = oneLine('מספר הדירה מכיל תווים שאינ
   )
 
 const POSTAL_CODE_INVALID = 'המיקוד חייב להכיל 7 ספרות'
-const POSTAL_CODE_RAW_MAX_LENGTH = 20
 /** An Israeli postal code: seven digits, none of them leading with 0. Only the shape is checked. */
-const POSTAL_CODE = /^[1-9]\d{6}$/
+export const POSTAL_CODE = /^[1-9]\d{6}$/
 /** What may be written between the digits of a postal code: a space of any kind, or any dash. */
 const POSTAL_CODE_SEPARATORS = /[\p{Zs}\p{Pd}]/gu
 
@@ -168,14 +209,11 @@ const POSTAL_CODE_SEPARATORS = /[\p{Zs}\p{Pd}]/gu
  */
 const postalCodeField = z
   .string()
-  .max(POSTAL_CODE_RAW_MAX_LENGTH, POSTAL_CODE_INVALID)
+  .max(DELIVERY_LIMITS.postalCode.raw, POSTAL_CODE_INVALID)
   .refine((value) => !hasNonText(value), POSTAL_CODE_INVALID)
   .transform((value) => asciiDigits(normalizeLine(value)).replace(POSTAL_CODE_SEPARATORS, ''))
   .pipe(z.string().refine((value) => value === '' || POSTAL_CODE.test(value), POSTAL_CODE_INVALID))
 
-const NOTES_MAX_LENGTH = 300
-const NOTES_MAX_LINES = 6
-const NOTES_RAW_MAX_LENGTH = 2000
 const NOTES_NOT_ALLOWED = 'ההערות מכילות תווים שאינם מותרים'
 
 /**
@@ -185,15 +223,15 @@ const NOTES_NOT_ALLOWED = 'ההערות מכילות תווים שאינם מו�
  */
 const notesField = z
   .string()
-  .max(NOTES_RAW_MAX_LENGTH, 'ההערות ארוכות מדי (עד 300 תווים)')
+  .max(DELIVERY_LIMITS.notes.raw, 'ההערות ארוכות מדי (עד 300 תווים)')
   .refine((value) => !hasNonText(value, { allowLineBreaks: true }), NOTES_NOT_ALLOWED)
   .transform(normalizeLines)
   .pipe(
     z.string().superRefine((value, ctx) => {
       const message =
-        characterCount(value) > NOTES_MAX_LENGTH
+        characterCount(value) > DELIVERY_LIMITS.notes.max
           ? 'ההערות ארוכות מדי (עד 300 תווים)'
-          : value.split('\n').length > NOTES_MAX_LINES
+          : value.split('\n').length > DELIVERY_LIMITS.notes.maxLines
             ? 'יש עד 6 שורות בהערות'
             : /[<>]/.test(value)
               ? NOTES_NOT_ALLOWED
@@ -205,11 +243,11 @@ const notesField = z
   )
 
 export const deliveryDetailsSchema = z.object({
-  fullName: nameField({ label: 'שם מלא', min: 2, max: 80 }),
+  fullName: nameField('שם מלא', DELIVERY_LIMITS.fullName),
   email: deliveryEmailField,
   phone: phoneField,
-  city: nameField({ label: 'עיר', min: 2, max: 60 }),
-  street: nameField({ label: 'רחוב', min: 2, max: 80 }),
+  city: nameField('עיר', DELIVERY_LIMITS.city),
+  street: nameField('רחוב', DELIVERY_LIMITS.street),
   houseNumber: houseNumberField,
   apartment: apartmentField,
   postalCode: postalCodeField,

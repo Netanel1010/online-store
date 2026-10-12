@@ -20,7 +20,7 @@ export function requiredText(label: string, { min = 2, max = 80 } = {}) {
 }
 
 /** A phone number is never this long, however it is written (`+972 (0) 50-123-4567` is 20). */
-const PHONE_RAW_MAX_LENGTH = 30
+export const PHONE_RAW_MAX_LENGTH = 30
 const PHONE_INVALID = 'מספר הטלפון אינו תקין'
 
 /**
@@ -29,7 +29,7 @@ const PHONE_INVALID = 'מספר הטלפון אינו תקין'
  * is 07 and eight digits. A number outside it is not one that can be reached, whatever its shape.
  * This is the shape of a number; it does not say that anyone has it.
  */
-const ISRAELI_NUMBER = /^0(?:[23489]\d{7}|5\d{8}|7\d{8})$/
+export const ISRAELI_NUMBER = /^0(?:[23489]\d{7}|5\d{8}|7\d{8})$/
 
 /** Spaces of any kind, any dash, dots and brackets: what people put between the digits of a number. */
 const PHONE_SEPARATORS = /[\p{Zs}\p{Pd}.()]/gu
