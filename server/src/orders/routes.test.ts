@@ -34,6 +34,8 @@ const DELIVERY = {
   postalCode: '',
   notes: '',
 }
+/** The same details as the API stores them: the phone number written locally. */
+const STORED = { ...DELIVERY, phone: '0501234567' }
 const card = makeProduct({ id: 'GV-N4060', name: 'RTX 4060', price: { current: 1500 } })
 const sale = makeProduct({ id: 'SALE-1', name: 'On sale', price: { current: 800, original: 1000 } })
 const body = (overrides: Record<string, unknown> = {}) => ({
@@ -195,7 +197,7 @@ describe('POST /api/orders', () => {
       total: 3000,
       originalTotal: 3000,
       savings: 0,
-      delivery: DELIVERY,
+      delivery: STORED,
     })
     expect(orders.stored).toHaveLength(1)
   })
@@ -534,7 +536,15 @@ describe('POST /api/orders/lookup', () => {
 
     const lines = JSON.stringify([...logger.info.mock.calls, ...logger.warn.mock.calls])
     expect(lines).toContain('/api/orders/lookup')
-    for (const secret of [KEY, 'short', 'הנשיא', '050-1234567', 'netanel@example.com', 'DEMO-']) {
+    for (const secret of [
+      KEY,
+      'short',
+      'הנשיא',
+      '050-1234567',
+      '0501234567',
+      'netanel@example.com',
+      'DEMO-',
+    ]) {
       expect(lines).not.toContain(secret)
     }
   })

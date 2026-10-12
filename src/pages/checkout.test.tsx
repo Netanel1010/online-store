@@ -449,7 +449,7 @@ describe('placing the order', () => {
         delivery: {
           fullName: GOOD.name,
           email: GOOD.email,
-          phone: '050-1234567',
+          phone: '0501234567',
           city: 'תל אביב',
           street: 'דיזנגוף',
           houseNumber: '12',

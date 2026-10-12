@@ -18,6 +18,8 @@ const DELIVERY = {
   postalCode: '',
   notes: '',
 }
+/** The same details as the API stores them: the phone number written locally. */
+const STORED = { ...DELIVERY, phone: '0501234567' }
 const body = (overrides: Record<string, unknown> = {}) => ({
   items: [{ productId: 'GV-N4060', quantity: 2 }],
   delivery: DELIVERY,
@@ -55,7 +57,7 @@ describe('parsePlaceOrderBody', () => {
 
     expect(parsed).toEqual({
       items: [{ productId: 'GV-N4060', quantity: 1 }],
-      delivery: DELIVERY,
+      delivery: STORED,
     })
   })
 
@@ -63,6 +65,46 @@ describe('parsePlaceOrderBody', () => {
     const parsed = parsePlaceOrderBody(body({ delivery: { ...DELIVERY, city: '  חיפה  ' } }))
 
     expect(parsed.delivery.city).toBe('חיפה')
+  })
+
+  it('stores what the form stores: the phone written locally, the invisible marks dropped', () => {
+    const parsed = parsePlaceOrderBody(
+      body({
+        delivery: {
+          ...DELIVERY,
+          phone: '+972 (0) 50-123-4567',
+          email: 'netanel@example.com\u200F',
+          street: '  הנשיא\u00A0\u00A0\u200F ',
+        },
+      }),
+    )
+
+    expect(parsed.delivery).toEqual(STORED)
+  })
+
+  it.each([
+    ['fullName', 'נתנאל\u0000כהן'],
+    ['fullName', 'abc\u202Egpj.exe'],
+    ['fullName', "=cmd|' /C calc'!A0"],
+    ['city', '<script>alert(1)</script>'],
+    ['street', '@SUM(1,2)'],
+    ['phone', '0000000000'],
+    ['email', `${'a'.repeat(260)}@example.com`],
+  ])('refuses %s %j, and says only which field is wrong', (name, value) => {
+    const error = failure(() =>
+      parsePlaceOrderBody(body({ delivery: { ...DELIVERY, [name]: value } })),
+    )
+
+    expect(error.code).toBe('invalid_input')
+    expect(error.message).toBe(`The field "delivery.${name}" is not valid`)
+    expect(error.message).not.toContain(value.slice(0, 6))
+  })
+
+  it('reads details that it has already read the same way again', () => {
+    const once = parsePlaceOrderBody(body({ delivery: { ...DELIVERY, phone: '+972-50-1234567' } }))
+    const twice = parsePlaceOrderBody(body({ delivery: once.delivery }))
+
+    expect(twice.delivery).toEqual(once.delivery)
   })
 
   it.each([
