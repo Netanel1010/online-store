@@ -1,5 +1,6 @@
-import { characterCount } from '@/lib/textRules'
-import { DELIVERY_LIMITS, deliveryDetailsSchema } from './delivery'
+import { characterCount, hasNonText } from '@/lib/textRules'
+import { normalizePhone } from '@/lib/validation'
+import { DELIVERY_LIMITS, deliveryDetailsSchema, normalizePostalCode } from './delivery'
 
 /**
  * The raw limit of a field (the longest value that is read at all, as it was typed) is counted in
@@ -91,5 +92,83 @@ describe('a raw limit counts code points, not UTF-16 units', () => {
     // Over the raw limit of 30 only in UTF-16 units: it is refused for what it is, not for its length.
     expect(read('phone', `050${astral}1234567`).problems).toEqual(['מספר הטלפון אינו תקין'])
     expect(read('postalCode', `64${astral}36901`).problems).toEqual(['המיקוד חייב להכיל 7 ספרות'])
+  })
+})
+
+/**
+ * A phone number and a postal code are normalized by removing the separators between their digits:
+ * spaces, dots, brackets and any dash (Unicode `Dash_Punctuation`). One dash, U+10EAD, is outside the
+ * Basic Multilingual Plane: it is one code point and two UTF-16 units, and it is read as a separator.
+ * It is the only way for such a field to hold a value that is within its raw limit in code points and
+ * over it in UTF-16 units, so these cases are what tell the two ways of counting apart.
+ */
+describe('a raw limit of a number counts code points, not UTF-16 units', () => {
+  /** YEZIDI HYPHENATION MARK: a dash outside the Basic Multilingual Plane. */
+  const dash = String.fromCodePoint(0x10ead)
+
+  /** The digits with a dash between each two of them, and dashes before them up to `total` code points. */
+  const spread = (digits: string, total: number) =>
+    dash.repeat(total - characterCount(digits) - (digits.length - 1)) + [...digits].join(dash)
+
+  it('has the premise of the cases below: the dash is one code point, two units, and a separator', () => {
+    expect(characterCount(dash)).toBe(1)
+    expect(dash.length).toBe(2)
+    expect(/^\p{Pd}$/u.test(dash)).toBe(true)
+    expect(hasNonText(dash)).toBe(false)
+  })
+
+  describe.each([
+    {
+      field: 'phone',
+      digits: '0501234567',
+      normalize: normalizePhone,
+      tooLong: 'מספר הטלפון אינו תקין',
+    },
+    {
+      field: 'postalCode',
+      digits: '6436901',
+      normalize: normalizePostalCode,
+      tooLong: 'המיקוד חייב להכיל 7 ספרות',
+    },
+  ] as const)('the $field', ({ field, digits, normalize, tooLong }) => {
+    const limit = DELIVERY_LIMITS[field].raw
+    const written = {
+      'padded at the end': (total: number) => digits + dash.repeat(total - digits.length),
+      'padded at the start': (total: number) => dash.repeat(total - digits.length) + digits,
+      'with a dash between its digits': (total: number) => spread(digits, total),
+    }
+
+    it.each(Object.entries(written))(
+      'is read at exactly its raw limit, %s, and stored as its digits',
+      (_how, write) => {
+        const atTheLimit = write(limit)
+        expect(characterCount(atTheLimit)).toBe(limit)
+        expect(atTheLimit.length).toBeGreaterThan(limit) // over the limit in UTF-16 units
+
+        const result = deliveryDetailsSchema.safeParse({ ...valid, [field]: atTheLimit })
+        expect(result.success).toBe(true)
+        expect((result.data as Record<string, string>)[field]).toBe(digits)
+      },
+    )
+
+    it.each(Object.entries(written))(
+      'is refused one code point over its raw limit, %s, and for that alone',
+      (_how, write) => {
+        const overTheLimit = write(limit + 1)
+        expect(characterCount(overTheLimit)).toBe(limit + 1)
+
+        // Nothing but its length is wrong with it: as typed it holds nothing prohibited, and once
+        // normalized it is the same valid number as the one at the limit.
+        expect(hasNonText(overTheLimit)).toBe(false)
+        expect(normalize(overTheLimit)).toBe(digits)
+        expect(deliveryDetailsSchema.shape[field].safeParse(digits).success).toBe(true)
+
+        const result = deliveryDetailsSchema.safeParse({ ...valid, [field]: overTheLimit })
+        expect(result.success).toBe(false)
+        expect(
+          result.error?.issues.filter((i) => i.path[0] === field).map((i) => i.message),
+        ).toEqual([tooLong])
+      },
+    )
   })
 })
