@@ -204,6 +204,16 @@ export const POSTAL_CODE = /^[1-9]\d{6}$/
 const POSTAL_CODE_SEPARATORS = /[\p{Zs}\p{Pd}]/gu
 
 /**
+ * A postal code as it is stored: the digits only. It takes out the invisible marks, spaces of any kind
+ * and dashes (and nothing else: not a tab or a line break), and reads Arabic-Indic, Persian and
+ * full-width digits as 0-9. What cannot be read as a code stays as it is, for the check; it is meant
+ * for a value that `hasNonText` has found nothing wrong with, and `postalCodeField` asks first.
+ */
+export function normalizePostalCode(value: string): string {
+  return asciiDigits(normalizeLine(value)).replace(POSTAL_CODE_SEPARATORS, '')
+}
+
+/**
  * The postal code, when there is one: seven digits, written with or without spaces or dashes in
  * them, stored as the seven digits. A code does not begin with 0, so `0000000` is not one.
  */
@@ -211,7 +221,7 @@ const postalCodeField = z
   .string()
   .max(DELIVERY_LIMITS.postalCode.raw, POSTAL_CODE_INVALID)
   .refine((value) => !hasNonText(value), POSTAL_CODE_INVALID)
-  .transform((value) => asciiDigits(normalizeLine(value)).replace(POSTAL_CODE_SEPARATORS, ''))
+  .transform(normalizePostalCode)
   .pipe(z.string().refine((value) => value === '' || POSTAL_CODE.test(value), POSTAL_CODE_INVALID))
 
 const NOTES_NOT_ALLOWED = 'ההערות מכילות תווים שאינם מותרים'

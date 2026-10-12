@@ -1,4 +1,4 @@
-import { deliveryDetailsSchema } from './delivery'
+import { deliveryDetailsSchema, normalizePostalCode } from './delivery'
 
 /**
  * A control character must be refused wherever it is: in the middle of a value, at the start and at
@@ -181,5 +181,24 @@ describe('a formula behind what is tidied away', () => {
     cover.flatMap((hide) => formulas.map((formula) => [JSON.stringify(hide), formula, hide])),
   )('is still seen at the start of a name after %s: %s', (_name, formula, hide) => {
     expect(check('fullName', `${hide}${formula}`).ok).toBe(false)
+  })
+})
+
+describe('normalizing a postal code', () => {
+  it('removes only the separators that it names', () => {
+    for (const control of ['\t', '\n', '\r', '\u000b', '\u000c', '\u2028', '\u2029']) {
+      expect(normalizePostalCode(`64369${control}01`), JSON.stringify(control)).toBe(
+        `64369${control}01`,
+      )
+      expect(normalizePostalCode(`${control}6436901${control}`), JSON.stringify(control)).toBe(
+        `${control}6436901${control}`,
+      )
+    }
+    expect(normalizePostalCode('64/369/01')).toBe('64/369/01')
+  })
+
+  it('removes spaces, dashes and the marks of a right-to-left copy', () => {
+    expect(normalizePostalCode(' 64-369 01 ')).toBe('6436901')
+    expect(normalizePostalCode('\u200f64\u00a0369\u201301\u200e')).toBe('6436901')
   })
 })
