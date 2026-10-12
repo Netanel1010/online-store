@@ -179,7 +179,7 @@ describe('the notes', () => {
     expect(field('notes', ' א \r\n  ב\rג ').stored).toBe('א\nב\nג')
   })
 
-  it('accept 300 characters, counting an emoji as one, and reject 301', () => {
+  it('accept 300 characters, counting a simple emoji as one, and reject 301', () => {
     expect(field('notes', 'א'.repeat(300)).ok).toBe(true)
     expect(field('notes', '🙏'.repeat(300)).ok).toBe(true)
     expect(field('notes', 'א'.repeat(301)).problems).toEqual(['ההערות ארוכות מדי (עד 300 תווים)'])

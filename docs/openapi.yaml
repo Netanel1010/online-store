@@ -1075,7 +1075,10 @@ components:
         and the rules in `x-normalized` apply to the normalized value.
 
         The only limit of this schema is `maxLength`, and it is the longest value that is read at all as
-        it was typed, spaces and separators included (in characters; an emoji is one). It is not the
+        it was typed, spaces and separators included. Every length in this document is counted in Unicode
+        code points, as JSON Schema counts `maxLength`: a letter or a simple emoji is one, while a flag,
+        an emoji with a skin tone, a family emoji and a letter with niqqud or another combining mark are
+        several, so a value can be longer in code points than it looks. The raw limit is not the
         limit of the normalized value, which is stated in `x-normalized`: that is why `minLength`,
         `pattern` and `format` are not used on the fields below, so that a client which validates a
         request against this schema cannot refuse a value that the API accepts. The response carries

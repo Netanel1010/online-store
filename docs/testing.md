@@ -157,7 +157,9 @@ uses `trim()` or `\s`, which would remove a tab or a line break before anyone lo
   field and stores nothing.
 - `src/pages/checkout.test.tsx` ("the rules for the delivery details") and `e2e/orders.spec.ts`: a
   number pasted with direction marks, a tab inside a phone number and a postal code, the messages, a note
-  of 300 emoji that is not cut short by the field, and that nothing is sent while a field is refused.
+  of 300 simple emoji that is not cut short by the field, and that nothing is sent while a field is
+  refused. Every limit counts Unicode code points (`characterCount`): a flag, a family emoji or a letter
+  with niqqud counts as several, which `textRules.test.ts` and the notes tests pin.
 
 ### An order whose answer was lost
 

@@ -1415,7 +1415,7 @@ describe('the rules for the delivery details', () => {
     await openCheckout()
     const notes = box('הערות למשלוח (לא חובה)')
 
-    // 300 emoji are 600 units of the browser's own length, and 300 characters for the rules.
+    // 300 simple emoji are 600 units of the browser's own length, and 300 code points for the rules.
     await userEvent.type(box('טלפון'), '0501234567')
     await fillAddress()
     await userEvent.click(notes)

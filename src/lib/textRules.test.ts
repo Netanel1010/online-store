@@ -9,10 +9,23 @@ import {
 } from './textRules'
 
 describe('characterCount', () => {
-  it('counts what a person sees, not UTF-16 units', () => {
+  it('counts Unicode code points, not UTF-16 units', () => {
     expect(characterCount('שלום')).toBe(4)
     expect(characterCount('🙏🙏')).toBe(2)
     expect(characterCount('')).toBe(0)
+  })
+
+  it('counts a simple emoji as one, and a sequence of them as several', () => {
+    expect(characterCount('🙏')).toBe(1) // two UTF-16 units
+    expect(characterCount('🇮🇱')).toBe(2) // a flag is two regional indicators
+    expect(characterCount('👍🏽')).toBe(2) // an emoji and a skin tone
+    expect(characterCount('👨\u200D👩\u200D👧')).toBe(5) // three emoji and two joiners
+    expect(characterCount('❤\uFE0F')).toBe(2) // a heart and a variation selector
+  })
+
+  it('counts a letter with niqqud or another combining mark as the letter and each mark', () => {
+    expect(characterCount('ש\u05B8\u05C1לו\u05B9ם')).toBe(7) // four letters you see
+    expect(characterCount('e\u0301')).toBe(2)
   })
 })
 

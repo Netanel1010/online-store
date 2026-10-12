@@ -42,7 +42,13 @@ const FORMULA_START = /^[=+\-@]/
 
 const ARABIC_AND_FULLWIDTH_DIGITS = /[\u0660-\u0669\u06F0-\u06F9\uFF10-\uFF19]/g
 
-/** The number of characters a person sees (an emoji is one), not UTF-16 units. */
+/**
+ * The length of a value in Unicode code points, which is how every limit of the delivery details
+ * counts (and how JSON Schema counts `maxLength`). It is not UTF-16 units, so a simple emoji or a
+ * letter is one; and it is not what a person sees, so a flag (two), an emoji with a skin tone (two),
+ * a family emoji (five) and a letter with niqqud or another combining mark (the letter and each
+ * mark) are several.
+ */
 export function characterCount(value: string): number {
   return Array.from(value).length
 }

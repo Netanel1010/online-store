@@ -26,7 +26,8 @@ import {
 const RAW_LINE_MAX_LENGTH = 500
 
 /**
- * The limits of each field, in characters (an emoji is one).
+ * The limits of each field, in Unicode code points (see `characterCount`): a simple emoji or a letter
+ * is one; a flag, a family emoji or a letter with niqqud is several.
  *
  * `raw` is the longest value that is read at all **as it was typed**, with its spaces, separators
  * and invisible marks: a limit on the work, and the only limit that a client can check without
