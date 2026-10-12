@@ -1,6 +1,6 @@
 import { z } from 'zod'
 // The extension is required because the API (server/) imports this file through the checkout schema.
-import { asciiDigits, hasNonText, stripInvisible } from './textRules.ts'
+import { asciiDigits, characterCount, hasNonText, stripInvisible } from './textRules.ts'
 
 /** Building blocks shared by the login, registration and checkout forms (Hebrew messages). */
 
@@ -54,7 +54,7 @@ export function normalizePhone(value: string): string {
  */
 export const phoneField = z
   .string()
-  .max(PHONE_RAW_MAX_LENGTH, PHONE_INVALID)
+  .refine((value) => characterCount(value) <= PHONE_RAW_MAX_LENGTH, PHONE_INVALID)
   // As typed, before anything is removed: a tab or a line break among the digits is not a separator.
   .refine((value) => !hasNonText(value), PHONE_INVALID)
   .transform(normalizePhone)

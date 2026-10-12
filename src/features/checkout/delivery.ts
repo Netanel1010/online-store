@@ -30,7 +30,8 @@ const RAW_LINE_MAX_LENGTH = 500
  * is one; a flag, a family emoji or a letter with niqqud is several.
  *
  * `raw` is the longest value that is read at all **as it was typed**, with its spaces, separators
- * and invisible marks: a limit on the work, and the only limit that a client can check without
+ * and invisible marks, counted with `characterCount` like every other limit (not with `.max()`, so
+ * that it does not depend on how a library counts a string): a limit on the work, and the only limit that a client can check without
  * normalizing the value first. The other limits are those of the value **once normalized**. They
  * are different things (`'א' + 499 spaces` is a valid name of one character and 500 raw ones), and
  * docs/openapi.yaml states both; a test keeps it in step with this table.
@@ -65,7 +66,7 @@ const EMAIL_INVALID = 'כתובת האימייל אינה תקינה'
 function oneLine(refusal: string, tooLong: string, rawMax: number) {
   return z
     .string()
-    .max(rawMax, tooLong)
+    .refine((value) => characterCount(value) <= rawMax, tooLong)
     .refine((value) => !hasNonText(value), refusal)
     .transform(normalizeLine)
 }
@@ -220,7 +221,7 @@ export function normalizePostalCode(value: string): string {
  */
 const postalCodeField = z
   .string()
-  .max(DELIVERY_LIMITS.postalCode.raw, POSTAL_CODE_INVALID)
+  .refine((value) => characterCount(value) <= DELIVERY_LIMITS.postalCode.raw, POSTAL_CODE_INVALID)
   .refine((value) => !hasNonText(value), POSTAL_CODE_INVALID)
   .transform(normalizePostalCode)
   .pipe(z.string().refine((value) => value === '' || POSTAL_CODE.test(value), POSTAL_CODE_INVALID))
@@ -234,7 +235,10 @@ const NOTES_NOT_ALLOWED = 'ההערות מכילות תווים שאינם מו�
  */
 const notesField = z
   .string()
-  .max(DELIVERY_LIMITS.notes.raw, 'ההערות ארוכות מדי (עד 300 תווים)')
+  .refine(
+    (value) => characterCount(value) <= DELIVERY_LIMITS.notes.raw,
+    'ההערות ארוכות מדי (עד 300 תווים)',
+  )
   .refine((value) => !hasNonText(value, { allowLineBreaks: true }), NOTES_NOT_ALLOWED)
   .transform(normalizeLines)
   .pipe(

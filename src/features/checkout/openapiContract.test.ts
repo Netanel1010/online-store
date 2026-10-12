@@ -164,6 +164,25 @@ describe('the request schema of the delivery details', () => {
     }
   })
 
+  it('counts that longest value in code points, as JSON Schema does: letters outside the Basic Multilingual Plane are one each', () => {
+    const letter = String.fromCodePoint(0x10400) // two UTF-16 units, one code point
+    const astralCore: Record<string, string> = {
+      fullName: letter.repeat(2),
+      city: letter.repeat(2),
+      street: letter.repeat(2),
+      houseNumber: `1${letter}`,
+      apartment: letter,
+      notes: '🙏',
+    }
+    for (const [field, value] of Object.entries(astralCore)) {
+      const longest = properties[field]!.maxLength as number
+      const padded = (length: number) => value + ' '.repeat(length - characterCount(value))
+      expect(padded(longest).length, field).toBeGreaterThan(longest) // over the limit in UTF-16 units
+      expect(read(field, padded(longest)).ok, `${field} at ${longest}`).toBe(true)
+      expect(read(field, padded(longest + 1)).ok, `${field} at ${longest + 1}`).toBe(false)
+    }
+  })
+
   it('does not state a limit in its general description, where it could not be told apart per field', () => {
     expect(request.description).not.toMatch(/(?<![\w+-])(30|20|500|2,?000)(?![\w+-])/)
   })
