@@ -25,6 +25,12 @@ export interface OrderService {
     input: PlaceOrderInput,
     idempotencyKey: string,
   ): Promise<{ order: PublicOrder; created: boolean }>
+  /**
+   * The order this account placed under an idempotency key, for a checkout that does not know
+   * whether its request arrived. No such order is `404 order_not_found`; a key of another account
+   * is not found either.
+   */
+  lookup(userId: string, idempotencyKey: string): Promise<PublicOrder>
   /** One of the account's own orders. Anyone else's, and one that does not exist, are the same 404. */
   get(userId: string, orderNumber: string): Promise<PublicOrder>
   /** The account's orders, the newest first. */
@@ -63,11 +69,18 @@ function hashRequest({ items, delivery }: PlaceOrderInput): string {
     .digest('hex')
 }
 
-const keyReused = () =>
+/**
+ * The key belongs to an order the account already has, made from a different request (the visitor
+ * edited the details after an answer was lost). The order number is the account's own, and it is
+ * how the storefront shows the visitor the order that exists instead of making a second one.
+ */
+const keyReused = (orderNumber: string) =>
   new HttpError(
     409,
     'idempotency_key_reuse',
     'This Idempotency-Key was already used for a different order',
+    {},
+    { orderNumber },
   )
 
 /**
@@ -89,7 +102,7 @@ export function createOrderService({
 }: Dependencies): OrderService {
   /** The order that was placed before, if it is the same request; otherwise the key is misused. */
   function replay(existing: Order, requestHash: string) {
-    if (existing.requestHash !== requestHash) throw keyReused()
+    if (existing.requestHash !== requestHash) throw keyReused(existing.orderNumber)
     return { order: toPublic(existing), created: false }
   }
 
@@ -174,6 +187,12 @@ export function createOrderService({
         }
       }
       throw new Error('No free order number was found')
+    },
+
+    async lookup(userId, idempotencyKey) {
+      const order = await orders.findByIdempotencyKey(userId, idempotencyKey)
+      if (!order) throw orderNotFound()
+      return toPublic(order)
     },
 
     async get(userId, orderNumber) {

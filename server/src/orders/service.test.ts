@@ -316,6 +316,45 @@ describe('placing an order: the same request twice', () => {
     expect(orders.stored).toHaveLength(1)
   })
 
+  it('names the order that exists when it refuses a key, and nothing else about it', async () => {
+    const first = await service.place(ME, input(), KEY)
+
+    const error = await failure(
+      service.place(ME, input({ delivery: { ...DELIVERY, street: 'אחרת' } }), KEY),
+    )
+
+    expect(error.details).toEqual({ orderNumber: first.order.orderNumber })
+  })
+
+  it('places an edited request under a key that no order has used, with the edited details', async () => {
+    // The first attempt never reached the server: the key is free, and an edit is not lost.
+    const edited = await service.place(
+      ME,
+      input({ delivery: { ...DELIVERY, street: 'אחרת' } }),
+      KEY,
+    )
+
+    expect(edited.created).toBe(true)
+    expect(edited.order.delivery.street).toBe('אחרת')
+    expect(orders.stored).toHaveLength(1)
+  })
+
+  it('makes one order when the first request and an edited one arrive at the same moment', async () => {
+    const edited = input({ delivery: { ...DELIVERY, street: 'אחרת' } })
+
+    const results = await Promise.allSettled([
+      service.place(ME, input(), KEY),
+      service.place(ME, edited, KEY),
+    ])
+
+    expect(orders.stored).toHaveLength(1)
+    const refused = results.filter((result) => result.status === 'rejected')
+    expect(refused).toHaveLength(1)
+    const error = (refused[0] as PromiseRejectedResult).reason as HttpError
+    expect(error.code).toBe('idempotency_key_reuse')
+    expect(error.details).toEqual({ orderNumber: orders.stored[0]!.orderNumber })
+  })
+
   it('makes a second order for the same content under another key', async () => {
     await service.place(ME, input(), KEY)
 
@@ -428,6 +467,43 @@ describe('an account only sees its own orders', () => {
 
     expect(error.status).toBe(404)
     expect(error.code).toBe('order_not_found')
+  })
+})
+
+describe('looking up the order of an attempt', () => {
+  it('finds the order that was placed under the key', async () => {
+    const placed = await service.place(ME, input(), KEY)
+
+    expect(await service.lookup(ME, KEY)).toEqual(placed.order)
+  })
+
+  it('answers 404 order_not_found for a key that made no order', async () => {
+    const error = await failure(service.lookup(ME, KEY))
+
+    expect(error.status).toBe(404)
+    expect(error.code).toBe('order_not_found')
+  })
+
+  it('answers the same 404 for a key that only another account used', async () => {
+    await service.place(SOMEONE, input(), KEY)
+
+    const mine = await failure(service.lookup(ME, KEY))
+    const unknown = await failure(service.lookup(ME, `${KEY}-other`))
+
+    expect(mine.status).toBe(404)
+    expect({ code: mine.code, message: mine.message }).toEqual({
+      code: unknown.code,
+      message: unknown.message,
+    })
+  })
+
+  it('makes and changes nothing', async () => {
+    await service.place(ME, input(), KEY)
+
+    await service.lookup(ME, KEY)
+    await failure(service.lookup(ME, `${KEY}-other`))
+
+    expect(orders.stored).toHaveLength(1)
   })
 })
 

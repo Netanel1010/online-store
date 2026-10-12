@@ -66,6 +66,24 @@ export function parseIdempotencyKey(value: unknown): string {
   return result.data
 }
 
+const lookupSchema = z.object({ idempotencyKey: idempotencyKeySchema })
+
+/**
+ * The body of `POST /api/orders/lookup`: the idempotency key of an attempt. It travels in the body,
+ * never in the address, so it is not in a path or a query string that a proxy, a browser history or
+ * a log line could keep. Only the name of an invalid field is ever reported, never its value.
+ */
+export function parseLookupBody(body: unknown): string {
+  const result = lookupSchema.safeParse(body)
+  if (result.success) return result.data.idempotencyKey
+  const where = describe(result.error.issues[0]?.path ?? [])
+  throw new HttpError(
+    400,
+    'invalid_input',
+    where ? `The field "${where}" is not valid` : 'The request body is not valid',
+  )
+}
+
 export const orderNotFound = () => new HttpError(404, 'order_not_found', 'The order was not found')
 
 /**

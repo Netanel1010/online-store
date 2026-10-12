@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { HttpError } from '../lib/httpError.ts'
-import { parseIdempotencyKey, parseOrderNumber, parsePlaceOrderBody } from './schemas.ts'
+import {
+  parseIdempotencyKey,
+  parseLookupBody,
+  parseOrderNumber,
+  parsePlaceOrderBody,
+} from './schemas.ts'
 
 const DELIVERY = {
   fullName: 'נתנאל כהן',
@@ -137,6 +142,39 @@ describe('parseIdempotencyKey', () => {
     expect(error.status).toBe(400)
     expect(error.code).toBe('invalid_idempotency_key')
   })
+})
+
+describe('parseLookupBody', () => {
+  const KEY = '3f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b'
+
+  it('reads the key from the body', () => {
+    expect(parseLookupBody({ idempotencyKey: KEY })).toBe(KEY)
+  })
+
+  it('drops fields it does not know', () => {
+    expect(parseLookupBody({ idempotencyKey: KEY, delivery: { city: 'חיפה' } })).toBe(KEY)
+  })
+
+  it.each([
+    ['no body', undefined],
+    ['null', null],
+    ['an empty object', {}],
+    ['a list', [KEY]],
+    ['a key that is not text', { idempotencyKey: 42 }],
+    ['a key that is too short', { idempotencyKey: 'a'.repeat(15) }],
+    ['a key that is too long', { idempotencyKey: 'a'.repeat(129) }],
+    ['a key with spaces', { idempotencyKey: 'has spaces in it 1234' }],
+  ])(
+    'refuses %s with a 400 invalid_input that names the field and never the value',
+    (_n, value) => {
+      const error = failure(() => parseLookupBody(value))
+
+      expect(error.status).toBe(400)
+      expect(error.code).toBe('invalid_input')
+      expect(error.message).not.toContain('spaces')
+      expect(error.message).not.toContain('aaaa')
+    },
+  )
 })
 
 describe('parseOrderNumber', () => {

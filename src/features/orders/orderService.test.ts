@@ -1,5 +1,11 @@
 import { fetchPolicy } from '@/lib/fetchWithRetry'
-import { fetchOrder, fetchOrders, placeOrder, type PlaceOrderRequest } from './orderService'
+import {
+  fetchOrder,
+  fetchOrders,
+  lookupOrder,
+  placeOrder,
+  type PlaceOrderRequest,
+} from './orderService'
 
 const API = 'http://localhost:3001'
 const TOKEN = 'T'.repeat(43)
@@ -134,6 +140,26 @@ describe('placeOrder: what comes back', () => {
 
   it('says "key-reused" for a 409 idempotency_key_reuse', async () => {
     stubFetch(() => refusal(409, 'idempotency_key_reuse'))
+
+    expect(await placeOrder(request)).toEqual({ ok: false, reason: 'key-reused' })
+  })
+
+  it('gives the number of the order that exists when the 409 names it', async () => {
+    stubFetch(() => refusal(409, 'idempotency_key_reuse', { orderNumber: 'DEMO-7K2M9QX4' }))
+
+    expect(await placeOrder(request)).toEqual({
+      ok: false,
+      reason: 'key-reused',
+      orderNumber: 'DEMO-7K2M9QX4',
+    })
+  })
+
+  it.each([
+    ['not an order number', { orderNumber: '../../etc' }],
+    ['not text', { orderNumber: 42 }],
+    ['missing', {}],
+  ])('does not trust an order number that is %s', async (_name, details) => {
+    stubFetch(() => refusal(409, 'idempotency_key_reuse', details))
 
     expect(await placeOrder(request)).toEqual({ ok: false, reason: 'key-reused' })
   })
@@ -371,5 +397,89 @@ describe('fetchOrders', () => {
     )
 
     await expect(fetchOrders(TOKEN, 1, controller.signal)).rejects.toThrow()
+  })
+})
+
+describe('lookupOrder', () => {
+  it('posts the key in the body, never in the address, with the token', async () => {
+    const fetchMock = stubFetch(() => json(ORDER, 200))
+
+    await lookupOrder(TOKEN, KEY)
+
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(String(url)).toBe(`${API}/api/orders/lookup`)
+    expect(String(url)).not.toContain(KEY)
+    expect(init?.method).toBe('POST')
+    expect(init?.headers).toMatchObject({ Authorization: `Bearer ${TOKEN}` })
+    expect(JSON.parse(init?.body as string)).toEqual({ idempotencyKey: KEY })
+  })
+
+  it('finds the order the attempt made', async () => {
+    stubFetch(() => json(ORDER, 200))
+
+    expect(await lookupOrder(TOKEN, KEY)).toEqual({ status: 'found', order: ORDER })
+  })
+
+  it('says "none" only for an explicit 404 order_not_found', async () => {
+    stubFetch(() => refusal(404, 'order_not_found'))
+
+    expect(await lookupOrder(TOKEN, KEY)).toEqual({ status: 'none' })
+  })
+
+  it('says "unauthorized" for a 401', async () => {
+    stubFetch(() => refusal(401, 'unauthorized'))
+
+    expect(await lookupOrder(TOKEN, KEY)).toEqual({ status: 'unauthorized' })
+  })
+
+  it.each([
+    ['a route the API does not have (404 not_found)', () => refusal(404, 'not_found')],
+    ['a 404 with another code', () => refusal(404, 'something_new')],
+    ['a 404 without a body', () => new Response(null, { status: 404 })],
+    ['a 404 that is HTML', () => new Response('<html>Not found</html>', { status: 404 })],
+    ['a 404 that is not an error body', () => json('missing', 404)],
+    ['a 200 that is not an order', () => json({ orderNumber: 'DEMO-1' }, 200)],
+    ['a 200 with no body', () => new Response(null, { status: 200 })],
+    ['a 200 that is not JSON', () => new Response('<html>', { status: 200 })],
+    ['a 400', () => refusal(400, 'invalid_input')],
+    ['a 429', () => refusal(429, 'rate_limited')],
+    ['a 500', () => refusal(500, 'internal_error')],
+    ['a 503', () => refusal(503, 'server_busy')],
+    ['an order_not_found with a success status', () => refusal(200, 'order_not_found')],
+    ['an order_not_found with another status', () => refusal(410, 'order_not_found')],
+  ])('says "unverified" for %s: nothing is known', async (_name, answer) => {
+    stubFetch(answer)
+
+    expect(await lookupOrder(TOKEN, KEY)).toEqual({ status: 'unverified' })
+  })
+
+  it('says "unverified", and does not throw, when the API cannot be reached', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network down')))
+
+    expect(await lookupOrder(TOKEN, KEY)).toEqual({ status: 'unverified' })
+  })
+
+  it('repeats a read the host answered 503 to, like the other reads', async () => {
+    fetchPolicy.delaysMs = [0]
+    const fetchMock = stubFetch(
+      () => refusal(503, 'server_busy'),
+      () => json(ORDER, 200),
+    )
+
+    expect(await lookupOrder(TOKEN, KEY)).toEqual({ status: 'found', order: ORDER })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('stops when the page is left, and says nothing', async () => {
+    const controller = new AbortController()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        controller.abort(new DOMException('left', 'AbortError'))
+        return Promise.reject(new DOMException('left', 'AbortError'))
+      }),
+    )
+
+    await expect(lookupOrder(TOKEN, KEY, controller.signal)).rejects.toBeDefined()
   })
 })

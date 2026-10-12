@@ -7,6 +7,7 @@ import { createLoginThrottle } from '../auth/throttle.ts'
 import { generateToken, hashToken } from '../auth/tokens.ts'
 import { errorHandler, type ErrorBody } from '../middleware/errorHandler.ts'
 import { notFound } from '../middleware/notFound.ts'
+import { requestLogging } from '../middleware/requestLogging.ts'
 import { listen } from '../testing/listen.ts'
 import {
   createMemorySessionRepository,
@@ -20,7 +21,7 @@ import { createOrdersRouter, NO_ORDER_RATE_LIMITS, ORDER_RATE_LIMITS } from './r
 import { createOrderService } from './service.ts'
 import type { PublicOrder } from './types.ts'
 
-const logger = { error: vi.fn() }
+const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() }
 const KEY = '3f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b'
 const DELIVERY = {
   fullName: 'נתנאל כהן',
@@ -68,6 +69,7 @@ function build(limits = NO_ORDER_RATE_LIMITS) {
   )
 }
 const app = express()
+app.use(requestLogging(logger))
 app.use(express.json({ limit: '100kb' }))
 app.use('/api/orders', (req, res, next) => router.current(req, res, next))
 app.use(notFound)
@@ -86,6 +88,8 @@ beforeEach(() => {
   orders = createMemoryOrderRepository()
   catalog = createMemoryProductRepository([card, sale])
   logger.error.mockClear()
+  logger.info.mockClear()
+  logger.warn.mockClear()
   build()
 })
 
@@ -256,6 +260,35 @@ describe('POST /api/orders', () => {
     expect(orders.stored).toHaveLength(1)
   })
 
+  it('names the order that exists in the 409 for a key used with edited delivery details', async () => {
+    const { token } = await account('netanel')
+    const placed = await orderOf(await place(token))
+
+    const response = await place(token, body({ delivery: { ...DELIVERY, street: 'אחרת' } }))
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'idempotency_key_reuse',
+        message: 'This Idempotency-Key was already used for a different order',
+        details: { orderNumber: placed.orderNumber },
+      },
+    })
+    expect(orders.stored).toHaveLength(1)
+  })
+
+  it('never names the order of another account in that 409', async () => {
+    const mine = await account('netanel')
+    const theirs = await account('dana')
+    await place(mine.token)
+
+    // The same key under another account is that account's own, new order: nothing is named.
+    const response = await place(theirs.token, body({ delivery: { ...DELIVERY, street: 'אחרת' } }))
+
+    expect(response.status).toBe(201)
+    expect(orders.stored).toHaveLength(2)
+  })
+
   it('does not share a key between accounts', async () => {
     const mine = await account('netanel')
     const theirs = await account('dana')
@@ -390,6 +423,143 @@ describe('POST /api/orders', () => {
     expect(error.code).toBe('internal_error')
     expect(JSON.stringify(error)).not.toContain('050-1234567')
     expect(logger.error).toHaveBeenCalledTimes(1)
+  })
+})
+
+const lookup = (
+  token: string | undefined,
+  payload: unknown = { idempotencyKey: KEY },
+  raw?: string,
+) =>
+  fetch(`${api.url}/api/orders/lookup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: raw ?? JSON.stringify(payload),
+  })
+
+describe('POST /api/orders/lookup', () => {
+  it('needs a signed-in visitor', async () => {
+    expect((await lookup(undefined)).status).toBe(401)
+    expect((await lookup('x'.repeat(43))).status).toBe(401)
+  })
+
+  it('answers 200 with the order that was placed under the key', async () => {
+    const { token } = await account('netanel')
+    const placed = await orderOf(await place(token))
+
+    const response = await lookup(token)
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(await orderOf(response)).toEqual(placed)
+  })
+
+  it('answers 404 order_not_found for a key that made no order', async () => {
+    const { token } = await account('netanel')
+
+    const response = await lookup(token)
+
+    expect(response.status).toBe(404)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(await response.json()).toEqual({
+      error: { code: 'order_not_found', message: 'The order was not found' },
+    })
+  })
+
+  it('does not find the order of another account, and answers like for an unknown key', async () => {
+    const mine = await account('netanel')
+    const theirs = await account('dana')
+    await place(mine.token)
+
+    const other = await lookup(theirs.token)
+
+    expect(other.status).toBe(404)
+    expect((await errorOf(other)).code).toBe('order_not_found')
+  })
+
+  it('makes no order', async () => {
+    const { token } = await account('netanel')
+
+    await lookup(token)
+
+    expect(orders.stored).toHaveLength(0)
+  })
+
+  it.each([
+    ['no key', {}],
+    ['a key that is too short', { idempotencyKey: 'short' }],
+    ['a key that is not text', { idempotencyKey: 1234567890123456 }],
+  ])('answers 400 invalid_input for %s', async (_name, payload) => {
+    const { token } = await account('netanel')
+
+    const response = await lookup(token, payload)
+
+    expect(response.status).toBe(400)
+    expect((await errorOf(response)).code).toBe('invalid_input')
+  })
+
+  it('answers 400 invalid_json for a body that is not JSON', async () => {
+    const { token } = await account('netanel')
+
+    const response = await lookup(token, undefined, '{"idempotencyKey":')
+
+    expect(response.status).toBe(400)
+    expect((await errorOf(response)).code).toBe('invalid_json')
+  })
+
+  it('does not take the key from the address: a GET is not a lookup', async () => {
+    const { token } = await account('netanel')
+    await place(token)
+
+    const response = await get(`/lookup?idempotencyKey=${KEY}`, token)
+
+    expect(response.status).toBe(404)
+    expect((await errorOf(response)).code).toBe('order_not_found')
+    // ...and still no order was found by it: the path is read as an order number, which it is not.
+    expect(orders.stored).toHaveLength(1)
+  })
+
+  it('keeps the key, the delivery details and the order out of every log line', async () => {
+    const { token } = await account('netanel')
+    await place(token)
+    logger.info.mockClear()
+    logger.warn.mockClear()
+
+    await lookup(token) // found
+    await lookup(token, { idempotencyKey: `${KEY}-unknown` }) // not found
+    await lookup(token, { idempotencyKey: 'short' }) // refused
+
+    const lines = JSON.stringify([...logger.info.mock.calls, ...logger.warn.mock.calls])
+    expect(lines).toContain('/api/orders/lookup')
+    for (const secret of [KEY, 'short', 'הנשיא', '050-1234567', 'netanel@example.com', 'DEMO-']) {
+      expect(lines).not.toContain(secret)
+    }
+  })
+
+  it('is not limited by the limit on placing orders', async () => {
+    build({ place: { max: 1, windowMs: 60_000 } })
+    const { token } = await account('netanel')
+    await place(token)
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      expect((await lookup(token)).status).toBe(200)
+    }
+  })
+
+  it('is a route of its own: a route nobody has is not_found, never order_not_found', async () => {
+    const { token } = await account('netanel')
+
+    const response = await fetch(`${api.url}/api/orders/lookup/nothing`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+
+    expect(response.status).toBe(404)
+    expect((await errorOf(response)).code).toBe('not_found')
   })
 })
 

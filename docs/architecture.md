@@ -97,13 +97,13 @@ service.ts      the rules (pricing, merging, limits, what a missing thing means)
 repository.ts   the only code that knows MongoDB: queries, indexes
 ```
 
-| Feature    | Routes                                                                | Notes                                                                     |
-| ---------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `health`   | `GET /api/health`, `GET /api/health/ready`                            | `health` never touches the database; `ready` does                         |
-| `products` | `GET /api/products`, `GET /api/products/:id`, `GET /api/categories`   | read-only; search, filters, sorting, paging and filter options in MongoDB |
-| `auth`     | `/api/auth/register`, `login`, `logout`, `logout-all`, `me`           | sessions, scrypt passwords, per-address and per-email limits              |
-| `cart`     | `/api/cart`, `/api/cart/items`, `/api/cart/items/:productId`          | one cart per account, ids and quantities, revision compare-and-swap       |
-| `orders`   | `POST /api/orders`, `GET /api/orders`, `GET /api/orders/:orderNumber` | server-side pricing, immutable snapshots, idempotent                      |
+| Feature    | Routes                                                                                           | Notes                                                                                                                                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `health`   | `GET /api/health`, `GET /api/health/ready`                                                       | `health` never touches the database; `ready` does                                                                                                                                                                                         |
+| `products` | `GET /api/products`, `GET /api/products/:id`, `GET /api/categories`                              | read-only; search, filters, sorting, paging and filter options in MongoDB                                                                                                                                                                 |
+| `auth`     | `/api/auth/register`, `login`, `logout`, `logout-all`, `me`                                      | sessions, scrypt passwords, per-address and per-email limits                                                                                                                                                                              |
+| `cart`     | `/api/cart`, `/api/cart/items`, `/api/cart/items/:productId`                                     | one cart per account, ids and quantities, revision compare-and-swap                                                                                                                                                                       |
+| `orders`   | `POST /api/orders`, `POST /api/orders/lookup`, `GET /api/orders`, `GET /api/orders/:orderNumber` | server-side pricing, immutable snapshots, idempotent; `lookup` finds the account's own order by `idempotencyKey` in the body, and only `order_not_found` means none; a reused key answers `409` naming that order (`details.orderNumber`) |
 
 The full contract, with every parameter and error, is the [OpenAPI document](openapi.yaml); the
 behaviour behind it is in [`server/README.md`](../server/README.md). Without `MONGODB_URI` (development

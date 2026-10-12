@@ -567,7 +567,10 @@ paths:
         **A retry never places a second order.** The `Idempotency-Key` is stored with the order and a digest
         of the request. The same key with the same request returns the order it made (`200` instead of
         `201`), even if prices have changed since; the same key with a different request is
-        `409 idempotency_key_reuse`.
+        `409 idempotency_key_reuse`, with the number of the order that exists in `details.orderNumber`
+        (the account's own). A visitor who edits the details after an answer was lost is therefore told
+        about the order that exists instead of getting a second one. To ask whether an attempt made an
+        order without placing one, see `POST /api/orders/lookup`.
 
         Nothing is charged, shipped or emailed: this is a demo checkout. Limited to 20 orders per hour per
         client address (checked before the session).
@@ -615,7 +618,7 @@ paths:
         '409':
           description: |
             `product_unavailable` (`details.productIds`), `price_changed` (`details.expectedTotal`,
-            `details.total`) or `idempotency_key_reuse`.
+            `details.total`) or `idempotency_key_reuse` (`details.orderNumber`).
           $ref: '#/components/responses/Error'
         '429':
           $ref: '#/components/responses/RateLimited'
@@ -646,6 +649,58 @@ paths:
           $ref: '#/components/responses/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/orders/lookup:
+    post:
+      tags: [Orders]
+      operationId: lookupOrderByAttempt
+      summary: The order an attempt made, if it made one
+      description: |
+        For a checkout that sent an order and did not get the answer: did the request arrive? The
+        `Idempotency-Key` of the attempt is sent **in the body**, never in the address, so it is in no
+        path, query string, browser history or log line (the API logs neither bodies nor keys). It
+        reads only; nothing is ever made.
+
+        **Only `404` with `error.code` equal to `order_not_found` means that no order exists.** Any other
+        answer (another status, another code, an empty or unreadable body, a route-level `404 not_found`
+        from an API that does not have this route yet) means that it could not be verified, and the
+        client must not place a new order on the strength of it. A key of another account is not found
+        either, so the answer reveals nothing about other accounts.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idempotencyKey]
+              properties:
+                idempotencyKey:
+                  type: string
+                  pattern: '^[A-Za-z0-9_-]{16,128}$'
+                  description: The key that was sent with the order.
+      responses:
+        '200':
+          description: The order that was placed under the key.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400':
+          description: '`invalid_input` (the message names the field, never the value) or `invalid_json`.'
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: '`order_not_found`: this account has no order under the key.'
+          $ref: '#/components/responses/Error'
         '503':
           $ref: '#/components/responses/Unavailable'
 
