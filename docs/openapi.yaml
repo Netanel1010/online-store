@@ -570,7 +570,9 @@ paths:
         `409 idempotency_key_reuse`, with the number of the order that exists in `details.orderNumber`
         (the account's own). A visitor who edits the details after an answer was lost is therefore told
         about the order that exists instead of getting a second one. To ask whether an attempt made an
-        order without placing one, see `POST /api/orders/lookup`.
+        order without placing one, see `POST /api/orders/lookup`. The delivery details are compared as they
+        are stored (normalized, see `DeliveryDetailsRequest`), so details typed another way that read the
+        same (`+972501234567` and `050-1234567`) are the same request.
 
         Nothing is charged, shipped or emailed: this is a demo checkout. Limited to 20 orders per hour per
         client address (checked before the session).
@@ -1060,70 +1062,155 @@ components:
           format: date-time
           description: '`null` for an account that has never used its cart.'
 
-    DeliveryDetails:
+    DeliveryDetailsRequest:
       type: object
       description: >-
-        Who an order is for and where it goes. The API checks the shape of each value and stores the value
-        its rules produce (the invisible marks of a copy from a right-to-left page dropped, spaces tidied,
-        text composed, a phone number written locally); the site checks the same rules first. Nothing here
-        says that an address exists or that anything can be delivered to it. Control characters, characters
-        that reorder text (U+202A to U+202E, U+2066 to U+2069), lone surrogates and a value of more than 500
-        characters are refused in every field. An order placed before these rules keeps the form it was
-        stored in (for example a phone number written `050-1234567`).
+        Who an order is for and where it goes, **as typed**. Every field is a string and is read in two
+        steps. First the value as typed is refused if it holds anything that is not text: a control
+        character (a tab or a line break among them), a line or paragraph separator, a character that
+        reorders text (U+202A to U+202E, U+2066 to U+2069), a lone surrogate, or any other invisible
+        format character. The exceptions are the invisible marks that a copy from a right-to-left page
+        brings (U+200B, U+200E, U+200F, U+061C, U+2060, U+FEFF), which are dropped, and the joiners U+200C
+        and U+200D, which are kept; the notes also take line breaks. Only then is the value normalized,
+        and the rules in `x-normalized` apply to the normalized value.
+
+        The only limit of this schema is `maxLength`, and it is the longest value that is read at all as
+        it was typed, spaces and separators included (in characters; an emoji is one). It is not the
+        limit of the normalized value, which is stated in `x-normalized`: that is why `minLength`,
+        `pattern` and `format` are not used on the fields below, so that a client which validates a
+        request against this schema cannot refuse a value that the API accepts. The response carries
+        the normalized values (`DeliveryDetails`).
+
+        Only the shape of a value is checked. Nothing here says that an address exists or that
+        anything can be delivered to it.
       required: [fullName, email, phone, city, street, houseNumber, apartment, postalCode, notes]
       properties:
         fullName:
           type: string
-          minLength: 2
-          maxLength: 80
-          description: Letters of any script with their marks, digits, a space, `' " ’ ‘ “ ” ׳ ״ . , ( ) /` and any dash. Begins with a letter or a digit and holds a letter.
+          maxLength: 500
+          description: >-
+            Normalized: every kind of space becomes one space and none is left at either end, the text is
+            composed (Unicode NFC), the invisible marks are dropped. It is made of letters of any script
+            with their marks, digits, a space, `' " ’ ‘ “ ” ׳ ״ . , ( ) /` and any dash; it begins with a
+            letter or a digit and holds a letter.
+          x-normalized:
+            minLength: 2
+            maxLength: 80
         email:
           type: string
-          format: email
-          maxLength: 254
-          description: At most 64 characters before the @. Does not begin with `+` or `-`.
+          maxLength: 500
+          description: >-
+            Normalized: spaces and the invisible marks are removed from either end. It must then be an
+            email address that does not begin with `+` or `-`.
+          x-normalized:
+            format: email
+            maxLength: 254
+            maxLocalPartLength: 64
         phone:
           type: string
-          pattern: '^0([23489][0-9]{7}|5[0-9]{8}|7[0-9]{8})$'
+          maxLength: 30
           description: >-
-            An Israeli phone number, stored as it is written locally (`0501234567`). The request may write it
-            with spaces, any dash, dots or brackets, Arabic-Indic digits, or the prefix `+972`, `00972` or
-            `972` (with or without a 0 after it), in at most 30 characters. A landline is 0, one of 2, 3, 4, 8,
-            9 and seven digits; a mobile number is 05 and eight digits; an internet number is 07 and eight
+            An Israeli phone number, written in any common way. Normalized to the digits as they are written
+            locally (`0501234567`) by removing spaces of any kind, any dash, dots and round brackets (and
+            nothing else: not a tab or a line break), reading Arabic-Indic, Persian and full-width digits as
+            0-9, and turning the prefix `+972`, `00972` or `972` (with or without a 0 after it) into 0.
+            The result must match the pattern in `x-normalized`: a landline is 0, one of 2, 3, 4, 8, 9 and
+            seven digits; a mobile number is 05 and eight digits; an internet number is 07 and eight
             digits. A number of another country is refused.
+          x-normalized:
+            pattern: '^0([23489][0-9]{7}|5[0-9]{8}|7[0-9]{8})$'
         city:
           type: string
-          minLength: 2
-          maxLength: 60
-          description: Like `fullName`.
+          maxLength: 500
+          description: Normalized and made of the same characters as `fullName`.
+          x-normalized:
+            minLength: 2
+            maxLength: 60
         street:
           type: string
-          minLength: 2
-          maxLength: 80
-          description: Like `fullName`.
+          maxLength: 500
+          description: Normalized and made of the same characters as `fullName`.
+          x-normalized:
+            minLength: 2
+            maxLength: 80
         houseNumber:
           type: string
-          minLength: 1
-          maxLength: 10
+          maxLength: 500
           description: >-
-            Letters, digits, `/ ' " ’ ׳ ״ . ` and any dash and a space, with a digit that is not 0 (`12`, `12א`,
-            `12/4`, `12-14`), or exactly `ללא מספר` or `ללא` for an address that has none. Arabic-Indic digits are
-            stored as 0-9.
+            Normalized like `fullName`, and Arabic-Indic, Persian and full-width digits are read as 0-9. It is
+            made of letters, digits, `/ ' " ’ ׳ ״ .`, any dash and a space, begins with a letter or a digit
+            and holds a digit that is not 0 (`12`, `12א`, `12/4`, `12-14`); or it is exactly `ללא מספר` or
+            `ללא`, for an address that has none.
+          x-normalized:
+            maxLength: 10
         apartment:
           type: string
-          maxLength: 10
-          description: May be empty. Letters, digits, `/ ' " ’ ׳ ״`, a space and any dash; begins with a letter or a digit.
+          maxLength: 500
+          description: >-
+            May be empty. Normalized like `houseNumber`; made of letters, digits, `/ ' " ’ ׳ ״`, any dash and
+            a space, and begins with a letter or a digit.
+          x-normalized:
+            maxLength: 10
         postalCode:
           type: string
-          pattern: '^([1-9][0-9]{6})?$'
-          description: Empty or seven digits that do not begin with 0, stored without the spaces or dashes the request may write between them.
+          maxLength: 20
+          description: >-
+            May be empty. Normalized by removing spaces of any kind and dashes between the digits (and
+            nothing else), and reading Arabic-Indic, Persian and full-width digits as 0-9. The result must
+            match the pattern in `x-normalized`: seven digits, the first of which is not 0.
+          x-normalized:
+            pattern: '^([1-9][0-9]{6})?$'
         notes:
           type: string
-          maxLength: 300
+          maxLength: 2000
           description: >-
-            May be empty. Up to six lines and 300 characters (an emoji counts as one). Does not contain `<` or
-            `>`, and does not begin with `=`, `+`, `-` or `@` (which a spreadsheet reads as a formula). Lines
-            are separated by a line feed.
+            May be empty. Written in lines: every kind of line break is read as one, spaces are removed from
+            each line, and blank lines are removed before the first line and after the last. It does not
+            contain `<` or `>`, and does not begin with `=`, `+`, `-` or `@` (which a spreadsheet reads as
+            the start of a formula).
+          x-normalized:
+            maxLength: 300
+            maxLines: 6
+      example:
+        fullName: ' נתנאל כהן '
+        email: ' netanel@example.com '
+        phone: '+972 (0) 50-123-4567'
+        city: תל אביב
+        street: דיזנגוף
+        houseNumber: '12'
+        apartment: ''
+        postalCode: 64-369-01
+        notes: ''
+
+    DeliveryDetails:
+      type: object
+      description: >-
+        The delivery details of an order, as they were stored. For an order placed with the rules of
+        `DeliveryDetailsRequest` they are the normalized values (a phone number written `0501234567`, a
+        postal code written `6436901`); an order placed before those rules keeps the form it had then (a
+        phone number written `050-1234567`). Reading an order never fails because of how its details were
+        written, so no field here has a limit or a pattern.
+      required: [fullName, email, phone, city, street, houseNumber, apartment, postalCode, notes]
+      properties:
+        fullName: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        city: { type: string }
+        street: { type: string }
+        houseNumber: { type: string }
+        apartment: { type: string, description: May be empty. }
+        postalCode: { type: string, description: May be empty. }
+        notes: { type: string, description: May be empty. }
+      example:
+        fullName: נתנאל כהן
+        email: netanel@example.com
+        phone: '0501234567'
+        city: תל אביב
+        street: דיזנגוף
+        houseNumber: '12'
+        apartment: ''
+        postalCode: '6436901'
+        notes: ''
 
     PlaceOrderRequest:
       type: object
@@ -1135,7 +1222,7 @@ components:
           maxItems: 50
           description: A product may appear once.
           items: { $ref: '#/components/schemas/CartItem' }
-        delivery: { $ref: '#/components/schemas/DeliveryDetails' }
+        delivery: { $ref: '#/components/schemas/DeliveryDetailsRequest' }
         expectedTotal:
           type: integer
           minimum: 0
