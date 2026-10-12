@@ -1445,6 +1445,47 @@ describe('the rules for the delivery details', () => {
     expect(sent.bodies()).toEqual([])
   })
 
+  it('says how long a note may be, in a hint that the field is described by', async () => {
+    await openCheckout()
+    const notes = box('הערות למשלוח (לא חובה)')
+
+    expect(screen.getByText('עד 300 תווים')).toBeVisible()
+    expect(notes).toHaveAccessibleDescription('עד 300 תווים')
+    // The hint is not part of the name of the field, and the field has no length limit of its own.
+    expect(notes).toHaveAccessibleName('הערות למשלוח (לא חובה)')
+    expect(notes).not.toHaveAttribute('maxlength')
+  })
+
+  it('keeps the hint when the note is too long, and adds the error to what the field is described by', async () => {
+    await openCheckout()
+    const notes = box('הערות למשלוח (לא חובה)')
+
+    await userEvent.type(box('טלפון'), '0501234567')
+    await fillAddress()
+    await userEvent.click(notes)
+    await userEvent.paste('א'.repeat(301))
+    await userEvent.click(submitButton())
+
+    await screen.findByText('ההערות ארוכות מדי (עד 300 תווים)')
+    expect(screen.getByText('עד 300 תווים')).toBeVisible()
+    expect(notes).toHaveAttribute('aria-invalid', 'true')
+    expect(notes).toHaveAccessibleDescription('עד 300 תווים ההערות ארוכות מדי (עד 300 תווים)')
+  })
+
+  it('keeps what is typed or pasted whole, however it counts: a flag, a family, niqqud and Arabic marks', async () => {
+    await openCheckout()
+    const notes = box('הערות למשלוח (לא חובה)')
+    const text =
+      '🇮🇱 👨\u200D👩\u200D👧 👍🏽 ❤\uFE0F ש\u05B8\u05C1לו\u05B9ם م\u064Fح\u064Eم\u064E\u0651د 🙏'
+
+    await userEvent.click(notes)
+    await userEvent.paste(text.repeat(5))
+    expect(notes).toHaveValue(text.repeat(5))
+    await userEvent.clear(notes)
+    await userEvent.type(notes, 'ש\u05B8\u05C1לו\u05B9ם 🙏 🇮🇱')
+    expect(notes).toHaveValue('ש\u05B8\u05C1לו\u05B9ם 🙏 🇮🇱')
+  })
+
   it('does not say that an address exists or can be delivered to', async () => {
     await openCheckout()
 

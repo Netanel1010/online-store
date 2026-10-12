@@ -19,7 +19,7 @@ const ORDER_URL = /\/online-store\/orders\/(DEMO-[0-9A-Z]{8})$/
 interface StoredOrder {
   orderNumber: string
   total: number
-  delivery: { street: string; phone: string; postalCode: string }
+  delivery: { street: string; phone: string; postalCode: string; notes: string }
 }
 
 /** Registers a fresh account, puts the power supply in its cart and opens the checkout. */
@@ -161,6 +161,31 @@ test.describe('an order is kept by the API', () => {
 
     const { items } = await accountOrders(page)
     expect(items[0]!.delivery).toMatchObject({ phone: '0501234567', postalCode: '6436901' })
+  })
+
+  test('says how long a note may be, and keeps a long paste whole until the visitor decides', async ({
+    page,
+  }) => {
+    await checkoutWithOneProduct(page)
+    const notes = page.getByRole('textbox', { name: /הערות למשלוח/ })
+    await expect(page.getByText('עד 300 תווים', { exact: true })).toBeVisible()
+    await expect(notes).toHaveAccessibleDescription('עד 300 תווים')
+    await expect(notes).not.toHaveAttribute('maxlength')
+
+    await notes.click()
+    await page.keyboard.insertText('🙏'.repeat(301))
+    expect(Array.from(await notes.inputValue())).toHaveLength(301)
+    await order(page).click()
+    await expect(page.getByText('ההערות ארוכות מדי (עד 300 תווים)')).toBeVisible()
+    await expect(notes).toHaveAccessibleDescription('עד 300 תווים ההערות ארוכות מדי (עד 300 תווים)')
+    expect((await accountOrders(page)).total).toBe(0)
+
+    await notes.press('Backspace')
+    await expect(page.getByText('ההערות ארוכות מדי (עד 300 תווים)')).toHaveCount(0)
+    await order(page).click()
+    await confirmed(page)
+    const { items } = await accountOrders(page)
+    expect(Array.from(items[0]!.delivery.notes)).toHaveLength(300)
   })
 
   test('says on the checkout that the order is saved in the account', async ({ page }) => {
