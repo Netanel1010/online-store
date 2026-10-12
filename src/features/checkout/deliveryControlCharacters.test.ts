@@ -154,3 +154,32 @@ describe('what is tidied around a value', () => {
     expect(check('notes', '\n\r\n  א  \r\n  ב \n\n').stored).toBe('א\nב')
   })
 })
+
+describe('a formula behind what is tidied away', () => {
+  /** What normalizing removes from the start of a value: marks that do not show, and spaces. */
+  const cover = ['\u200f', '\u200b', '\ufeff', ' ', '\u00a0', '\u200f ']
+  const formulas = ['=1+1', '+1+1', '-1+1', '@SUM(1,2)']
+
+  it.each(
+    cover.flatMap((hide) => formulas.map((formula) => [JSON.stringify(hide), formula, hide])),
+  )('is still seen at the start of a note after %s: %s', (_name, formula, hide) => {
+    const { ok, problems } = check('notes', `${hide}${formula}`)
+    expect(ok).toBe(false)
+    expect(problems).toEqual(['ההערות לא יכולות להתחיל בסימן מיוחד'])
+  })
+
+  it.each(cover.flatMap((hide) => ['+', '-'].map((sign) => [JSON.stringify(hide), sign, hide])))(
+    'is still seen at the start of an email address after %s: %s',
+    (_name, sign, hide) => {
+      expect(check('email', `${hide}${sign}netanel@example.com`).problems).toEqual([
+        'כתובת האימייל אינה תקינה',
+      ])
+    },
+  )
+
+  it.each(
+    cover.flatMap((hide) => formulas.map((formula) => [JSON.stringify(hide), formula, hide])),
+  )('is still seen at the start of a name after %s: %s', (_name, formula, hide) => {
+    expect(check('fullName', `${hide}${formula}`).ok).toBe(false)
+  })
+})
