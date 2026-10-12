@@ -57,6 +57,7 @@ async function send({
     expectedTotal,
   })
 
-  if (outcome.ok) forgetCheckoutAttempt()
+  // Only this account's attempt: another account's unresolved order is not resolved by this one.
+  if (outcome.ok) forgetCheckoutAttempt(userId)
   return outcome
 }

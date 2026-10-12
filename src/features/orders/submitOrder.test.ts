@@ -1,6 +1,6 @@
 import type { CheckoutValues } from '@/features/checkout/schema'
 import { fetchPolicy } from '@/lib/fetchWithRetry'
-import { forgetCheckoutAttempt, unresolvedAttemptKey } from './checkoutAttempt'
+import { forgetAllCheckoutAttempts, unresolvedAttemptKey } from './checkoutAttempt'
 import { submitOrder } from './submitOrder'
 
 const TOKEN = 'T'.repeat(43)
@@ -63,7 +63,7 @@ const original = [...fetchPolicy.delaysMs]
 afterEach(() => {
   vi.unstubAllGlobals()
   fetchPolicy.delaysMs = original
-  forgetCheckoutAttempt()
+  forgetAllCheckoutAttempts()
 })
 
 describe('submitOrder: the key of an attempt', () => {
@@ -161,6 +161,32 @@ describe('submitOrder: the key of an attempt', () => {
     await submit({ userId: 'user-2' })
 
     expect(sent[1]!.key).not.toBe(sent[0]!.key)
+  })
+
+  it('gives the first account its own key again after another account ordered in between', async () => {
+    const sent = answers(() => Promise.reject(new TypeError('lost')))
+
+    await submit({ userId: 'user-1' })
+    await submit({ userId: 'user-2' })
+    await submit({ userId: 'user-1' })
+
+    expect(sent[1]!.key).not.toBe(sent[0]!.key)
+    expect(sent[2]!.key).toBe(sent[0]!.key)
+    expect(unresolvedAttemptKey('user-2')).toBe(sent[1]!.key)
+  })
+
+  it('resolves only the account whose order exists, and leaves the other attempt alone', async () => {
+    const sent = answers(
+      () => Promise.reject(new TypeError('lost')),
+      () => json(ORDER, 201),
+    )
+
+    await submit({ userId: 'user-1' })
+    const second = await submit({ userId: 'user-2' })
+
+    expect(second.ok).toBe(true)
+    expect(unresolvedAttemptKey('user-2')).toBeNull()
+    expect(unresolvedAttemptKey('user-1')).toBe(sent[0]!.key)
   })
 
   it('repeats the request inside one call with the same key when the host is busy', async () => {

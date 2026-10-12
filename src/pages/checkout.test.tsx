@@ -835,6 +835,71 @@ describe('an order whose answer was lost', () => {
     })
   })
 
+  describe('and another account signs in on the same browser', () => {
+    /** The id of the account that signed in second: its cart is kept apart from the first account's. */
+    const danaId = () => [...api.accounts().values()].find((user) => user.email === DANA.email)!.id
+    const DANA = { name: 'דנה', email: 'dana@example.com', password: 'Passw0rdOK' }
+
+    it('keeps the unresolved attempt of the first account, and finds its order when it comes back', async () => {
+      const sent = await loseTheFirstAnswer()
+      const [firstOrder] = api.orders()
+      cleanup()
+
+      // Another account signs in on this browser and places an order of its own.
+      await useAuthStore.getState().register(DANA)
+      renderApp('/checkout', catalog)
+      expect(await screen.findByText('העגלה ריקה')).toBeInTheDocument()
+      act(() => useCartStore.getState().addItem('PSU-1'))
+      await screen.findByRole('textbox', { name: 'טלפון' })
+      await waitFor(() => expect(api.carts().has(danaId())).toBe(true))
+      await fillValidForm()
+      await userEvent.click(submitButton())
+      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      expect(api.orders()).toHaveLength(2)
+      expect(sent.keys()[1]).not.toBe(sent.keys()[0])
+      // The emptied cart reaches the account before the page goes.
+      await waitFor(() => expect(api.carts().has(danaId())).toBe(false))
+      cleanup()
+
+      // The first account comes back: its attempt is still unresolved, with its own key.
+      const lookups = watchLookups()
+      await useAuthStore.getState().login({ email: GOOD.email, password: GOOD.password })
+      renderApp('/checkout', catalog)
+
+      await waitFor(() => expect(recoveryNotice()).toHaveTextContent('כבר נקלטה'))
+      expect(recoveryNotice()).toHaveTextContent(firstOrder!.orderNumber)
+      expect(lookups.requests()[0]!.body).toEqual({ idempotencyKey: sent.keys()[0] })
+      expect(api.orders()).toHaveLength(2)
+    })
+
+    it('sends the first account own key again when it retries after the other account ordered', async () => {
+      const sent = await loseTheFirstAnswer()
+      cleanup()
+      await useAuthStore.getState().register(DANA)
+      renderApp('/checkout', catalog)
+      expect(await screen.findByText('העגלה ריקה')).toBeInTheDocument()
+      act(() => useCartStore.getState().addItem('PSU-1'))
+      await screen.findByRole('textbox', { name: 'טלפון' })
+      await waitFor(() => expect(api.carts().has(danaId())).toBe(true))
+      await fillValidForm()
+      await userEvent.click(submitButton())
+      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      // The emptied cart reaches the account before the page goes.
+      await waitFor(() => expect(api.carts().has(danaId())).toBe(false))
+      cleanup()
+
+      await useAuthStore.getState().login({ email: GOOD.email, password: GOOD.password })
+      renderApp('/checkout', catalog)
+      await waitFor(() => expect(recoveryNotice()).toHaveTextContent('כבר נקלטה'))
+      await fillValidForm()
+      await userEvent.click(submitButton())
+
+      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      expect(sent.keys()[2]).toBe(sent.keys()[0])
+      expect(api.orders()).toHaveLength(2)
+    })
+  })
+
   describe('and the API is older and cannot say', () => {
     it.each([
       ['a route it does not have (404 not_found)', { status: 404, code: 'not_found' }],

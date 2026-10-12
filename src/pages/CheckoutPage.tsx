@@ -58,8 +58,9 @@ export function CheckoutPage() {
   const userId = user?.id
   // The page may be left while the order is on its way: the answer then changes the cart, not the page.
   const mounted = useRef(true)
-  // The visitor confirmed another order besides the one that exists: the next order starts a new attempt.
-  const separateOrderConfirmed = useRef(false)
+  // The account whose visitor confirmed another order besides the one that exists: its next order
+  // starts a new attempt. Another account that signs in meanwhile is not the one that confirmed.
+  const separateOrderFor = useRef<string | null>(null)
 
   useEffect(() => {
     mounted.current = true
@@ -101,12 +102,12 @@ export function CheckoutPage() {
 
       setProblem(null)
       setRecovery(null)
-      if (separateOrderConfirmed.current) {
+      if (separateOrderFor.current === user.id) {
         // The visitor said they want another order besides the one that exists: only now is the key
         // of the earlier attempt let go, so that this one is an order of its own.
-        separateOrderConfirmed.current = false
-        forgetCheckoutAttempt()
+        forgetCheckoutAttempt(user.id)
       }
+      separateOrderFor.current = null
       // Read the cart at submit time: it may have changed in another tab since this page rendered.
       const cart = useCartStore.getState().items
       const outcome = await submitOrder({
@@ -173,7 +174,7 @@ export function CheckoutPage() {
         <OrderAttemptNotice
           recovery={recovery}
           onConfirmSeparateOrder={() => {
-            separateOrderConfirmed.current = true
+            separateOrderFor.current = userId ?? null
             setRecovery(null)
             controls.submit()
           }}
