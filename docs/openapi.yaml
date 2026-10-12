@@ -1195,15 +1195,27 @@ components:
         written, so no field here has a limit or a pattern.
       required: [fullName, email, phone, city, street, houseNumber, apartment, postalCode, notes]
       properties:
-        fullName: { type: string }
-        email: { type: string }
-        phone: { type: string }
-        city: { type: string }
-        street: { type: string }
-        houseNumber: { type: string }
-        apartment: { type: string, description: May be empty. }
-        postalCode: { type: string, description: May be empty. }
-        notes: { type: string, description: May be empty. }
+        fullName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        city:
+          type: string
+        street:
+          type: string
+        houseNumber:
+          type: string
+        apartment:
+          type: string
+          description: May be empty.
+        postalCode:
+          type: string
+          description: May be empty.
+        notes:
+          type: string
+          description: May be empty.
       example:
         fullName: נתנאל כהן
         email: netanel@example.com

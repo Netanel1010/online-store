@@ -141,6 +141,19 @@ describe('the request schema of the delivery details', () => {
     expect(Object.keys(request)).not.toContain('maxProperties')
   })
 
+  it('types every field as a string, which is what the schema reads and what it stores', () => {
+    for (const field of fields) {
+      expect(properties[field]!.type, field).toBe('string')
+      // The schema agrees: a value that is not a string is refused...
+      for (const notText of [123, null, true, ['a'], { a: 1 }]) {
+        expect(deliveryDetailsSchema.shape[field].safeParse(notText).success, field).toBe(false)
+      }
+    }
+    // ...and what it stores is a string, whatever the field.
+    const kept = deliveryDetailsSchema.parse(request.example)
+    for (const field of fields) expect(typeof kept[field], field).toBe('string')
+  })
+
   it('reads the longest value that it documents, and not one character more', () => {
     for (const field of fields) {
       const longest = properties[field]!.maxLength as number
@@ -269,6 +282,26 @@ describe('the example requests', () => {
 })
 
 describe('the stored schema of the delivery details', () => {
+  const storedProperties = stored.properties as Record<string, YamlMap>
+
+  it('describes the fields that the schema stores, the same ones as the typed schema, and requires every one', () => {
+    const kept = Object.keys(deliveryDetailsSchema.parse(request.example)).sort()
+    expect(Object.keys(storedProperties).sort()).toEqual(kept)
+    expect(Object.keys(storedProperties).sort()).toEqual(Object.keys(properties).sort())
+    expect([...(stored.required as string[])].sort()).toEqual(kept)
+  })
+
+  it('types every field as a string, and says nothing else about it but that it may be empty', () => {
+    for (const [field, property] of Object.entries(storedProperties)) {
+      expect(property.type, field).toBe('string')
+      expect(
+        Object.keys(property).every((key) => key === 'type' || key === 'description'),
+        field,
+      ).toBe(true)
+    }
+    expect(stored.type).toBe('object')
+  })
+
   it('has no limit and no pattern, because an order placed before the rules keeps what it had', () => {
     expect(schemaLines('DeliveryDetails').join('\n')).not.toMatch(
       /\b(minLength|maxLength|pattern|format|enum):/,
