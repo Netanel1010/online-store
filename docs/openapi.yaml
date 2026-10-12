@@ -1062,21 +1062,68 @@ components:
 
     DeliveryDetails:
       type: object
+      description: >-
+        Who an order is for and where it goes. The API checks the shape of each value and stores the value
+        its rules produce (the invisible marks of a copy from a right-to-left page dropped, spaces tidied,
+        text composed, a phone number written locally); the site checks the same rules first. Nothing here
+        says that an address exists or that anything can be delivered to it. Control characters, characters
+        that reorder text (U+202A to U+202E, U+2066 to U+2069), lone surrogates and a value of more than 500
+        characters are refused in every field. An order placed before these rules keeps the form it was
+        stored in (for example a phone number written `050-1234567`).
       required: [fullName, email, phone, city, street, houseNumber, apartment, postalCode, notes]
       properties:
-        fullName: { type: string, minLength: 2, maxLength: 80 }
-        email: { type: string, format: email }
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 80
+          description: Letters of any script with their marks, digits, a space, `' " ’ ‘ “ ” ׳ ״ . , ( ) /` and any dash. Begins with a letter or a digit and holds a letter.
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: At most 64 characters before the @. Does not begin with `+` or `-`.
         phone:
-          {
-            type: string,
-            description: 'An Israeli phone number: after removing spaces, hyphens and brackets, and turning a leading +972 into 0, 9 or 10 digits starting with 0.',
-          }
-        city: { type: string, minLength: 2, maxLength: 60 }
-        street: { type: string, minLength: 2, maxLength: 80 }
-        houseNumber: { type: string, minLength: 1, maxLength: 10 }
-        apartment: { type: string, maxLength: 10, description: May be empty. }
-        postalCode: { type: string, pattern: '^(\d{7})?$', description: Empty or seven digits. }
-        notes: { type: string, maxLength: 300, description: May be empty. }
+          type: string
+          pattern: '^0([23489][0-9]{7}|5[0-9]{8}|7[0-9]{8})$'
+          description: >-
+            An Israeli phone number, stored as it is written locally (`0501234567`). The request may write it
+            with spaces, any dash, dots or brackets, Arabic-Indic digits, or the prefix `+972`, `00972` or
+            `972` (with or without a 0 after it), in at most 30 characters. A landline is 0, one of 2, 3, 4, 8,
+            9 and seven digits; a mobile number is 05 and eight digits; an internet number is 07 and eight
+            digits. A number of another country is refused.
+        city:
+          type: string
+          minLength: 2
+          maxLength: 60
+          description: Like `fullName`.
+        street:
+          type: string
+          minLength: 2
+          maxLength: 80
+          description: Like `fullName`.
+        houseNumber:
+          type: string
+          minLength: 1
+          maxLength: 10
+          description: >-
+            Letters, digits, `/ ' " ’ ׳ ״ . ` and any dash and a space, with a digit that is not 0 (`12`, `12א`,
+            `12/4`, `12-14`), or exactly `ללא מספר` or `ללא` for an address that has none. Arabic-Indic digits are
+            stored as 0-9.
+        apartment:
+          type: string
+          maxLength: 10
+          description: May be empty. Letters, digits, `/ ' " ’ ׳ ״`, a space and any dash; begins with a letter or a digit.
+        postalCode:
+          type: string
+          pattern: '^([1-9][0-9]{6})?$'
+          description: Empty or seven digits that do not begin with 0, stored without the spaces or dashes the request may write between them.
+        notes:
+          type: string
+          maxLength: 300
+          description: >-
+            May be empty. Up to six lines and 300 characters (an emoji counts as one). Does not contain `<` or
+            `>`, and does not begin with `=`, `+`, `-` or `@` (which a spreadsheet reads as a formula). Lines
+            are separated by a line feed.
 
     PlaceOrderRequest:
       type: object

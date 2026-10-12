@@ -114,6 +114,27 @@ The synchronization of the cart (`src/features/cart/cartSync.ts`) is tested at t
 - `src/pages/cartSync.test.tsx` and the checkout tests: the whole app, including that an empty cart
   shows "loading" and not "the cart is empty" until the account's cart has arrived.
 
+### The delivery details
+
+The form and the API read the delivery details with one schema (`src/features/checkout/delivery.ts`,
+with `src/lib/textRules.ts` and the phone number in `src/lib/validation.ts`), and both store what it
+produces: the invisible marks of a copy from a right-to-left page dropped, spaces tidied, the text
+composed (NFC), a phone number written locally (`0501234567`), Arabic-Indic digits as 0-9. The rules are
+about the shape of a value; no test or message claims that an address exists or can be delivered to.
+
+- `src/lib/textRules.test.ts` and `src/lib/validation.test.ts`: the helpers, every control character,
+  every override and isolate, the joiners that Persian and emoji need, that reading a value twice
+  changes nothing, and the phone number in each way of writing it and against the numbering plan.
+- `src/features/checkout/delivery.test.ts` and `deliveryAddress.test.ts`: each field, at its limit and
+  one past it, with real Israeli cities, streets and names (`פ"ת`, `ז'בוטינסקי`, `בן־גוריון`, Arabic and
+  Latin) and with what must be refused (control and direction characters, tags, a formula at the start,
+  `0` as a house number, `0000000` as a postal code).
+- `server/src/orders/schemas.test.ts` and `routes.test.ts`: the API stores the tidied details, a retry
+  typed another way is the same request and not a `409`, and each unsafe value is a `400 invalid_input`
+  that names only the field and stores nothing.
+- `src/pages/checkout.test.tsx` ("the rules for the delivery details") and `e2e/orders.spec.ts`: a
+  number pasted with direction marks, the messages, and that nothing is sent while a field is refused.
+
 ### An order whose answer was lost
 
 The rule is that an unresolved attempt keeps one `Idempotency-Key`, and the API decides
