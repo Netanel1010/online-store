@@ -1139,7 +1139,7 @@ components:
           description: >-
             Normalized like `fullName`, and Arabic-Indic, Persian and full-width digits are read as 0-9. It is
             made of letters, digits, `/ ' " ’ ׳ ״ .`, any dash and a space, begins with a letter or a digit
-            and holds a digit that is not 0 (`12`, `12א`, `12/4`, `12-14`); or it is exactly `ללא מספר` or
+            and holds one of the digits 1 to 9 (`12`, `12א`, `12/4`, `12-14`); or it is exactly `ללא מספר` or
             `ללא`, for an address that has none.
           x-normalized:
             maxLength: 10
