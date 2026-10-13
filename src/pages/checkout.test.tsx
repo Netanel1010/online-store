@@ -299,14 +299,60 @@ describe('checkout order summary', () => {
     expect(box('אימייל')).toHaveValue(GOOD.email)
   })
 
-  it('says that this is a demo and that nothing is charged', async () => {
-    await signIn()
-    useCartStore.getState().addItem('PSU-1')
-    renderApp('/checkout', catalog)
+  describe('says that this is a demo order', () => {
+    beforeEach(async () => {
+      await signIn()
+      useCartStore.getState().addItem('PSU-1')
+    })
 
-    expect(await screen.findByRole('complementary', { name: 'הערה' })).toHaveTextContent(
-      'לא מתבצע חיוב',
-    )
+    it('at the top: no real payment, no product, and an address that is only checked for its shape', async () => {
+      renderApp('/checkout', catalog)
+
+      const note = await screen.findByRole('complementary', { name: 'הערה' })
+      expect(note).toHaveTextContent('זו הזמנת הדגמה בלבד')
+      expect(note).toHaveTextContent('לא מתבצע תשלום אמיתי')
+      expect(note).toHaveTextContent('לא יישלח שום מוצר')
+      expect(note).toHaveTextContent('הכתובת נבדקת רק לפי הפורמט, ולא נבדק שהיא קיימת')
+      expect(note).toHaveTextContent('נשמרים בחשבון שלכם בשרת האתר')
+    })
+
+    it('under the address heading, where the address group is described by it', async () => {
+      renderApp('/checkout', catalog)
+      await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+      expect(screen.getByRole('group', { name: 'כתובת למשלוח' })).toHaveAccessibleDescription(
+        'כתובת הדגמה: הכתובת נשמרת כחלק מההזמנה לצורכי הדגמה בלבד. לא יתבצע משלוח.',
+      )
+    })
+
+    it('in the box the visitor must tick before the order is placed', async () => {
+      renderApp('/checkout', catalog)
+      await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+      expect(
+        screen.getByRole('checkbox', {
+          name: 'אני מבין/ה שזו הזמנת הדגמה בלבד: לא מתבצע תשלום אמיתי, לא יישלח מוצר, ופרטי המשלוח שהזנתי נשמרים בחשבון שלי.',
+        }),
+      ).not.toBeChecked()
+    })
+
+    it('and the button says so too, without asking for any payment detail', async () => {
+      renderApp('/checkout', catalog)
+      await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+      expect(submitButton()).toBeInTheDocument()
+      expect(
+        screen.queryByRole('textbox', { name: /אשראי|כרטיס|CVV|תשלום|חיוב/ }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('and does not promise a delivery, a courier or a date', async () => {
+      renderApp('/checkout', catalog)
+      await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+      const form = submitButton().closest('form')!
+      expect(form).not.toHaveTextContent(/יגיע|שליח|מועד אספקה|זמן אספקה|ימי עסקים|מעקב/)
+    })
   })
 })
 

@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/Button'
 import { CheckboxField, TextAreaField, TextField } from '@/components/ui/fields'
 import { checkoutSchema, type CheckoutValues } from './schema'
 
+/** The line under the address heading that says the address is for the demo; the group is described by it. */
+const ADDRESS_NOTE_ID = 'delivery-address-demo-note'
+
 export type SubmitOutcome = { ok: true } | { ok: false; message: string }
 
 interface CheckoutFormProps {
@@ -89,8 +92,14 @@ export function CheckoutForm({ defaultValues, onSubmit, totalNote, notice }: Che
         </div>
       </fieldset>
 
-      <fieldset className="space-y-4 rounded-xl border border-line bg-white p-5">
+      <fieldset
+        aria-describedby={ADDRESS_NOTE_ID}
+        className="space-y-4 rounded-xl border border-line bg-white p-5"
+      >
         <legend className="px-2 text-lg font-bold">כתובת למשלוח</legend>
+        <p id={ADDRESS_NOTE_ID} className="text-sm text-muted">
+          כתובת הדגמה: הכתובת נשמרת כחלק מההזמנה לצורכי הדגמה בלבד. לא יתבצע משלוח.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
             label="עיר"
@@ -139,7 +148,7 @@ export function CheckoutForm({ defaultValues, onSubmit, totalNote, notice }: Che
       </fieldset>
 
       <CheckboxField
-        label="אני מבין/ה שזו הזמנת הדגמה: לא מתבצע חיוב ולא נשלח מוצר. ההזמנה ופרטי המשלוח שהזנתי נשמרים בחשבון שלי."
+        label="אני מבין/ה שזו הזמנת הדגמה בלבד: לא מתבצע תשלום אמיתי, לא יישלח מוצר, ופרטי המשלוח שהזנתי נשמרים בחשבון שלי."
         error={errors.acceptDemo?.message}
         {...register('acceptDemo')}
       />
