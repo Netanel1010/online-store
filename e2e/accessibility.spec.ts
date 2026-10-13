@@ -156,6 +156,13 @@ test.describe('automated WCAG A/AA scan (axe-core)', () => {
     await page.getByRole('button', { name: 'אישור הזמנה (הדגמה)' }).click()
     await expect(page.getByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })).toBeVisible()
     await expectNoAxeViolations(page)
+
+    // The list of orders, with the note that they are demo orders.
+    await page.goto('orders')
+    await expect(page.getByRole('heading', { level: 1, name: 'ההזמנות שלי' })).toBeVisible()
+    await expect(page.getByRole('complementary', { name: 'הערה' })).toContainText('הזמנות הדגמה')
+    await expect(page.getByRole('list', { name: 'ההזמנות שלי' })).toContainText('נשמרה')
+    await expectNoAxeViolations(page)
   })
 
   test('not-found page and a visible toast', async ({ page }) => {

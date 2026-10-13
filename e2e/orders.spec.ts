@@ -74,6 +74,33 @@ async function alterFirstOrderRequest(page: Page, change: (body: Record<string, 
   })
 }
 
+test.describe('an order is a demo on every screen', () => {
+  test('the checkout, the confirmation and the list each say: no real payment, no product', async ({
+    page,
+  }) => {
+    const notice = page.getByRole('complementary', { name: 'הערה' })
+
+    await checkoutWithOneProduct(page)
+    await expect(notice).toContainText('לא מתבצע תשלום אמיתי ולא יישלח שום מוצר')
+    await expect(notice).toContainText('הכתובת נבדקת רק לפי הפורמט, ולא נבדק שהיא קיימת')
+    await expect(page.getByRole('group', { name: 'כתובת למשלוח' })).toContainText(
+      'כתובת הדגמה: הכתובת נשמרת כחלק מההזמנה לצורכי הדגמה בלבד. לא יתבצע משלוח.',
+    )
+
+    await order(page).click()
+    await confirmed(page)
+    await expect(notice).toContainText('לא בוצע תשלום אמיתי, לא יישלח מוצר')
+    await expect(page.getByRole('region', { name: 'פרטי משלוח (הדגמה)' })).toBeVisible()
+
+    await page.goto('orders')
+    await expect(page.getByRole('heading', { level: 1, name: 'ההזמנות שלי' })).toBeVisible()
+    await expect(notice).toContainText('לא בוצע תשלום אמיתי ולא יישלח אף מוצר')
+    await expect(page.getByRole('list', { name: 'ההזמנות שלי' })).toContainText(
+      'כתובת הדגמה: תל אביב',
+    )
+  })
+})
+
 test.describe('an order is kept by the API', () => {
   test('opens again after a reload and in another tab, with the same number, lines and total', async ({
     page,
