@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { paths } from '@/app/paths'
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
+import { DemoNotice } from '@/components/shared/Notices'
 import { PageMeta } from '@/components/shared/PageMeta'
 import { Skeleton } from '@/components/shared/Skeleton'
 import { SlowLoadNotice } from '@/components/shared/SlowLoadNotice'
@@ -27,7 +28,7 @@ function OrdersSkeleton() {
 }
 
 /** What the order says about itself: its state, as the API reports it. */
-const STATUS_LABEL: Record<Order['status'], string> = { placed: 'התקבלה' }
+const STATUS_LABEL: Record<Order['status'], string> = { placed: 'נשמרה' }
 
 function OrderCard({ order }: { order: Order }) {
   const units = order.lines.reduce((sum, line) => sum + line.quantity, 0)
@@ -57,7 +58,7 @@ function OrderCard({ order }: { order: Order }) {
           {STATUS_LABEL[order.status]}
         </span>
         <span>{units === 1 ? 'פריט אחד' : `${units} פריטים`}</span>
-        <span>משלוח אל {delivery.city}</span>
+        <span>כתובת הדגמה: {delivery.city}</span>
         <span>
           עבור <bdi>{delivery.fullName}</bdi>
         </span>
@@ -89,6 +90,9 @@ export function MyOrdersPage() {
       <PageMeta meta={noindexMeta('ההזמנות שלי')} />
       <Breadcrumbs items={[{ label: 'בית', to: paths.home }, { label: 'ההזמנות שלי' }]} />
       <h1 className="mb-6 text-3xl font-bold">ההזמנות שלי</h1>
+      <div className="mb-6 max-w-4xl">
+        <DemoNotice>אלה הזמנות הדגמה: לא בוצע תשלום אמיתי ולא יישלח אף מוצר.</DemoNotice>
+      </div>
 
       {view.status === 'loading' && <OrdersSkeleton />}
 

@@ -68,8 +68,8 @@ describe('the orders of the account', () => {
     const newest = items[0]!
     expect(within(newest).getByText(/3,000/)).toBeInTheDocument()
     expect(within(newest).getByText('3 פריטים')).toBeInTheDocument()
-    expect(within(newest).getByText('התקבלה')).toBeInTheDocument()
-    expect(within(newest).getByText(/משלוח אל באר שבע/)).toBeInTheDocument()
+    expect(within(newest).getByText('נשמרה')).toBeInTheDocument()
+    expect(within(newest).getByText('כתובת הדגמה: באר שבע')).toBeInTheDocument()
     expect(within(newest).getByText(/נתנאל כהן/)).toBeInTheDocument()
     // The date: the order number is random and can contain four digits too, so ask the time element.
     const date = newest.querySelector('time')
@@ -144,6 +144,46 @@ describe('the orders of the account', () => {
     await screen.findByRole('list', { name: 'ההזמנות שלי' })
 
     expect(useCartStore.getState().items).toEqual([{ productId: 'PSU-1', quantity: 2 }])
+  })
+})
+
+describe('the orders are shown as demo orders', () => {
+  it('says above the list that they are demo orders: no real payment, no product', async () => {
+    await useAuthStore.getState().register(GOOD)
+    await placeAnOrder(1)
+
+    renderApp('/orders', catalog)
+    await screen.findByRole('list', { name: 'ההזמנות שלי' })
+
+    expect(screen.getByRole('complementary', { name: 'הערה' })).toHaveTextContent(
+      'אלה הזמנות הדגמה: לא בוצע תשלום אמיתי ולא יישלח אף מוצר.',
+    )
+  })
+
+  it('says it also when there is no order yet', async () => {
+    await useAuthStore.getState().register(GOOD)
+
+    renderApp('/orders', catalog)
+    await screen.findByRole('heading', { name: 'עדיין אין לכם הזמנות' })
+
+    expect(screen.getByRole('complementary', { name: 'הערה' })).toHaveTextContent(
+      'לא בוצע תשלום אמיתי ולא יישלח אף מוצר',
+    )
+  })
+
+  it('labels each card as a saved order with a demo address, and does not talk of a shipment or of receiving', async () => {
+    await useAuthStore.getState().register(GOOD)
+    const order = await placeAnOrder(2, 'חיפה')
+
+    renderApp('/orders', catalog)
+    await screen.findByRole('list', { name: 'ההזמנות שלי' })
+
+    const card = cards()[0]!
+    expect(within(card).getByText('נשמרה')).toBeInTheDocument()
+    expect(within(card).getByText('כתובת הדגמה: חיפה')).toBeInTheDocument()
+    expect(document.body).not.toHaveTextContent(/התקבלה|משלוח אל|יגיע|שליח|ימי עסקים|מעקב/)
+    // Only the words on the screen changed: the API still calls the order "placed".
+    expect(order.status).toBe('placed')
   })
 })
 
