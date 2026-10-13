@@ -76,7 +76,7 @@ describe('the page of an order', () => {
 
     renderApp(`/orders/${order.orderNumber}`, catalog)
 
-    const details = await screen.findByRole('region', { name: 'פרטי משלוח' })
+    const details = await screen.findByRole('region', { name: 'פרטי משלוח (הדגמה)' })
     expect(details).toHaveTextContent('נתנאל כהן')
     expect(details).toHaveTextContent('netanel@example.com')
     expect(details).toHaveTextContent('0501234567')
@@ -135,16 +135,34 @@ describe('the page of an order', () => {
     await waitFor(() => expect(lines.querySelectorAll('img')).toHaveLength(2))
   })
 
-  it('welcomes a visitor who has just ordered, and says what was and was not done', async () => {
+  it('says that it was a demo order only: no real payment, no product, no email, an address checked for its shape', async () => {
     const order = await placedOrder()
 
     renderApp(`/orders/${order.orderNumber}`, catalog)
     const note = await screen.findByRole('complementary', { name: 'הערה' })
 
-    expect(note).toHaveTextContent('לא בוצע חיוב')
+    expect(note).toHaveTextContent('זו הייתה הזמנת הדגמה בלבד')
+    expect(note).toHaveTextContent('לא בוצע תשלום אמיתי')
+    expect(note).toHaveTextContent('לא יישלח מוצר')
+    expect(note).toHaveTextContent('ולא נשלח אימייל אל netanel@example.com')
+    expect(note).toHaveTextContent('הכתובת נבדקה רק לפי הפורמט, ולא נקבע מועד אספקה')
     expect(note).toHaveTextContent('נשמרו בחשבון שלכם')
     expect(note).not.toHaveTextContent('אינה נשמרת')
     expect(summary()).toHaveTextContent('לא מחושבים משלוח ומע"מ')
+  })
+
+  it('names the order and its details as a demo, and does not say that it was received or will arrive', async () => {
+    const order = await placedOrder()
+
+    renderApp(`/orders/${order.orderNumber}`, catalog)
+    const details = await screen.findByRole('region', { name: 'פרטי משלוח (הדגמה)' })
+
+    expect(screen.getByText(/מספר הזמנת הדגמה:/)).toHaveTextContent(order.orderNumber)
+    expect(order.orderNumber).toMatch(/^DEMO-/)
+    expect(
+      within(details).getByRole('heading', { level: 2, name: 'פרטי משלוח (הדגמה)' }),
+    ).toBeInTheDocument()
+    expect(document.body).not.toHaveTextContent(/התקבלה|יגיע|שליח|ימי עסקים|מעקב/)
   })
 
   it('offers the next steps', async () => {

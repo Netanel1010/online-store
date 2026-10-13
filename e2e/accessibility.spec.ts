@@ -154,7 +154,7 @@ test.describe('automated WCAG A/AA scan (axe-core)', () => {
 
     await fillDeliveryForm(page)
     await page.getByRole('button', { name: 'אישור הזמנה (הדגמה)' }).click()
-    await expect(page.getByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })).toBeVisible()
     await expectNoAxeViolations(page)
   })
 

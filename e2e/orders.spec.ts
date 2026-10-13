@@ -35,7 +35,7 @@ async function checkoutWithOneProduct(page: Page) {
 const order = (page: Page) => page.getByRole('button', { name: ORDER_BUTTON })
 
 async function confirmed(page: Page) {
-  await expect(page.getByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })).toBeVisible()
   await expect(page).toHaveURL(ORDER_URL)
 }
 
@@ -95,7 +95,7 @@ test.describe('an order is kept by the API', () => {
     await expect(other.getByRole('heading', { level: 1, name: 'פרטי הזמנה' })).toBeVisible()
     await expect(other.getByText(number).first()).toBeVisible()
     await expect(other.getByRole('list', { name: 'המוצרים שהוזמנו' })).toContainText(PSU.name)
-    await expect(other.getByRole('region', { name: 'פרטי משלוח' })).toContainText('דיזנגוף')
+    await expect(other.getByRole('region', { name: 'פרטי משלוח (הדגמה)' })).toContainText('דיזנגוף')
     await expect.poll(() => summaryTotal(other)).toBe(PSU.price.current)
   })
 
