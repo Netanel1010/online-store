@@ -281,8 +281,9 @@ function CheckoutContent() {
             <div className="grid items-start gap-8 lg:grid-cols-[1fr_22rem]">
               <div className="max-w-4xl space-y-6">
                 <DemoNotice>
-                  זו הזמנת הדגמה: לא מתבצע חיוב ולא נשלח מוצר. ההזמנה ופרטי המשלוח נשמרים בחשבון
-                  שלכם בשרת האתר, לכן אל תזינו פרטים אמיתיים שאינכם רוצים שיישמרו.
+                  זו הזמנת הדגמה בלבד: לא מתבצע תשלום אמיתי ולא יישלח שום מוצר. הכתובת נבדקת רק לפי
+                  הפורמט, ולא נבדק שהיא קיימת. ההזמנה ופרטי המשלוח נשמרים בחשבון שלכם בשרת האתר, לכן
+                  אל תזינו פרטים אמיתיים שאינכם רוצים שיישמרו.
                 </DemoNotice>
                 <CheckoutForm
                   defaultValues={{ fullName: user?.name ?? '', email: user?.email ?? '' }}

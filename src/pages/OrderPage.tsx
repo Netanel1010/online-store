@@ -41,7 +41,7 @@ function DeliveryDetails({ delivery }: { delivery: Order['delivery'] }) {
       className="rounded-xl border border-line bg-white p-5"
     >
       <h2 id="delivery-heading" className="text-lg font-bold">
-        פרטי משלוח
+        פרטי משלוח (הדגמה)
       </h2>
       <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[auto_1fr]">
         <dt className="text-muted">שם</dt>
@@ -124,8 +124,10 @@ export function OrderPage() {
 
   return (
     <>
-      <PageMeta meta={noindexMeta(justPlaced ? 'ההזמנה התקבלה' : 'פרטי הזמנה')} />
-      <h1 className="mb-2 text-3xl font-bold">{justPlaced ? 'ההזמנה התקבלה' : 'פרטי הזמנה'}</h1>
+      <PageMeta meta={noindexMeta(justPlaced ? 'הזמנת ההדגמה נשמרה' : 'פרטי הזמנה')} />
+      <h1 className="mb-2 text-3xl font-bold">
+        {justPlaced ? 'הזמנת ההדגמה נשמרה' : 'פרטי הזמנה'}
+      </h1>
       <p role="status" className="mb-6 text-muted">
         מספר הזמנת הדגמה:{' '}
         <bdi className="font-semibold text-ink" dir="ltr">
@@ -136,8 +138,9 @@ export function OrderPage() {
       </p>
 
       <DemoNotice>
-        זו הייתה הזמנת הדגמה: לא בוצע חיוב, לא יישלח מוצר, ולא נשלח אימייל אל{' '}
-        <bdi dir="ltr">{order.delivery.email}</bdi>. ההזמנה ופרטי המשלוח שהזנתם נשמרו בחשבון שלכם.
+        זו הייתה הזמנת הדגמה בלבד: לא בוצע תשלום אמיתי, לא יישלח מוצר, ולא נשלח אימייל אל{' '}
+        <bdi dir="ltr">{order.delivery.email}</bdi>. הכתובת נבדקה רק לפי הפורמט, ולא נקבע מועד
+        אספקה. ההזמנה ופרטי המשלוח שהזנתם נשמרו בחשבון שלכם.
       </DemoNotice>
 
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[1fr_22rem]">

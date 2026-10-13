@@ -425,9 +425,11 @@ test.describe('checkout', () => {
     await page.getByRole('button', { name: ORDER_BUTTON }).click()
 
     await expect(page).toHaveURL(/\/online-store\/orders\/DEMO-[0-9A-Z]{8}$/)
-    await expect(page.getByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })).toBeVisible()
     await expect(page.getByText(/DEMO-[0-9A-Z]{8}/).first()).toBeVisible()
-    await expect(page.getByRole('complementary', { name: 'הערה' })).toContainText('לא בוצע חיוב')
+    await expect(page.getByRole('complementary', { name: 'הערה' })).toContainText(
+      'לא בוצע תשלום אמיתי',
+    )
     await expect(
       page.getByRole('list', { name: 'המוצרים שהוזמנו' }).getByRole('listitem'),
     ).toHaveCount(1)
@@ -511,7 +513,7 @@ test.describe('sign-out regression', () => {
     await page.goto('checkout')
     await fillDeliveryForm(page)
     await page.getByRole('button', { name: ORDER_BUTTON }).click()
-    await expect(page.getByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })).toBeVisible()
 
     await signOut(page)
 

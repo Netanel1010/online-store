@@ -299,14 +299,60 @@ describe('checkout order summary', () => {
     expect(box('אימייל')).toHaveValue(GOOD.email)
   })
 
-  it('says that this is a demo and that nothing is charged', async () => {
-    await signIn()
-    useCartStore.getState().addItem('PSU-1')
-    renderApp('/checkout', catalog)
+  describe('says that this is a demo order', () => {
+    beforeEach(async () => {
+      await signIn()
+      useCartStore.getState().addItem('PSU-1')
+    })
 
-    expect(await screen.findByRole('complementary', { name: 'הערה' })).toHaveTextContent(
-      'לא מתבצע חיוב',
-    )
+    it('at the top: no real payment, no product, and an address that is only checked for its shape', async () => {
+      renderApp('/checkout', catalog)
+
+      const note = await screen.findByRole('complementary', { name: 'הערה' })
+      expect(note).toHaveTextContent('זו הזמנת הדגמה בלבד')
+      expect(note).toHaveTextContent('לא מתבצע תשלום אמיתי')
+      expect(note).toHaveTextContent('לא יישלח שום מוצר')
+      expect(note).toHaveTextContent('הכתובת נבדקת רק לפי הפורמט, ולא נבדק שהיא קיימת')
+      expect(note).toHaveTextContent('נשמרים בחשבון שלכם בשרת האתר')
+    })
+
+    it('under the address heading, where the address group is described by it', async () => {
+      renderApp('/checkout', catalog)
+      await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+      expect(screen.getByRole('group', { name: 'כתובת למשלוח' })).toHaveAccessibleDescription(
+        'כתובת הדגמה: הכתובת נשמרת כחלק מההזמנה לצורכי הדגמה בלבד. לא יתבצע משלוח.',
+      )
+    })
+
+    it('in the box the visitor must tick before the order is placed', async () => {
+      renderApp('/checkout', catalog)
+      await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+      expect(
+        screen.getByRole('checkbox', {
+          name: 'אני מבין/ה שזו הזמנת הדגמה בלבד: לא מתבצע תשלום אמיתי, לא יישלח מוצר, ופרטי המשלוח שהזנתי נשמרים בחשבון שלי.',
+        }),
+      ).not.toBeChecked()
+    })
+
+    it('and the button says so too, without asking for any payment detail', async () => {
+      renderApp('/checkout', catalog)
+      await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+      expect(submitButton()).toBeInTheDocument()
+      expect(
+        screen.queryByRole('textbox', { name: /אשראי|כרטיס|CVV|תשלום|חיוב/ }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('and does not promise a delivery, a courier or a date', async () => {
+      renderApp('/checkout', catalog)
+      await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+      const form = submitButton().closest('form')!
+      expect(form).not.toHaveTextContent(/יגיע|שליח|מועד אספקה|זמן אספקה|ימי עסקים|מעקב/)
+    })
   })
 })
 
@@ -412,7 +458,7 @@ describe('placing the order', () => {
     await userEvent.click(submitButton())
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' }),
     ).toBeInTheDocument()
     const [stored] = api.orders()
     expect(api.orders()).toHaveLength(1)
@@ -438,7 +484,7 @@ describe('placing the order', () => {
 
     await fillValidForm()
     await userEvent.click(submitButton())
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
 
     expect(sent.bodies()).toEqual([
       {
@@ -471,7 +517,7 @@ describe('placing the order', () => {
 
     await fillValidForm()
     await userEvent.click(submitButton())
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
 
     expect(sent.keys()).toHaveLength(1)
     expect(sent.keys()[0]).toMatch(/^[0-9a-f-]{36}$/)
@@ -485,7 +531,7 @@ describe('placing the order', () => {
 
     await fillValidForm()
     await userEvent.dblClick(submitButton())
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
 
     expect(api.orders()).toHaveLength(1)
     expect(new Set(sent.keys()).size).toBe(1)
@@ -501,7 +547,7 @@ describe('placing the order', () => {
     await screen.findByRole('alert')
     await userEvent.click(submitButton())
 
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
     expect(sent.keys()).toHaveLength(2)
     expect(sent.keys()[1]).toBe(sent.keys()[0])
     expect(api.orders()).toHaveLength(1)
@@ -518,7 +564,7 @@ describe('placing the order', () => {
     expect(api.orders()).toHaveLength(1) // the API did place it, and the page does not know
     await userEvent.click(submitButton())
 
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
     expect(sent.keys()[1]).toBe(sent.keys()[0])
     expect(api.orders()).toHaveLength(1)
     expect(url()).toBe(`/orders/${api.orders()[0]!.orderNumber}`)
@@ -536,7 +582,7 @@ describe('placing the order', () => {
     useCartStore.getState().setQuantity('PSU-1', 3) // the request never arrived: this is the order
     await userEvent.click(submitButton())
 
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
     // The API knows whether the key made an order; it made none, so the changed order is placed.
     expect(sent.keys()[1]).toBe(sent.keys()[0])
     expect(api.orders()).toHaveLength(1)
@@ -561,7 +607,7 @@ describe('placing the order', () => {
 
     // The visitor has seen the new total: ordering again accepts exactly that.
     await userEvent.click(submitButton())
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
     expect(api.orders()).toHaveLength(1)
     expect(api.orders()[0]!.total).toBe(2700)
     expect(total()).toHaveTextContent(/2,700/)
@@ -587,7 +633,7 @@ describe('placing the order', () => {
     expect(useCartStore.getState().items).toEqual([{ productId: 'PSU-1', quantity: 1 }])
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     await userEvent.click(submitButton())
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
     expect(api.orders()[0]!.lines.map((line) => line.productId)).toEqual(['PSU-1'])
   })
 
@@ -618,9 +664,12 @@ describe('placing the order', () => {
     await userEvent.click(submitButton())
 
     // Wait for the order page first: until then the note on the screen is the checkout's own.
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
     const note = screen.getByRole('complementary', { name: 'הערה' })
-    expect(note).toHaveTextContent('לא בוצע חיוב')
+    expect(note).toHaveTextContent('זו הייתה הזמנת הדגמה בלבד')
+    expect(note).toHaveTextContent('לא בוצע תשלום אמיתי')
+    // The heading right after ordering is the demo's, and nothing on the page says "received".
+    expect(document.body).not.toHaveTextContent('התקבלה')
     expect(note).toHaveTextContent('נשמרו בחשבון שלכם')
     expect(note).not.toHaveTextContent('אינה נשמרת')
   })
@@ -744,7 +793,7 @@ describe('an order whose answer was lost', () => {
 
       await userEvent.click(screen.getByRole('button', { name: 'כן, ליצור הזמנה חדשה' }))
 
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
       expect(api.orders()).toHaveLength(2)
       expect(sent.keys()[2]).not.toBe(sent.keys()[0])
       expect(api.orders()[1]!.delivery.street).toBe('אלנבי')
@@ -794,7 +843,7 @@ describe('an order whose answer was lost', () => {
       await fillValidForm()
       await userEvent.click(submitButton())
 
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
       expect(sent.keys()[1]).toBe(sent.keys()[0])
       expect(api.orders()).toHaveLength(1)
       expect(url()).toBe(`/orders/${api.orders()[0]!.orderNumber}`)
@@ -823,7 +872,7 @@ describe('an order whose answer was lost', () => {
       await editStreet('אלנבי')
       await userEvent.click(submitButton())
 
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
       expect(api.orders()).toHaveLength(1)
       expect(api.orders()[0]!.delivery.street).toBe('אלנבי')
       expect(sent.keys()[1]).toBe(sent.keys()[0])
@@ -859,7 +908,7 @@ describe('an order whose answer was lost', () => {
       await waitFor(() => expect(api.carts().has(danaId())).toBe(true))
       await fillValidForm()
       await userEvent.click(submitButton())
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
       expect(api.orders()).toHaveLength(2)
       expect(sent.keys()[1]).not.toBe(sent.keys()[0])
       // The emptied cart reaches the account before the page goes.
@@ -905,7 +954,7 @@ describe('an order whose answer was lost', () => {
       await waitFor(() => expect(api.carts().has(danaId())).toBe(true))
       await fillValidForm()
       await userEvent.click(submitButton())
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
       // The emptied cart reaches the account before the page goes.
       await waitFor(() => expect(api.carts().has(danaId())).toBe(false))
       cleanup()
@@ -916,7 +965,7 @@ describe('an order whose answer was lost', () => {
       await fillValidForm()
       await userEvent.click(submitButton())
 
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
       expect(sent.keys()[2]).toBe(sent.keys()[0])
       expect(api.orders()).toHaveLength(2)
     })
@@ -952,7 +1001,7 @@ describe('an order whose answer was lost', () => {
       await fillValidForm()
       await userEvent.click(submitButton())
 
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
       expect(sent.keys()[1]).toBe(sent.keys()[0])
       expect(api.orders()).toHaveLength(1)
     })
@@ -989,7 +1038,7 @@ describe('one order at a time', () => {
     await fillValidForm()
 
     await userEvent.dblClick(submitButton())
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
 
     expect(sent.keys()).toHaveLength(1)
     expect(api.orders()).toHaveLength(1)
@@ -1003,7 +1052,7 @@ describe('one order at a time', () => {
     await userEvent.click(box('מספר בית'))
 
     await userEvent.keyboard('{Enter}{Enter}')
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
 
     expect(sent.keys()).toHaveLength(1)
     expect(api.orders()).toHaveLength(1)
@@ -1165,7 +1214,7 @@ describe('one order at a time', () => {
       await fillValidForm()
       await userEvent.click(submitButton())
 
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
       expect(api.orders()).toHaveLength(1)
       expect(sent.keys()[1]).toBe(sent.keys()[0])
     })
@@ -1177,7 +1226,7 @@ describe('one order at a time', () => {
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
     await fillValidForm()
     await userEvent.click(submitButton())
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
     cleanup()
 
     renderApp('/checkout', catalog)
@@ -1193,7 +1242,7 @@ describe('one order at a time', () => {
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
     await fillValidForm()
     await userEvent.click(submitButton())
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
     // The emptied cart reaches the account before the page goes, as it does when a visit goes on.
     await waitFor(() => expect(savedCartLines()).toBe(0))
     cleanup()
@@ -1206,7 +1255,7 @@ describe('one order at a time', () => {
     await fillValidForm()
     await userEvent.click(submitButton())
 
-    await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' })
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
     expect(api.orders()).toHaveLength(2)
     expect(sent.keys()[1]).not.toBe(sent.keys()[0])
     // Nothing was unresolved, so nothing was asked and no notice was shown.
@@ -1295,7 +1344,7 @@ describe('the rules for the delivery details', () => {
     await userEvent.click(submitButton())
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' }),
     ).toBeInTheDocument()
     expect(sent.bodies()).toHaveLength(1)
     expect(sent.bodies()[0]).toMatchObject({ delivery: { phone: '0501234567' } })
@@ -1315,7 +1364,7 @@ describe('the rules for the delivery details', () => {
     await userEvent.click(submitButton())
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' }),
     ).toBeInTheDocument()
     expect(sent.bodies()[0]).toMatchObject({
       delivery: {
@@ -1359,7 +1408,7 @@ describe('the rules for the delivery details', () => {
     await userEvent.click(submitButton())
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' }),
     ).toBeInTheDocument()
     expect(api.orders()).toHaveLength(1)
   })
@@ -1374,7 +1423,7 @@ describe('the rules for the delivery details', () => {
     await userEvent.click(submitButton())
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' }),
     ).toBeInTheDocument()
     expect(sent.bodies()[0]).toMatchObject({
       delivery: { phone: '048651234', houseNumber: 'ללא מספר', notes: 'שורה ראשונה\nשורה שנייה' },
@@ -1424,7 +1473,7 @@ describe('the rules for the delivery details', () => {
     await userEvent.click(submitButton())
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+      await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' }),
     ).toBeInTheDocument()
     expect(sent.bodies()[0]).toMatchObject({ delivery: { notes: '🙏'.repeat(300) } })
   })
