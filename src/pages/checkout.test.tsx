@@ -449,7 +449,7 @@ describe('placing the order', () => {
         delivery: {
           fullName: GOOD.name,
           email: GOOD.email,
-          phone: '050-1234567',
+          phone: '0501234567',
           city: 'תל אביב',
           street: 'דיזנגוף',
           houseNumber: '12',
@@ -1226,6 +1226,21 @@ describe('checkout form layout', () => {
     expect(screen.getByText('שדות חובה מסומנים בכוכבית (*).')).toBeInTheDocument()
   })
 
+  it('shows the email, the phone number and the postal code left to right, as they are read', async () => {
+    await signIn()
+    useCartStore.getState().addItem('PSU-1')
+    renderApp('/checkout', catalog)
+    await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
+
+    for (const name of ['אימייל', 'טלפון', 'מיקוד (לא חובה)']) {
+      expect(box(name), name).toHaveAttribute('dir', 'ltr')
+    }
+    // A name or an address is Hebrew as often as not, and follows the page.
+    for (const name of ['שם מלא', 'עיר', 'רחוב', 'דירה (לא חובה)']) {
+      expect(box(name), name).not.toHaveAttribute('dir')
+    }
+  })
+
   it('repeats the total just above the submit button, for a phone where the summary is far away', async () => {
     await signIn()
     useCartStore.getState().addItem('PSU-1')
@@ -1248,5 +1263,236 @@ describe('checkout form layout', () => {
     await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
 
     expect(within(summary()).getAllByText('סה"כ')).toHaveLength(1)
+  })
+})
+
+describe('the rules for the delivery details', () => {
+  beforeEach(async () => {
+    await signIn()
+    useCartStore.getState().addItem('PSU-1')
+  })
+
+  async function openCheckout() {
+    renderApp('/checkout', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+    await screen.findByRole('textbox', { name: 'טלפון' }) // the form, once the cart is known
+  }
+
+  async function fillAddress({ city = 'תל אביב', street = 'דיזנגוף', houseNumber = '12' } = {}) {
+    await userEvent.type(box('עיר'), city)
+    await userEvent.type(box('רחוב'), street)
+    await userEvent.type(box('מספר בית'), houseNumber)
+    await userEvent.click(screen.getByRole('checkbox', { name: /הזמנת הדגמה/ }))
+  }
+
+  it('reads a number pasted from a right-to-left page and sends it written locally', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+
+    await userEvent.click(box('טלפון'))
+    await userEvent.paste('\u200f+972 50-123-4567\u200e')
+    await fillAddress()
+    await userEvent.click(submitButton())
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+    ).toBeInTheDocument()
+    expect(sent.bodies()).toHaveLength(1)
+    expect(sent.bodies()[0]).toMatchObject({ delivery: { phone: '0501234567' } })
+    expect(api.orders()[0]?.delivery.phone).toBe('0501234567')
+  })
+
+  it('reads an address pasted with a direction mark and stores it without', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+
+    await userEvent.clear(box('אימייל'))
+    await userEvent.click(box('אימייל'))
+    await userEvent.paste('\u200fnetanel@example.com\u200e')
+    await userEvent.type(box('טלפון'), '0501234567')
+    await fillAddress({ city: 'פ"ת', street: "ז'בוטינסקי" })
+    await userEvent.type(box('מיקוד (לא חובה)'), '49-100-00')
+    await userEvent.click(submitButton())
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+    ).toBeInTheDocument()
+    expect(sent.bodies()[0]).toMatchObject({
+      delivery: {
+        email: 'netanel@example.com',
+        city: 'פ"ת',
+        street: "ז'בוטינסקי",
+        postalCode: '4910000',
+      },
+    })
+  })
+
+  it('says what is not allowed, keeps what was typed, and places no order', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+
+    await userEvent.type(box('טלפון'), '0000000000')
+    await fillAddress({ city: '=cmd|calc', street: '<b>הרצל</b>', houseNumber: '0' })
+    await userEvent.type(box('הערות למשלוח (לא חובה)'), '=SUM(1,2)')
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByText('מספר הטלפון אינו תקין')).toBeInTheDocument()
+    expect(screen.getByText('עיר מכיל תווים שאינם מותרים')).toBeInTheDocument()
+    expect(screen.getByText('רחוב מכיל תווים שאינם מותרים')).toBeInTheDocument()
+    expect(screen.getByText('מספר הבית אינו תקין')).toBeInTheDocument()
+    expect(screen.getByText('ההערות לא יכולות להתחיל בסימן מיוחד')).toBeInTheDocument()
+    expect(box('עיר')).toHaveValue('=cmd|calc')
+    expect(sent.bodies()).toEqual([])
+    expect(api.orders()).toHaveLength(0)
+    expect(url()).toBe('/checkout')
+  })
+
+  it('places the order once the details are corrected', async () => {
+    await openCheckout()
+    await userEvent.type(box('טלפון'), '0501234567')
+    await fillAddress({ city: '=cmd', street: 'דיזנגוף' })
+    await userEvent.click(submitButton())
+    expect(await screen.findByText('עיר מכיל תווים שאינם מותרים')).toBeInTheDocument()
+
+    await userEvent.clear(box('עיר'))
+    await userEvent.type(box('עיר'), 'תל אביב')
+    await userEvent.click(submitButton())
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+    ).toBeInTheDocument()
+    expect(api.orders()).toHaveLength(1)
+  })
+
+  it('accepts an address that has no house number, and one with several lines of notes', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+
+    await userEvent.type(box('טלפון'), '04-8651234')
+    await fillAddress({ city: 'קיבוץ מעגן מיכאל', street: 'השקד', houseNumber: 'ללא מספר' })
+    await userEvent.type(box('הערות למשלוח (לא חובה)'), 'שורה ראשונה{Enter}שורה שנייה')
+    await userEvent.click(submitButton())
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+    ).toBeInTheDocument()
+    expect(sent.bodies()[0]).toMatchObject({
+      delivery: { phone: '048651234', houseNumber: 'ללא מספר', notes: 'שורה ראשונה\nשורה שנייה' },
+    })
+  })
+
+  it('refuses a tab among the digits of a phone number or a postal code, and sends nothing', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+
+    await userEvent.click(box('טלפון'))
+    await userEvent.paste('050\t1234567')
+    await fillAddress()
+    await userEvent.click(box('מיקוד (לא חובה)'))
+    await userEvent.paste('64369\t01')
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByText('מספר הטלפון אינו תקין')).toBeInTheDocument()
+    expect(screen.getByText('המיקוד חייב להכיל 7 ספרות')).toBeInTheDocument()
+    expect(sent.bodies()).toEqual([])
+    expect(api.orders()).toHaveLength(0)
+  })
+
+  it('refuses a tab at the end of a name, which is not a space to be tidied away', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+
+    await userEvent.type(box('טלפון'), '0501234567')
+    await fillAddress({ city: 'תל אביב\t' })
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByText('עיר מכיל תווים שאינם מותרים')).toBeInTheDocument()
+    expect(sent.bodies()).toEqual([])
+  })
+
+  it('does not cut a long note short in the field: it counts characters, as the API does', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+    const notes = box('הערות למשלוח (לא חובה)')
+
+    // 300 simple emoji are 600 units of the browser's own length, and 300 code points for the rules.
+    await userEvent.type(box('טלפון'), '0501234567')
+    await fillAddress()
+    await userEvent.click(notes)
+    await userEvent.paste('🙏'.repeat(300))
+    expect(notes).toHaveValue('🙏'.repeat(300))
+    await userEvent.click(submitButton())
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'ההזמנה התקבלה' }),
+    ).toBeInTheDocument()
+    expect(sent.bodies()[0]).toMatchObject({ delivery: { notes: '🙏'.repeat(300) } })
+  })
+
+  it('tells the visitor that a note is too long, and keeps all of it', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+    const notes = box('הערות למשלוח (לא חובה)')
+
+    await userEvent.type(box('טלפון'), '0501234567')
+    await fillAddress()
+    await userEvent.click(notes)
+    await userEvent.paste('א'.repeat(301))
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByText('ההערות ארוכות מדי (עד 300 תווים)')).toBeInTheDocument()
+    expect(notes).toHaveValue('א'.repeat(301))
+    expect(sent.bodies()).toEqual([])
+  })
+
+  it('says how long a note may be, in a hint that the field is described by', async () => {
+    await openCheckout()
+    const notes = box('הערות למשלוח (לא חובה)')
+
+    expect(screen.getByText('עד 300 תווים')).toBeVisible()
+    expect(notes).toHaveAccessibleDescription('עד 300 תווים')
+    // The hint is not part of the name of the field, and the field has no length limit of its own.
+    expect(notes).toHaveAccessibleName('הערות למשלוח (לא חובה)')
+    expect(notes).not.toHaveAttribute('maxlength')
+  })
+
+  it('keeps the hint when the note is too long, and adds the error to what the field is described by', async () => {
+    await openCheckout()
+    const notes = box('הערות למשלוח (לא חובה)')
+
+    await userEvent.type(box('טלפון'), '0501234567')
+    await fillAddress()
+    await userEvent.click(notes)
+    await userEvent.paste('א'.repeat(301))
+    await userEvent.click(submitButton())
+
+    await screen.findByText('ההערות ארוכות מדי (עד 300 תווים)')
+    expect(screen.getByText('עד 300 תווים')).toBeVisible()
+    expect(notes).toHaveAttribute('aria-invalid', 'true')
+    expect(notes).toHaveAccessibleDescription('עד 300 תווים ההערות ארוכות מדי (עד 300 תווים)')
+  })
+
+  it('keeps what is typed or pasted whole, however it counts: a flag, a family, niqqud and Arabic marks', async () => {
+    await openCheckout()
+    const notes = box('הערות למשלוח (לא חובה)')
+    const text =
+      '🇮🇱 👨\u200D👩\u200D👧 👍🏽 ❤\uFE0F ש\u05B8\u05C1לו\u05B9ם م\u064Fح\u064Eم\u064E\u0651د 🙏'
+
+    await userEvent.click(notes)
+    await userEvent.paste(text.repeat(5))
+    expect(notes).toHaveValue(text.repeat(5))
+    await userEvent.clear(notes)
+    await userEvent.type(notes, 'ש\u05B8\u05C1לו\u05B9ם 🙏 🇮🇱')
+    expect(notes).toHaveValue('ש\u05B8\u05C1לו\u05B9ם 🙏 🇮🇱')
+  })
+
+  it('does not say that an address exists or can be delivered to', async () => {
+    await openCheckout()
+
+    await userEvent.click(submitButton())
+    await screen.findByText('יש להזין מספר טלפון')
+
+    const form = screen.getByRole('button', { name: 'אישור הזמנה (הדגמה)' }).closest('form')!
+    expect(form).not.toHaveTextContent(/כתובת (קיימת|תקינה למשלוח)|ניתן לשלוח/)
   })
 })

@@ -34,6 +34,8 @@ const DELIVERY = {
   postalCode: '',
   notes: '',
 }
+/** The same details as the API stores them: the phone number written locally. */
+const STORED = { ...DELIVERY, phone: '0501234567' }
 const card = makeProduct({ id: 'GV-N4060', name: 'RTX 4060', price: { current: 1500 } })
 const sale = makeProduct({ id: 'SALE-1', name: 'On sale', price: { current: 800, original: 1000 } })
 const body = (overrides: Record<string, unknown> = {}) => ({
@@ -195,7 +197,7 @@ describe('POST /api/orders', () => {
       total: 3000,
       originalTotal: 3000,
       savings: 0,
-      delivery: DELIVERY,
+      delivery: STORED,
     })
     expect(orders.stored).toHaveLength(1)
   })
@@ -276,6 +278,77 @@ describe('POST /api/orders', () => {
     })
     expect(orders.stored).toHaveLength(1)
   })
+
+  it('stores the details the way the form does: the phone written locally, the marks of a right-to-left copy dropped', async () => {
+    const { token } = await account('netanel')
+    const typed = {
+      ...DELIVERY,
+      phone: '+972 (0) 50-123-4567',
+      email: 'netanel@example.com\u200F',
+      street: '  הנשיא\u00A0\u00A0\u200F ',
+      postalCode: '31-000-00',
+    }
+
+    const response = await place(token, body({ delivery: typed }))
+
+    expect(response.status).toBe(201)
+    const expected = { ...STORED, postalCode: '3100000' }
+    expect((await orderOf(response)).delivery).toEqual(expected)
+    expect(orders.stored[0]?.delivery).toEqual(expected)
+  })
+
+  it('reads a retry that is typed another way as the same request, not as a different order', async () => {
+    const { token } = await account('netanel')
+    const first = await orderOf(await place(token))
+
+    const retry = await place(token, body({ delivery: { ...DELIVERY, phone: '+972501234567' } }))
+
+    expect(retry.status).toBe(200)
+    expect((await orderOf(retry)).orderNumber).toBe(first.orderNumber)
+    expect(orders.stored).toHaveLength(1)
+  })
+
+  it.each([
+    ['fullName', 'נתנאל\u0000כהן'],
+    ['fullName', 'abc\u202Egpj.exe'],
+    ['fullName', "=cmd|' /C calc'!A0"],
+    ['city', '<script>alert(1)</script>'],
+    ['street', '@SUM(1,2)'],
+    ['houseNumber', '=1+1'],
+    ['apartment', '+1'],
+    ['notes', '=HYPERLINK("http://example.com")'],
+    ['notes', 'x\u202Ey'],
+    ['phone', '0000000000'],
+    ['postalCode', '0000000'],
+    ['email', `${'a'.repeat(260)}@example.com`],
+    ['phone', '050\t1234567'],
+    ['phone', '050\n1234567'],
+    ['phone', '0501234567\n'],
+    ['postalCode', '64369\t01'],
+    ['postalCode', '64369\n01'],
+    ['postalCode', '6436901\n'],
+    ['fullName', 'נתנאל כהן\n'],
+    ['city', '\tתל אביב'],
+    ['street', 'הנשיא\r'],
+    ['email', 'netanel@example.com\n'],
+    ['houseNumber', '12\t'],
+    ['apartment', '4\u2028'],
+    ['notes', 'שלום\t'],
+  ])(
+    'refuses %s %j with 400 invalid_input, names only the field, and stores nothing',
+    async (name, value) => {
+      const { token } = await account('netanel')
+
+      const response = await place(token, body({ delivery: { ...DELIVERY, [name]: value } }))
+
+      expect(response.status).toBe(400)
+      const error = await errorOf(response)
+      expect(error.code).toBe('invalid_input')
+      expect(error.message).toBe(`The field "delivery.${name}" is not valid`)
+      expect(JSON.stringify(error)).not.toContain(value.slice(0, 6))
+      expect(orders.stored).toHaveLength(0)
+    },
+  )
 
   it('never names the order of another account in that 409', async () => {
     const mine = await account('netanel')
@@ -534,7 +607,15 @@ describe('POST /api/orders/lookup', () => {
 
     const lines = JSON.stringify([...logger.info.mock.calls, ...logger.warn.mock.calls])
     expect(lines).toContain('/api/orders/lookup')
-    for (const secret of [KEY, 'short', 'הנשיא', '050-1234567', 'netanel@example.com', 'DEMO-']) {
+    for (const secret of [
+      KEY,
+      'short',
+      'הנשיא',
+      '050-1234567',
+      '0501234567',
+      'netanel@example.com',
+      'DEMO-',
+    ]) {
       expect(lines).not.toContain(secret)
     }
   })

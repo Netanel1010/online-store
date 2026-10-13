@@ -114,6 +114,53 @@ The synchronization of the cart (`src/features/cart/cartSync.ts`) is tested at t
 - `src/pages/cartSync.test.tsx` and the checkout tests: the whole app, including that an empty cart
   shows "loading" and not "the cart is empty" until the account's cart has arrived.
 
+### The delivery details
+
+The form and the API read the delivery details with one schema (`src/features/checkout/delivery.ts`,
+with `src/lib/textRules.ts` and the phone number in `src/lib/validation.ts`), and both store what it
+produces: the invisible marks of a copy from a right-to-left page dropped, spaces tidied, the text
+composed (NFC), a phone number written locally (`0501234567`), Arabic-Indic digits as 0-9. The rules are
+about the shape of a value; no test or message claims that an address exists or can be delivered to.
+
+A value is read in one order: it is first **looked at as it was typed** and refused if it holds anything
+that is not text (a tab, a line break, any other control character, a line or paragraph separator, a
+character that reorders text), and only then is it normalized. Normalizing removes spaces, the
+invisible marks, the blank lines around a note and the separators a field names for itself (a phone
+number: spaces, dashes, dots, brackets; a postal code: spaces and dashes), and nothing else. It never
+uses `trim()` or `\s`, which would remove a tab or a line break before anyone looked for it.
+
+- `src/features/checkout/deliveryControlCharacters.test.ts`: every field with each control character
+  (tab, line feed, carriage return, vertical tab, form feed, next line, line and paragraph separator,
+  NUL, escape, delete, a C1 control) in the middle of the value, at its start and at its end, which must
+  be refused and not tidied away (the notes take line breaks, so only those are different there); and
+  that the separators a number is normalized with are the only ones removed.
+- `src/lib/textRules.test.ts` and `src/lib/validation.test.ts`: the helpers (that no normalizer removes
+  a tab or a line break, and that the check does not find the marks that normalizing drops), every
+  override and isolate, the joiners that Persian and emoji need, that reading a value twice changes
+  nothing, and the phone number in each way of writing it, against the numbering plan, and with a control
+  character among the digits.
+- `src/features/checkout/delivery.test.ts` and `deliveryAddress.test.ts`: each field, at its limit and
+  one past it, with real Israeli cities, streets and names (`פ"ת`, `ז'בוטינסקי`, `בן־גוריון`, Arabic and
+  Latin) and with what must be refused (direction characters, tags, a formula at the start, `0` as a
+  house number, `0000000` as a postal code).
+- `src/features/checkout/openapiContract.test.ts`: `docs/openapi.yaml` against the schema. The request
+  schema (`DeliveryDetailsRequest`) states, per field, the longest value that is read as it was typed
+  (`maxLength`: 500, except the phone number 30, the postal code 20 and the notes 2,000) and, under
+  `x-normalized`, the limits and patterns of the normalized value; the test checks each number and each
+  pattern against the schema at its limit and one past it, that nothing else restricts the value as typed,
+  that the example is read as the stored example says, and that the stored schema (`DeliveryDetails`) has
+  no limit, because an order placed before these rules keeps the form it had. The limits live in
+  `DELIVERY_LIMITS`, which the schema uses too.
+- `server/src/orders/schemas.test.ts` and `routes.test.ts`: the API stores the tidied details, a retry
+  typed another way is the same request and not a `409`, and each unsafe value, a control character at
+  either end of a field or inside a number among them, is a `400 invalid_input` that names only the
+  field and stores nothing.
+- `src/pages/checkout.test.tsx` ("the rules for the delivery details") and `e2e/orders.spec.ts`: a
+  number pasted with direction marks, a tab inside a phone number and a postal code, the messages, a note
+  of 300 simple emoji that is not cut short by the field, and that nothing is sent while a field is
+  refused. Every limit counts Unicode code points (`characterCount`): a flag, a family emoji or a letter
+  with niqqud counts as several, which `textRules.test.ts` and the notes tests pin.
+
 ### An order whose answer was lost
 
 The rule is that an unresolved attempt keeps one `Idempotency-Key`, and the API decides

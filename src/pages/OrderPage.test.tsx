@@ -79,7 +79,7 @@ describe('the page of an order', () => {
     const details = await screen.findByRole('region', { name: 'פרטי משלוח' })
     expect(details).toHaveTextContent('נתנאל כהן')
     expect(details).toHaveTextContent('netanel@example.com')
-    expect(details).toHaveTextContent('050-1234567')
+    expect(details).toHaveTextContent('0501234567')
     expect(details).toHaveTextContent('הנשיא 12, דירה 4, חיפה, 3100000')
     expect(details).toHaveTextContent('בבקשה לצלצל פעמיים')
   })
@@ -167,7 +167,7 @@ describe('the page of an order', () => {
 
     const everything = JSON.stringify({ ...localStorage })
     expect(everything).not.toContain('הנשיא')
-    expect(everything).not.toContain('050-1234567')
+    expect(everything).not.toContain('0501234567')
     expect(everything).not.toContain(order.orderNumber)
   })
 
@@ -215,7 +215,7 @@ describe('an order that cannot be shown', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'ההזמנה לא נמצאה' }),
     ).toBeInTheDocument()
-    expect(document.body).not.toHaveTextContent('050-1234567')
+    expect(document.body).not.toHaveTextContent('0501234567')
     expect(document.body).not.toHaveTextContent('הנשיא')
   })
 
@@ -268,7 +268,7 @@ describe('an order that cannot be shown', () => {
 
     await waitFor(() => expect(url()).toBe('/login'))
     expect(useAuthStore.getState().status).toBe('anonymous')
-    expect(document.body).not.toHaveTextContent('050-1234567')
+    expect(document.body).not.toHaveTextContent('0501234567')
   })
 
   it('sends a signed-out visitor to the login page and brings them back to the order', async () => {
