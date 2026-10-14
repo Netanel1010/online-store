@@ -161,6 +161,13 @@ export const useCartStore = create<CartState>()(
 )
 
 /**
+ * The lines of the cart as the browser keeps them now (see `currentItems`), for a caller that has to
+ * decide what to keep or drop and must not leave out a line that another tab added since this tab
+ * last looked.
+ */
+export const currentCartItems = (): CartItem[] => currentItems(useCartStore.getState())
+
+/**
  * Makes the cart of this tab the one the browser keeps, when another tab has changed it. Returns
  * whether anything changed. Nothing is done when storage has nothing usable to say.
  *

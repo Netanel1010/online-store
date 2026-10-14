@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useCartStore } from '@/features/cart/cartStore'
+import { currentCartItems, useCartStore } from '@/features/cart/cartStore'
 import { useCartSyncStatus } from '@/features/cart/cartSyncStatus'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 import { rememberProducts } from '@/features/products/productCache'
@@ -34,13 +34,13 @@ export function ShopStateReconciler() {
         const found = new Set(products.map((product) => product.id))
         const gone = new Set(asked.filter((id) => !found.has(id)))
         if (gone.size === 0) return
-        // Judged on what the stores hold now: what was added while the API answered is kept.
+        // Judged on what the stores hold now: what was added while the API answered is kept, in this
+        // tab or in another one (the cart that the browser keeps is what a change starts from).
         const stillValid = (id: string) => !gone.has(id)
         useCartStore.getState().retainOnly(
           new Set(
-            useCartStore
-              .getState()
-              .items.map((i) => i.productId)
+            currentCartItems()
+              .map((i) => i.productId)
               .filter(stillValid),
           ),
         )
