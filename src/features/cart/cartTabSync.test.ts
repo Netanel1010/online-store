@@ -8,7 +8,7 @@ const items = () => useCartStore.getState().items
 /**
  * Another tab is played by writing to storage, as another tab does, and then telling this tab, as the
  * browser does: a `storage` event that names the key and the area (it is never sent to the tab that
- * wrote). The real thing, two tabs in a browser, is in e2e/cartTabs.spec.ts.
+ * wrote). The real thing, two tabs in a browser, is in e2e/cart-tabs.spec.ts.
  */
 function anotherTabSaves(cart: unknown, { announce = true } = {}) {
   const value = JSON.stringify({ state: cart, version: 1 })

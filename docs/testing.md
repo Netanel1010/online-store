@@ -198,7 +198,14 @@ The rule is that an unresolved attempt keeps one `Idempotency-Key`, and the API 
 In the browser, `e2e/cart-sync.spec.ts` checks that signing out empties this browser and signing in
 brings the cart back, that a browser that has never seen the cart reads it from the API, that a cart
 filled in while signed out joins the account's at sign-in, and that a change on the cart page is
-saved. The E2E tests also place orders and read the order history through the same stub API
+saved. `e2e/cart-tabs.spec.ts` uses two tabs of one browser context, which share one `localStorage` and
+receive the browser's own `storage` events, so nothing is simulated: a product added in each tab is in
+both, in storage, on the API and in a new tab; the same product added in both is counted twice; the cart
+page follows the other tab and says so; and on the checkout the second tab cannot place an order again
+after the first one placed it, also when it never hears the event (a tab that is given no `storage`
+listener) and a changed cart is shown by the click and ordered by the next one. The unit tests play the
+other tab with a written value and a dispatched event, and the one case they cannot play is pinned
+instead: two writes in the same instant overwrite one another (`cartStore.test.ts`). The E2E tests also place orders and read the order history through the same stub API
 (`e2e/auth-checkout.spec.ts`, `e2e/orders.spec.ts`).
 
 ## Accessibility tests

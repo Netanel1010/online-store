@@ -1550,7 +1550,7 @@ describe('the rules for the delivery details', () => {
  * The checkout goes by the cart the browser keeps, not by the copy this tab saw when it opened.
  * Another tab is played by writing the cart to storage, as another tab does; with `announce` the
  * browser tells this tab (a `storage` event), without it the event is one that this tab missed. The
- * real thing, two tabs in a browser, is in e2e/cartTabs.spec.ts.
+ * real thing, two tabs in a browser, is in e2e/cart-tabs.spec.ts.
  */
 describe('the checkout goes by the latest cart', () => {
   const CART_KEY = 'online-store:cart'
