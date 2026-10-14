@@ -1,5 +1,20 @@
 import { adoptStoredCart, CART_STORAGE_KEY } from './cartStore.ts'
 
+/** Those who want to know when a change from another tab was taken (see `startCartTabSync`). */
+const listeners = new Set<() => void>()
+
+/**
+ * Takes the cart that the browser keeps right now, for the moments when this tab must go by the
+ * latest cart and cannot wait for an event (the checkout, just before it sends an order). Returns
+ * whether it was different from the cart this tab held, that is, whether a change from another tab
+ * had not reached this tab yet; the listeners are told, as they are when an event brings it.
+ */
+export function takeCartNow(): boolean {
+  if (!adoptStoredCart()) return false
+  for (const listener of listeners) listener()
+  return true
+}
+
 /**
  * Keeps the cart of this tab the cart of the browser: when another tab changes it, this tab takes the
  * change at once, so the badge, the cart page and the checkout show what the browser keeps and not what
@@ -20,9 +35,8 @@ import { adoptStoredCart, CART_STORAGE_KEY } from './cartStore.ts'
  * tab made itself. Returns a function that stops listening.
  */
 export function startCartTabSync(onTaken?: () => void): () => void {
-  const take = () => {
-    if (adoptStoredCart()) onTaken?.()
-  }
+  const take = () => void takeCartNow()
+  if (onTaken) listeners.add(onTaken)
 
   const onStorage = (event: StorageEvent) => {
     if (event.key !== CART_STORAGE_KEY || event.storageArea !== localStorage) return
@@ -39,6 +53,7 @@ export function startCartTabSync(onTaken?: () => void): () => void {
   document.addEventListener('visibilitychange', onVisible)
   window.addEventListener('pageshow', onPageShow)
   return () => {
+    if (onTaken) listeners.delete(onTaken)
     window.removeEventListener('storage', onStorage)
     document.removeEventListener('visibilitychange', onVisible)
     window.removeEventListener('pageshow', onPageShow)

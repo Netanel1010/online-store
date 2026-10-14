@@ -1545,3 +1545,145 @@ describe('the rules for the delivery details', () => {
     expect(form).not.toHaveTextContent(/כתובת (קיימת|תקינה למשלוח)|ניתן לשלוח/)
   })
 })
+
+/**
+ * The checkout goes by the cart the browser keeps, not by the copy this tab saw when it opened.
+ * Another tab is played by writing the cart to storage, as another tab does; with `announce` the
+ * browser tells this tab (a `storage` event), without it the event is one that this tab missed. The
+ * real thing, two tabs in a browser, is in e2e/cartTabs.spec.ts.
+ */
+describe('the checkout goes by the latest cart', () => {
+  const CART_KEY = 'online-store:cart'
+  const line = (productId: string, quantity = 1) => ({ productId, quantity })
+
+  function anotherTabSaves(items: { productId: string; quantity: number }[], announce = false) {
+    const value = JSON.stringify({ state: { items }, version: 1 })
+    localStorage.setItem(CART_KEY, value)
+    if (announce) {
+      act(() => {
+        window.dispatchEvent(
+          new StorageEvent('storage', {
+            key: CART_KEY,
+            newValue: value,
+            storageArea: localStorage,
+          }),
+        )
+      })
+    }
+  }
+
+  beforeEach(async () => {
+    await signIn()
+    useCartStore.getState().addItem('PSU-1')
+  })
+
+  async function openCheckout() {
+    renderApp('/checkout', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+    await screen.findByRole('textbox', { name: 'טלפון' })
+  }
+
+  it('follows a change from another tab while it is open, and keeps what was typed', async () => {
+    await openCheckout()
+    await userEvent.type(box('טלפון'), '050-1234567')
+
+    anotherTabSaves([line('PSU-1'), line('GPU-1', 2)], true)
+
+    const lines = await screen.findByRole('list', { name: 'המוצרים בהזמנה' })
+    expect(await within(lines).findByText('כרטיס מסך')).toBeInTheDocument()
+    expect(within(summary()).getByText('מספר פריטים').nextElementSibling).toHaveTextContent('3')
+    expect(total()).toHaveTextContent(/2,500/)
+    expect(box('טלפון')).toHaveValue('050-1234567')
+  })
+
+  it('does not order a cart that another tab emptied, even when this tab missed the event', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+    await fillValidForm()
+
+    anotherTabSaves([]) // the other tab placed the order (or emptied the cart); no event reached here
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByRole('heading', { name: 'העגלה ריקה' })).toBeInTheDocument()
+    expect(sent.keys()).toEqual([]) // no order request was sent
+    expect(api.orders()).toHaveLength(0)
+    expect(url()).toBe('/checkout')
+    expect(useCartStore.getState().items).toEqual([])
+  })
+
+  it('shows a cart that another tab changed, missed event or not, and does not order it in the same click', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+    await fillValidForm()
+
+    anotherTabSaves([line('PSU-1'), line('GPU-1', 2)]) // this tab missed the event
+    await userEvent.click(submitButton())
+
+    // The click showed the new cart and sent nothing: the visitor has not seen this cart yet.
+    const lines = await screen.findByRole('list', { name: 'המוצרים בהזמנה' })
+    expect(await within(lines).findByText('כרטיס מסך')).toBeInTheDocument()
+    expect(sent.keys()).toEqual([])
+    expect(api.orders()).toHaveLength(0)
+    expect(url()).toBe('/checkout')
+
+    // The next click orders exactly what is on the screen.
+    await userEvent.click(submitButton())
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
+    expect(api.orders()).toHaveLength(1)
+    const placed = api.orders()[0]!
+    expect(placed.lines.map((l) => [l.productId, l.quantity])).toEqual([
+      ['PSU-1', 1],
+      ['GPU-1', 2],
+    ])
+    expect(placed.total).toBe(2500)
+  })
+
+  it('orders what it shows when nothing changed in between', async () => {
+    const sent = watchOrderRequests()
+    await openCheckout()
+    await fillValidForm()
+    anotherTabSaves([line('PSU-1')]) // the same cart, written again
+
+    await userEvent.click(submitButton())
+
+    await screen.findByRole('heading', { level: 1, name: 'הזמנת ההדגמה נשמרה' })
+    expect(sent.keys()).toHaveLength(1)
+    expect(api.orders()).toHaveLength(1)
+  })
+
+  it('sends the total of the cart it shows, and not a total the visitor agreed to for another cart', async () => {
+    api.setCatalog([{ ...psu, price: { current: 1200 } }, gpu]) // the API's price is not the page's
+    const sent = watchOrderRequests()
+    await openCheckout()
+    await fillValidForm()
+    await userEvent.click(submitButton())
+    expect(await screen.findByRole('alert')).toHaveTextContent(/1,200/) // the total the visitor is told
+
+    anotherTabSaves([line('PSU-1'), line('GPU-1')], true) // the cart is not the one they were told about
+
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+    await userEvent.click(submitButton())
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/1,950/)
+    const bodies = sent.bodies() as { expectedTotal: number }[]
+    expect(bodies).toHaveLength(2)
+    expect(bodies[0]!.expectedTotal).toBe(1000) // what the page showed the first time
+    expect(bodies[1]!.expectedTotal).toBe(1750) // the new cart as the page shows it, not the agreed 1200
+  })
+
+  it('does not tell the visitor about the price of a cart that changed while its order was on its way', async () => {
+    api.setCatalog([{ ...psu, price: { current: 1200 } }, gpu])
+    const held = holdOrderRequests()
+    await openCheckout()
+    await fillValidForm()
+
+    await userEvent.click(submitButton())
+    await waitFor(() => expect(held.count()).toBe(1))
+    anotherTabSaves([line('PSU-1'), line('GPU-1')], true) // the cart changes while the order is on its way
+    held.release()
+
+    await waitFor(() => expect(submitButton()).toBeEnabled())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(api.orders()).toHaveLength(0)
+  })
+})

@@ -11,6 +11,7 @@ import { buttonStyles } from '@/components/ui/buttonStyles'
 import { useAuthStore, useCurrentUser } from '@/features/auth/authStore'
 import { useCartStore } from '@/features/cart/cartStore'
 import { useCartIsLoading } from '@/features/cart/cartSyncStatus'
+import { takeCartNow } from '@/features/cart/cartTabSync'
 import { OrderLines } from '@/features/cart/OrderLines'
 import { OrderSummary } from '@/features/cart/OrderSummary'
 import { buildCartLines, summarizeCart } from '@/features/cart/summary'
@@ -61,6 +62,15 @@ function CheckoutContent() {
   const [problem, setProblem] = useState<Problem | null>(null)
   // The total the visitor agreed to after being told that it changed.
   const [agreedTotal, setAgreedTotal] = useState<number | null>(null)
+  // What the visitor was told about the order (a changed price, a product that is gone) and the total
+  // they agreed to are about the cart they were looking at: when the cart changes (in another tab, say)
+  // they no longer apply, and the next answer of the API is the one to go by.
+  const [cartSeen, setCartSeen] = useState(items)
+  if (cartSeen !== items) {
+    setCartSeen(items)
+    setProblem(null)
+    setAgreedTotal(null)
+  }
   // An order from an earlier, unresolved attempt that the API has (or that it could not tell about).
   const [recovery, setRecovery] = useState<AttemptRecovery | null>(null)
   const token = useAuthStore((state) => state.token)
@@ -109,6 +119,14 @@ function CheckoutContent() {
       const token = useAuthStore.getState().token
       if (!user || !token) return { ok: false, message: GENERIC_FAILURE }
 
+      // The cart as the browser keeps it right now, not the copy this page last saw. A change from
+      // another tab that has not reached this page yet (an event that was missed) is shown now, and
+      // the visitor looks at it before ordering: an order is never placed from a cart that was not
+      // on the screen. A cart that turns out to be empty has nothing to order; the page shows that.
+      if (takeCartNow()) return { ok: false, message: '' }
+      const cart = useCartStore.getState().items
+      if (cart.length === 0) return { ok: false, message: '' }
+
       setProblem(null)
       setRecovery(null)
       if (separateOrderFor.current === user.id) {
@@ -117,8 +135,6 @@ function CheckoutContent() {
         forgetCheckoutAttempt(user.id)
       }
       separateOrderFor.current = null
-      // Read the cart at submit time: it may have changed in another tab since this page rendered.
-      const cart = useCartStore.getState().items
       const outcome = await submitOrder({
         token,
         userId: user.id,
@@ -161,11 +177,17 @@ function CheckoutContent() {
           useAuthStore.getState().logout()
           return { ok: false, message: 'ההתחברות הסתיימה. התחברו שוב כדי להשלים את ההזמנה.' }
         case 'product-unavailable':
-          setProblem({ kind: 'unavailable', productIds: outcome.productIds })
+          // About the cart that was sent: if the cart changed while the order was on its way, the
+          // visitor is looking at another one, and this says nothing about it.
+          if (useCartStore.getState().items === cart) {
+            setProblem({ kind: 'unavailable', productIds: outcome.productIds })
+          }
           return { ok: false, message: '' }
         case 'price-changed':
-          setProblem({ kind: 'price-changed', total: outcome.total })
-          setAgreedTotal(outcome.total)
+          if (useCartStore.getState().items === cart) {
+            setProblem({ kind: 'price-changed', total: outcome.total })
+            setAgreedTotal(outcome.total)
+          }
           return { ok: false, message: '' }
         case 'too-many-requests':
           return { ok: false, message: 'ניסיתם להזמין יותר מדי פעמים. נסו שוב בעוד זמן מה.' }
