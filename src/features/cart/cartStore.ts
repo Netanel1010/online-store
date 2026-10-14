@@ -160,6 +160,20 @@ export const useCartStore = create<CartState>()(
   ),
 )
 
+/**
+ * Makes the cart of this tab the one the browser keeps, when another tab has changed it. Returns
+ * whether anything changed. Nothing is done when storage has nothing usable to say.
+ *
+ * Writing the cart back (the store saves every change) writes what was just read, so it is not a
+ * change to storage and does not set the other tabs off in turn.
+ */
+export function adoptStoredCart(): boolean {
+  const stored = readStoredCart()
+  if (stored === null || sameItems(stored, useCartStore.getState().items)) return false
+  useCartStore.setState({ items: stored })
+  return true
+}
+
 /** Total number of units in the cart (what the header badge shows). */
 export const selectCartCount = (state: CartState) =>
   state.items.reduce((sum, item) => sum + item.quantity, 0)
