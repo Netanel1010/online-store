@@ -107,11 +107,16 @@ a tab takes when another tab changes it. (`cartStore.ts`, `cartTabSync.ts`)
   sends the cart to the account itself; the requests are the same in every tab and can be repeated
   safely.
 - **The checkout goes by the latest cart.** Just before it sends an order the checkout takes the cart
-  the browser keeps (`takeCartNow`). If that differs from what the page was showing, the page shows it
-  and nothing is sent, so an order is never placed from a cart that was not on the screen, and a tab
-  whose cart was emptied by an order placed in another tab cannot place it again. What the visitor was
-  told about the order (a changed price, a product that is gone) and the total they agreed to are
-  dropped when the cart changes. Prices stay the API's: the total the page sends is only what it shows.
+  the browser keeps (`takeCartNow`) and compares it with the cart of the draw whose handler is running.
+  If either differs from what the page was showing, nothing is sent: the page shows the current cart
+  and the visitor orders it with a click of their own. So a tab whose cart was emptied by an order
+  placed in another tab cannot place it again, and a click handled in the few milliseconds between a
+  change reaching the store and the page drawing it is not an order. What the visitor was told about
+  the order (a changed price, a product that is gone) and the total they agreed to are dropped when the
+  cart changes, so the total sent is the one the page shows for the cart it shows. This is a check of
+  the cart a handler was made for, not a lock: a change that lands after the check is not seen by it,
+  and what the visitor sees can still be a few milliseconds behind the store. Prices stay the API's: it
+  prices the order and refuses a total that is not its own.
 - **What the visitor is told.** On the cart and the checkout, and only when a change from another tab
   was actually taken: "העגלה עודכנה מלשונית אחרת." (once per run of changes, again after three
   seconds). Nothing is said on other pages, for a change made in the same tab, or when the other tab

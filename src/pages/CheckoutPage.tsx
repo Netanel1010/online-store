@@ -121,11 +121,21 @@ function CheckoutContent() {
 
       // The cart as the browser keeps it right now, not the copy this page last saw. A change from
       // another tab that has not reached this page yet (an event that was missed) is shown now, and
-      // the visitor looks at it before ordering: an order is never placed from a cart that was not
-      // on the screen. A cart that turns out to be empty has nothing to order; the page shows that.
+      // the visitor looks at it before ordering. A cart that turns out to be empty has nothing to
+      // order; the page shows that (the check below it covers the same case, since the page that
+      // drew this form drew a cart with lines).
       if (takeCartNow()) return { ok: false, message: '' }
       const cart = useCartStore.getState().items
       if (cart.length === 0) return { ok: false, message: '' }
+      // This handler belongs to one draw of the page, and `items` is the cart that draw showed. A
+      // change can reach the store after that draw and before the next one (a click in those few
+      // milliseconds), and what the visitor agreed to, and the notice they were shown, are about the
+      // cart of the draw. So an order goes out only from that cart. For any other nothing is sent:
+      // the page draws the current cart next, and that draw drops the agreed total and the notice
+      // (above), a change from another tab has already told the visitor, and they order the cart they
+      // see with a click of their own, at the total that is shown. This is a check of the cart a
+      // handler was made for, not a lock: a change that lands after the check is not seen by it.
+      if (cart !== items) return { ok: false, message: '' }
 
       setProblem(null)
       setRecovery(null)
