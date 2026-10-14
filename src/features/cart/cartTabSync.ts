@@ -1,5 +1,8 @@
 import { adoptStoredCart, CART_STORAGE_KEY } from './cartStore.ts'
 
+/** What the visitor is told, on the cart and checkout pages, when a change from another tab was taken. */
+export const CART_TAB_NOTICE = 'העגלה עודכנה מלשונית אחרת.'
+
 /** Those who want to know when a change from another tab was taken (see `startCartTabSync`). */
 const listeners = new Set<() => void>()
 
