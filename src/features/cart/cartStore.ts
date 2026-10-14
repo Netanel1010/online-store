@@ -50,6 +50,56 @@ function mergeDuplicates(items: readonly CartItem[]): CartItem[] {
   return [...merged].map(([productId, quantity]) => ({ productId, quantity }))
 }
 
+/** Where the cart is kept, and what is read back from there (see `readStoredCart`). */
+export const CART_STORAGE_KEY = 'online-store:cart'
+const storedCartSchema = z.object({ state: persistedCartSchema })
+
+/** Whether two carts have the same lines, in the same order, with the same quantities. */
+export function sameItems(a: readonly CartItem[], b: readonly CartItem[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((item, index) => {
+      const other = b[index]
+      return (
+        other !== undefined &&
+        other.productId === item.productId &&
+        other.quantity === item.quantity
+      )
+    })
+  )
+}
+
+/**
+ * The cart as this browser keeps it right now, read from storage and checked like anything else that
+ * comes from there. `null` when storage cannot say: nothing is kept (a visit that has not changed the
+ * cart yet, private mode), it cannot be read, or what is there is not a cart. The caller then goes by
+ * the cart this tab holds.
+ *
+ * Another tab shares this storage and may have changed the cart since this tab last looked, so this
+ * is what a change starts from (see the store below).
+ */
+export function readStoredCart(): CartItem[] | null {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY)
+    if (raw === null) return null
+    const parsed = storedCartSchema.safeParse(JSON.parse(raw))
+    return parsed.success ? mergeDuplicates(parsed.data.state.items) : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The lines a change is made to: what the browser keeps now, or what this tab holds when storage has
+ * nothing to say. Starting from what this tab remembers would write that over a change another tab
+ * made in between, and the change would be lost.
+ *
+ * This is a read followed by a write, not a transaction: two tabs that change the cart at the very
+ * same moment can still overwrite one another, and the later write wins. It narrows the window from
+ * "as long as the tab has been open" to the instant between the read and the write.
+ */
+const currentItems = (state: { items: CartItem[] }): CartItem[] => readStoredCart() ?? state.items
+
 export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
@@ -58,12 +108,13 @@ export const useCartStore = create<CartState>()(
       addItem: (productId, quantity = 1) =>
         set((state) => {
           if (!Number.isFinite(quantity) || quantity < 1) return state
-          const existing = state.items.find((item) => item.productId === productId)
+          const lines = currentItems(state)
+          const existing = lines.find((item) => item.productId === productId)
           if (!existing) {
-            return { items: [...state.items, { productId, quantity: clampQuantity(quantity) }] }
+            return { items: [...lines, { productId, quantity: clampQuantity(quantity) }] }
           }
           return {
-            items: state.items.map((item) =>
+            items: lines.map((item) =>
               item.productId === productId
                 ? { ...item, quantity: clampQuantity(item.quantity + quantity) }
                 : item,
@@ -75,25 +126,28 @@ export const useCartStore = create<CartState>()(
         set((state) => {
           if (!Number.isFinite(quantity)) return state
           return {
-            items: state.items.map((item) =>
+            items: currentItems(state).map((item) =>
               item.productId === productId ? { ...item, quantity: clampQuantity(quantity) } : item,
             ),
           }
         }),
 
       removeItem: (productId) =>
-        set((state) => ({ items: state.items.filter((item) => item.productId !== productId) })),
+        set((state) => ({
+          items: currentItems(state).filter((item) => item.productId !== productId),
+        })),
 
       retainOnly: (validIds) =>
         set((state) => {
-          const items = state.items.filter((item) => validIds.has(item.productId))
-          return items.length === state.items.length ? state : { items }
+          const lines = currentItems(state)
+          const items = lines.filter((item) => validIds.has(item.productId))
+          return items.length === lines.length && sameItems(lines, state.items) ? state : { items }
         }),
 
       clear: () => set({ items: [] }),
     }),
     {
-      name: 'online-store:cart',
+      name: CART_STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ items: state.items }),
