@@ -3,6 +3,13 @@ import { paths } from '@/app/paths'
 export interface RedirectState {
   /** Where the visitor was heading before being sent to the login page. */
   from?: string
+  /** Why they were sent, when it is worth saying: their session ended while they were on the page. */
+  reason?: 'session-ended'
+}
+
+/** Whether the visitor was sent to the login page because their session ended (and not for a forged value). */
+export function sessionEndedBefore(state: unknown): boolean {
+  return (state as RedirectState | null)?.reason === 'session-ended'
 }
 
 /**

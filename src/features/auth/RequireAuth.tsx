@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { paths } from '@/app/paths'
 import { ErrorState, PageLoading } from '@/components/shared/StateMessages'
 import { useAuthStatus, useAuthStore, useCurrentUser } from './authStore'
 import type { RedirectState } from './routing'
+import { clearSessionEnded, sessionJustEnded } from './sessionEnded'
 import { useRestoreSession } from './useRestoreSession'
 
 /**
@@ -21,6 +23,12 @@ export function RequireAuth() {
   const location = useLocation()
   useRestoreSession()
 
+  // The reason for being sent away is used by the redirect below, in this render; once nobody is signed
+  // in it has been used (or never applied), and must not be told to the next visitor sent this way.
+  useEffect(() => {
+    if (!user) clearSessionEnded()
+  }, [user])
+
   if (status === 'restoring') return <PageLoading />
   if (status === 'unavailable') {
     return (
@@ -31,6 +39,7 @@ export function RequireAuth() {
   }
   if (!user) {
     const state: RedirectState = { from: `${location.pathname}${location.search}` }
+    if (sessionJustEnded()) state.reason = 'session-ended'
     return <Navigate to={paths.login} replace state={state} />
   }
   return <Outlet />
