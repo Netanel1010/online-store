@@ -88,9 +88,64 @@ shared computer does not find it. The account keeps its cart, and it comes back 
 here or on another device. The favorites are not touched. Placing an order empties the cart like any
 other change, so the account's cart is emptied too.
 
+## Several tabs
+
+Tabs of one browser share the `localStorage` and nothing else: each has its own copy of the cart in
+memory. The cart in storage is what they have in common, so it is what a change starts from and what
+a tab takes when another tab changes it. (`cartStore.ts`, `cartTabSync.ts`)
+
+- **A change starts from storage.** `addItem`, `setQuantity`, `removeItem` and `retainOnly` first read
+  the cart kept in the browser (`readStoredCart`, validated like anything else from storage) and apply
+  the change to that, so a tab that was open before another tab's change does not write its old copy
+  over it. When storage has nothing usable (nothing stored, not JSON, not a cart, blocked) the cart of
+  the tab is used, as before.
+- **A change from another tab is taken at once.** `startCartTabSync`, started by `KeepCartSynced`,
+  listens to the `storage` event of the cart's key (localStorage only) and takes the cart. A tab that
+  was hidden, frozen or restored from the back-forward cache may have missed events, so it also reads
+  the cart when it is shown (`visibilitychange`, `pageshow`). What is taken is written back unchanged,
+  which the browser does not announce, so tabs do not answer one another in a loop. Each tab still
+  sends the cart to the account itself; the requests are the same in every tab and can be repeated
+  safely.
+- **The checkout goes by the latest cart.** Just before it sends an order the checkout takes the cart
+  the browser keeps (`takeCartNow`) and compares it with the cart of the draw whose handler is running.
+  If either differs from what the page was showing, nothing is sent: the page shows the current cart
+  and the visitor orders it with a click of their own. So a tab whose cart was emptied by an order
+  placed in another tab cannot place it again, and a click handled in the few milliseconds between a
+  change reaching the store and the page drawing it is not an order. What the visitor was told about
+  the order (a changed price, a product that is gone) and the total they agreed to are dropped when the
+  cart changes, so the total sent is the one the page shows for the cart it shows. This is a check of
+  the cart a handler was made for, not a lock: a change that lands after the check is not seen by it,
+  and what the visitor sees can still be a few milliseconds behind the store. Prices stay the API's: it
+  prices the order and refuses a total that is not its own.
+- **What the visitor is told.** On the cart and the checkout, and only when a change from another tab
+  was actually taken: "העגלה עודכנה מלשונית אחרת." (once per run of changes, again after three
+  seconds). Nothing is said on other pages, for a change made in the same tab, or when the other tab
+  saved the cart this tab already has.
+
+**The policy for two changes to one line is last write wins, and it is not a transaction.** A change
+is a read of storage followed by a write. A change that another tab writes in the instant between the
+two is overwritten, and when two tabs set the same line at the same moment the later write stays. This
+makes the window as short as a read and a write; it does not close it. Closing it would take a lock
+across tabs (the Web Locks API) or one tab that owns the cart, and the shop's carts are small and
+changed by one person, so that was not done. A test (`cartStore.test.ts`, "is a read followed by a
+write, not a transaction") pins this on purpose.
+
+Tested in `src/features/cart/cartStore.test.ts`, `cartTabSync.test.ts`, `KeepCartSynced.test.tsx`,
+`src/pages/checkout.test.tsx` ("the checkout goes by the latest cart") and, with two tabs of a real
+browser sharing one storage, `e2e/cart-tabs.spec.ts`.
+
 ## Not handled (yet)
 
-- **Cross-tab sync:** a change in one tab shows in another after a reload, not live.
+- **Signing out in one tab does not sign out the others.** The token is removed from storage, but a
+  tab that was open keeps its session in memory until the API refuses it. That tab can still change the
+  cart, and a change it makes is written to storage, so the cart of an account that signed out in another
+  tab can be left in a browser that nobody is signed in to. Signing out and in across tabs belongs with
+  the rest of the authentication and browser security, not with the cart.
+- **Favorites across tabs:** the favorites are not followed between tabs; a change shows in another tab
+  after a reload.
+- **Two orders started in the same instant in two tabs:** the key of an attempt is made by the first
+  tab that asks and read by the second, but two tabs that ask within the same few milliseconds can each
+  make one. Order idempotency was not changed here.
 - **Live sync between devices:** a change made on another device is read at the next sign-in or page
   load, not pushed.
 - **Unsent changes at sign-out:** a change made in the last moment before signing out (inside the

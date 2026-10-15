@@ -7,7 +7,8 @@ import { setServerLine } from './cartService'
 import { CART_SYNC_NOTICES, cartSyncPolicy, startCartSync } from './cartSync'
 import { readCartMarker, writeCartMarker } from './cartSyncMarker'
 import { useCartSyncStatus } from './cartSyncStatus'
-import { useCartStore } from './cartStore'
+import { CART_STORAGE_KEY, useCartStore } from './cartStore'
+import { startCartTabSync } from './cartTabSync'
 
 // The real API answers (the cart routes and service over carts kept in memory): what these tests
 // check is what the browser sends and what the API then holds, not a script of requests.
@@ -478,5 +479,78 @@ describe('the requests', () => {
       body: { quantity: 2 },
       auth: `Bearer ${token}`,
     })
+  })
+})
+
+describe('a change that another tab of the browser made', () => {
+  let stopTabs: (() => void) | undefined
+  afterEach(() => {
+    stopTabs?.()
+    stopTabs = undefined
+  })
+
+  /** What another tab does: writes the cart to storage, and the browser tells this tab. */
+  function anotherTabSaves(items: { productId: string; quantity: number }[]) {
+    const value = JSON.stringify({ state: { items }, version: 1 })
+    localStorage.setItem(CART_STORAGE_KEY, value)
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: CART_STORAGE_KEY,
+        newValue: value,
+        storageArea: localStorage,
+      }),
+    )
+  }
+
+  it('reaches the account too, and nothing the account holds is lost on the way', async () => {
+    useCartStore.getState().addItem('A-1')
+    const { userId } = await signIn()
+    start()
+    stopTabs = startCartTabSync()
+    await waitFor(() => expect(onApi(userId)).toEqual([{ productId: 'A-1', quantity: 1 }]))
+
+    anotherTabSaves([
+      { productId: 'A-1', quantity: 1 },
+      { productId: 'B-2', quantity: 2 },
+    ])
+
+    await waitFor(() =>
+      expect(onApi(userId)).toEqual([
+        { productId: 'A-1', quantity: 1 },
+        { productId: 'B-2', quantity: 2 },
+      ]),
+    )
+    expect(local()).toEqual([
+      { productId: 'A-1', quantity: 1 },
+      { productId: 'B-2', quantity: 2 },
+    ])
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('removes a line from the account when the other tab removed it', async () => {
+    useCartStore.getState().addItem('A-1')
+    useCartStore.getState().addItem('B-2')
+    const { userId } = await signIn()
+    start()
+    stopTabs = startCartTabSync()
+    await waitFor(() => expect(onApi(userId)).toHaveLength(2))
+
+    anotherTabSaves([{ productId: 'B-2', quantity: 1 }])
+
+    await waitFor(() => expect(onApi(userId)).toEqual([{ productId: 'B-2', quantity: 1 }]))
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('empties the account cart when the other tab emptied it, as an order placed there does', async () => {
+    useCartStore.getState().addItem('A-1')
+    const { userId } = await signIn()
+    start()
+    stopTabs = startCartTabSync()
+    await waitFor(() => expect(onApi(userId)).toHaveLength(1))
+
+    anotherTabSaves([])
+
+    await waitFor(() => expect(onApi(userId)).toEqual([]))
+    expect(local()).toEqual([])
   })
 })

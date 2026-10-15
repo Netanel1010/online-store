@@ -1,0 +1,64 @@
+import { adoptStoredCart, CART_STORAGE_KEY } from './cartStore.ts'
+
+/** What the visitor is told, on the cart and checkout pages, when a change from another tab was taken. */
+export const CART_TAB_NOTICE = 'העגלה עודכנה מלשונית אחרת.'
+
+/** Those who want to know when a change from another tab was taken (see `startCartTabSync`). */
+const listeners = new Set<() => void>()
+
+/**
+ * Takes the cart that the browser keeps right now, for the moments when this tab must go by the
+ * latest cart and cannot wait for an event (the checkout, just before it sends an order). Returns
+ * whether it was different from the cart this tab held, that is, whether a change from another tab
+ * had not reached this tab yet; the listeners are told, as they are when an event brings it.
+ */
+export function takeCartNow(): boolean {
+  if (!adoptStoredCart()) return false
+  for (const listener of listeners) listener()
+  return true
+}
+
+/**
+ * Keeps the cart of this tab the cart of the browser: when another tab changes it, this tab takes the
+ * change at once, so the badge, the cart page and the checkout show what the browser keeps and not what
+ * this tab saw when it opened.
+ *
+ *  - Another tab's change arrives as a `storage` event (the browser sends it to every other tab of
+ *    the site, never to the tab that wrote). Only the cart's key is looked at, and only in
+ *    localStorage.
+ *  - A tab that was hidden, frozen or restored from the back-forward cache may have missed events, so
+ *    it reads the cart again when it is shown (`visibilitychange`, `pageshow`).
+ *  - What is stored is read like anything else from storage: what is not a cart changes nothing.
+ *
+ * Taking the cart writes it back to storage unchanged, which the browser does not announce, so two
+ * tabs do not answer one another in a loop. If two tabs change the same line at the same moment, the
+ * later write wins (see `readStoredCart`).
+ *
+ * `onTaken` is called each time a change from another tab was actually taken, never for a change this
+ * tab made itself. Returns a function that stops listening.
+ */
+export function startCartTabSync(onTaken?: () => void): () => void {
+  const take = () => void takeCartNow()
+  if (onTaken) listeners.add(onTaken)
+
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== CART_STORAGE_KEY || event.storageArea !== localStorage) return
+    take()
+  }
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') take()
+  }
+  const onPageShow = (event: PageTransitionEvent) => {
+    if (event.persisted) take()
+  }
+
+  window.addEventListener('storage', onStorage)
+  document.addEventListener('visibilitychange', onVisible)
+  window.addEventListener('pageshow', onPageShow)
+  return () => {
+    if (onTaken) listeners.delete(onTaken)
+    window.removeEventListener('storage', onStorage)
+    document.removeEventListener('visibilitychange', onVisible)
+    window.removeEventListener('pageshow', onPageShow)
+  }
+}

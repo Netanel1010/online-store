@@ -1,5 +1,5 @@
 import { act, render, waitFor } from '@testing-library/react'
-import { useCartStore } from '@/features/cart/cartStore'
+import { CART_STORAGE_KEY, useCartStore } from '@/features/cart/cartStore'
 import { useCartSyncStatus } from '@/features/cart/cartSyncStatus'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 import type { Product } from '@/features/products/schema'
@@ -87,6 +87,39 @@ describe('ShopStateReconciler', () => {
 
     expect(useCartStore.getState().items.map((item) => item.productId)).toEqual(['A', 'NEW-1'])
     expect(useFavoritesStore.getState().ids).toEqual(['NEW-2'])
+  })
+
+  it('keeps what another tab added while the API was answering, even though this tab has not heard of it', async () => {
+    useCartStore.getState().addItem('A')
+    useCartStore.getState().addItem('GONE-1')
+    let answer: (products: Product[]) => void = () => undefined
+    vi.spyOn(productService, 'fetchProductsByIds').mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve
+      }),
+    )
+    render(<ShopStateReconciler />)
+
+    // Another tab adds a product the API was not asked about: it writes the cart, and no event reaches here.
+    localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify({
+        state: {
+          items: [
+            { productId: 'A', quantity: 1 },
+            { productId: 'GONE-1', quantity: 1 },
+            { productId: 'OTHER-TAB-1', quantity: 2 },
+          ],
+        },
+        version: 1,
+      }),
+    )
+    await act(async () => answer(known('A')))
+
+    expect(useCartStore.getState().items).toEqual([
+      { productId: 'A', quantity: 1 },
+      { productId: 'OTHER-TAB-1', quantity: 2 },
+    ])
   })
 
   it('waits for the cart of the account, then looks at it too', async () => {
