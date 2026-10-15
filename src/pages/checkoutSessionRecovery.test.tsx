@@ -443,8 +443,6 @@ describe('another account', () => {
 })
 
 describe('a draft that cannot be used', () => {
-  const NOW = 1_800_000_000_000
-
   /** The cart page is open and signed in; `write` puts something in storage; then the checkout opens. */
   async function checkoutWith(write: (userId: string) => void) {
     await useAuthStore.getState().register(GOOD)
@@ -467,9 +465,16 @@ describe('a draft that cannot be used', () => {
     expect(box('רחוב')).toHaveValue(KEPT.street)
   })
 
-  it('is not used, and is removed, when it is older than 30 minutes', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(NOW)
-    await checkoutWith((userId) => saveCheckoutDraft(userId, KEPT, NOW - CHECKOUT_DRAFT_TTL_MS - 1))
+  it('is not used, and is removed, when it is older than 30 minutes, though nothing had removed it before', async () => {
+    await checkoutWith((userId) => {
+      saveCheckoutDraft(userId, KEPT)
+      // Written back by hand with an old time: nothing cleans storage when it is changed like this,
+      // so the checkout is what meets an old draft that is still there.
+      const draft = JSON.parse(storedDraft()!)
+      draft.savedAt = Date.now() - CHECKOUT_DRAFT_TTL_MS - 1
+      sessionStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(draft))
+      expect(storedDraft()).not.toBeNull()
+    })
 
     blankForm()
     expect(storedDraft()).toBeNull()
@@ -507,6 +512,43 @@ describe('a draft that cannot be used', () => {
     await checkoutWith(() => saveCheckoutDraft('some-other-account', KEPT))
 
     blankForm()
+    expect(storedDraft()).toBeNull()
+  })
+})
+
+describe('old drafts are taken out of storage', () => {
+  it('as the site opens on the login page, with nobody signed in', async () => {
+    saveCheckoutDraft('some-account', KEPT, Date.now() - CHECKOUT_DRAFT_TTL_MS - 1)
+    expect(storedDraft()).not.toBeNull()
+
+    renderApp('/login', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'התחברות' })
+
+    expect(storedDraft()).toBeNull()
+  })
+
+  it('and a draft that is still good stays on the login page, where it waits for the sign-in', async () => {
+    saveCheckoutDraft('some-account', KEPT)
+
+    renderApp('/login', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'התחברות' })
+
+    expect(storedDraft()).not.toBeNull()
+  })
+
+  it('when the tab is shown again after the draft expired while it could not run a timer', async () => {
+    const now = vi.spyOn(Date, 'now')
+    const start = Date.now()
+    renderApp('/login', catalog)
+    await screen.findByRole('heading', { level: 1, name: 'התחברות' })
+    saveCheckoutDraft('some-account', KEPT)
+    expect(storedDraft()).not.toBeNull()
+
+    now.mockReturnValue(start + CHECKOUT_DRAFT_TTL_MS + 60_000)
+    expect(storedDraft()).not.toBeNull() // nothing has looked yet
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+
     expect(storedDraft()).toBeNull()
   })
 })

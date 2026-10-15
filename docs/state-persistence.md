@@ -191,9 +191,28 @@ use it up, so a page that is drawn twice gets the same answer.
   signing in.
 - The visitor **signing out** from the account menu (also "sign out of every device") removes it. Nothing
   else signs out by the visitor's hand, and the 401 path is the only one that makes a draft.
-- It goes with the tab, and after 30 minutes it is not used (and is removed the next time anything
-  looks at it).
+- It goes with the tab, and after 30 minutes it is never restored (see the next paragraph for when it is
+  taken out of storage).
 - Nothing about it is logged, and no message mentions its contents.
+
+**An old draft: refused on every read, cleaned out on a best-effort basis.** Two different things:
+
+- _Whether it may be restored_ is decided only by the age check that every read makes
+  (`read`, `peekCheckoutDraft`): a draft whose time is up is refused whether or not anything has
+  removed it yet. No timer or event takes part in that decision, so a late or missing timer cannot
+  authorize anything.
+- _Whether it is still in storage_ is cleaned up by `startCheckoutDraftGuard`: when the site opens,
+  whoever is signed in or nobody (an old draft, or one that is not a draft, is removed, and a good one
+  gets its timer); when a draft is made (a timer for the moment it expires); when that timer fires; and
+  when the page becomes visible again. A timer that fires early finds the draft still good, removes
+  nothing and sets itself again for what is left. Nothing polls: there is at most one timer, and none
+  when there is no draft.
+
+  **What this cannot promise.** JavaScript cannot be sure of running at the exact moment: a browser may
+  delay or throttle a timer in a page that is hidden, may suspend a tab, and runs nothing in a tab
+  that is closed (closing it ends its `sessionStorage` anyway). So an old draft is out of storage at the
+  next of those moments, not necessarily at the minute its time is up, and a tab that stays suspended
+  keeps it until it wakes, is shown, or is closed. The privacy page says the same.
 
 **What is deliberately not done.**
 
@@ -203,8 +222,10 @@ use it up, so a page that is drawn twice gets the same answer.
   never sent to the API (the synchronization stops at the first 401), so it is lost with the sign-out.
   Likewise a change in the last 400 ms before the session ended.
 - **The session is not watched.** A tab left open on the checkout learns that its session ended when it
-  orders, not before. Detecting it earlier (a check when the tab is shown, a timer on `expiresAt`) would
-  be new behaviour with a cost, and nothing needed it: the details are kept at the moment it matters.
+  orders, not before. Detecting the end of the session earlier (a check of the session when the tab is
+  shown, a timer on `expiresAt`) would be new behaviour with a cost, and nothing needed it: the details
+  are kept at the moment it matters. (The timer and the visibility check above are about cleaning an old
+  draft out of storage, and do not look at the session.)
 - **Signing out in another tab** ends this tab's session in the same way as far as the checkout can
   tell, so an order from it is answered with 401 and handled as above. That is a consequence of the
   cross-tab sign-out that is not handled (below), not something this feature does.

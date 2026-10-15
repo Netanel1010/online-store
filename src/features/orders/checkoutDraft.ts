@@ -23,6 +23,16 @@ import { digest } from './checkoutAttempt'
  * or the Back button never bring it back. Another account that signs in removes it too, without
  * showing it (`startCheckoutDraftGuard`), and so does signing out.
  *
+ * **When it is removed because it is old.** The age is checked on every read, and that check, not a
+ * timer, is what decides whether a draft may be restored: an old draft is never used, whether or not
+ * anything has removed it yet. Taking the old data out of storage is a separate, best-effort job
+ * (`startCheckoutDraftGuard`): when the site opens (whoever is signed in, or nobody), when the draft is
+ * made (a timer for the moment it expires), when that timer fires, and when the page becomes visible
+ * again. A browser can delay a timer in a page that is hidden or suspended and does not run it in a
+ * tab that is closed (closing the tab ends the storage anyway), so there is no promise that an old
+ * draft is gone at the minute it expires, only that it is not used and that it is removed at the next of
+ * these moments. Nothing polls.
+ *
  * **What is trusted.** Nothing. Storage can be edited, so the whole record is read against a strict
  * structure (no field that is not listed), the age and the account are checked, and the details go
  * through the same rules as an order (`deliveryDetailsSchema`: `hasNonText`, the limits, the
@@ -51,10 +61,15 @@ const draftSchema = z.strictObject({
   }),
 })
 
+type Draft = z.infer<typeof draftSchema>
+
+/** What is in storage, by its structure and age alone (whose it is, and whether the details pass, come next). */
+type Found = { kind: 'none' | 'unusable' | 'expired' } | { kind: 'live'; draft: Draft }
+
 type Reading =
   { kind: 'none' | 'unusable' | 'expired' | 'foreign' } | { kind: 'mine'; details: DeliveryDetails }
 
-function read(userId: string, now: number): Reading {
+function inspect(now: number): Found {
   let raw: string | null
   try {
     raw = sessionStorage.getItem(CHECKOUT_DRAFT_KEY)
@@ -76,6 +91,14 @@ function read(userId: string, now: number): Reading {
   // A clock that went back makes an age below zero: that is not a draft made a moment ago.
   const age = now - draft.savedAt
   if (age < 0 || age >= CHECKOUT_DRAFT_TTL_MS) return { kind: 'expired' }
+  return { kind: 'live', draft }
+}
+
+/** The decision to restore, made from the storage as it is now, on every read: never from a timer. */
+function read(userId: string, now: number): Reading {
+  const found = inspect(now)
+  if (found.kind !== 'live') return { kind: found.kind }
+  const { draft } = found
   if (draft.owner !== digest(userId)) return { kind: 'foreign' }
 
   const details = deliveryDetailsSchema.safeParse(draft.details)
@@ -112,7 +135,9 @@ export function saveCheckoutDraft(
   } catch {
     // No storage (blocked, full): the visitor types the details again. Nothing is reported, because
     // the only thing to say would be the details themselves.
+    return
   }
+  if (guards > 0) checkForStaleDraft()
 }
 
 /**
@@ -144,16 +169,75 @@ export function discardCheckoutDraftUnlessOf(userId: string, now: number = Date.
 }
 
 /**
- * Keeps a draft from outliving the visitor it belongs to: whenever an account signs in (or is
- * signed in as the site opens), a draft that is not that account's is removed, so that it is gone
- * before any page can show it. Returns the function that stops it.
+ * Removes the draft if it is old, or is not what this file wrote (whoever it belongs to), and keeps a
+ * draft that is still good. Returns how long that one has left, or null when there is none. It
+ * decides by the clock now, so it can be called at any time and never removes a good draft.
+ */
+export function removeStaleCheckoutDraft(now: number = Date.now()): number | null {
+  const found = inspect(now)
+  if (found.kind === 'live') return CHECKOUT_DRAFT_TTL_MS - (now - found.draft.savedAt)
+  if (found.kind !== 'none') forgetCheckoutDraft()
+  return null
+}
+
+/** How many guards are running (the app starts one; a test may start another). */
+let guards = 0
+/** The one timer for the moment the draft in storage expires. It is only ever a reminder to look. */
+let expiryTimer: ReturnType<typeof setTimeout> | undefined
+
+/**
+ * Looks at the draft that is in storage now: an old one is removed, and for a good one a timer is set
+ * for the moment it expires, which looks again. A timer that fires early (the clock moved, a test)
+ * finds the draft still good, removes nothing and sets the timer again for what is left.
+ */
+function checkForStaleDraft(): void {
+  clearTimeout(expiryTimer)
+  expiryTimer = undefined
+  const left = removeStaleCheckoutDraft()
+  if (left !== null) expiryTimer = setTimeout(checkForStaleDraft, left)
+}
+
+/**
+ * Keeps a draft from outliving the visitor it belongs to, and from outliving its time. Started once by
+ * the layout of the whole site; returns the function that stops it.
+ *
+ * - Whenever an account signs in (or is signed in as the site opens), a draft that is not that
+ *   account's is removed, so that it is gone before any page can show it.
+ * - As the site opens, whoever is signed in (or nobody), an old draft is removed, and a good one gets
+ *   its timer. The same happens when a draft is made, when the timer fires, and when the page becomes
+ *   visible again, because a hidden or suspended page may have run the timer late or not at all.
+ *
+ * This is cleaning, not authorization: reading a draft checks its age itself (see `read`), and the
+ * browser gives no promise about when a timer runs.
  */
 export function startCheckoutDraftGuard(): () => void {
+  guards += 1
+  checkForStaleDraft()
+
   const sweep = (user: { id: string } | null) => {
     if (user) discardCheckoutDraftUnlessOf(user.id)
   }
   sweep(useAuthStore.getState().user)
-  return useAuthStore.subscribe((state, previous) => {
+  const stopWatchingAccounts = useAuthStore.subscribe((state, previous) => {
     if (state.user?.id !== previous.user?.id) sweep(state.user)
   })
+
+  const lookAgainWhenShown = () => {
+    if (document.visibilityState === 'visible') checkForStaleDraft()
+  }
+  document.addEventListener('visibilitychange', lookAgainWhenShown)
+
+  let stopped = false
+  return () => {
+    // Stopping twice (a cleanup that runs again) must not count one guard out twice.
+    if (stopped) return
+    stopped = true
+    stopWatchingAccounts()
+    document.removeEventListener('visibilitychange', lookAgainWhenShown)
+    guards -= 1
+    if (guards === 0) {
+      clearTimeout(expiryTimer)
+      expiryTimer = undefined
+    }
+  }
 }

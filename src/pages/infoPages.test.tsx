@@ -109,15 +109,21 @@ describe('the privacy page', () => {
     expect(screen.getByText('האתר אינו משתמש בעוגיות.')).toBeInTheDocument()
   })
 
-  it('says that the delivery details are kept in the tab, for 30 minutes, when a session ends on an order', async () => {
+  it('says that the delivery details are kept in the tab, can be restored only within 30 minutes, and are cleaned out at the next check, not at an exact moment', async () => {
     renderApp(paths.info('privacy'))
     await screen.findByRole('heading', { level: 1, name: 'מדיניות פרטיות' })
 
     const notice = screen.getByText(/אם ההתחברות מסתיימת בזמן הזמנה/)
     expect(notice).toHaveTextContent('רק בלשונית הפתוחה')
-    expect(notice).toHaveTextContent('עד 30 דקות')
-    expect(notice).toHaveTextContent('נמחקים אחרי שימוש אחד')
-    expect(notice).toHaveTextContent('ואינם נשלחים לשרת עד שמאשרים הזמנה')
+    expect(notice).toHaveTextContent('אפשר לשחזר אותם רק תוך 30 דקות')
+    expect(notice).toHaveTextContent(
+      'נמחקים אחרי שימוש אחד, בהתנתקות, כשנכנס חשבון אחר או כשסוגרים את הלשונית',
+    )
+    expect(notice).toHaveTextContent('פרטים שפג תוקפם נמחקים בבדיקה הבאה של האתר')
+    expect(notice).toHaveTextContent('לא בהכרח ברגע המדויק')
+    expect(notice).toHaveTextContent('אינם נשלחים לשרת עד שמאשרים הזמנה')
+    // No promise of deletion at the minute the time is up.
+    expect(notice).not.toHaveTextContent('נמחקים בדיוק')
   })
 })
 

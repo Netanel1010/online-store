@@ -219,7 +219,13 @@ they are tested:
   account, every spoilt shape (not JSON, a field more or less, a number for a field, another version) and
   every value the rules of an order refuse (a tab, a line break, a direction override, a formula, an email
   with a trailing line break, notes over the limit), a storage that throws, nothing told to the console,
-  and the guard that follows who is signed in.
+  and the guard that follows who is signed in. The cleaning of old drafts out of storage is tested with
+  fake timers and a set clock, never with a real wait: an old draft or a spoilt one removed as the site
+  opens with nobody signed in, a good one kept with one timer, the timer firing at the end and not a
+  moment before, a timer that fires early removing nothing and setting itself again, a newer draft
+  not removed by the timer of the one it replaced, the page shown again after a suspension (the clock
+  moved, the timer never ran), a hidden page leaving it alone, no timer without a draft, stopping once or
+  twice, and an old draft that is still in storage being refused by every read.
 - `src/features/auth/sessionEnded.test.ts`: the mark that a session ended lasts ten seconds and no
   longer, and only the one reason is read from a redirect state.
 - `src/pages/checkoutSessionRecovery.test.tsx`: the whole flow through the real app and API code (an
@@ -229,7 +235,8 @@ they are tested:
   are stored (and nothing in `localStorage`), and that no other answer makes a draft; sign-out by choice
   (account menu, on the checkout itself, of every device); another account (at the moment it signs in, and
   when the first comes back); drafts that cannot be used (old, not JSON, a field too many, a value the
-  rules refuse, another account's); use once (a reload, the cart and back, the Back button, an empty
+  rules refuse, another account's, an old one that nothing had removed yet); old drafts taken out of
+  storage as the site opens on the login page and when the tab is shown again; use once (a reload, the cart and back, the Back button, an empty
   cart); and an edit to a value the rules refuse, which is not sent.
 - `src/pages/checkout.test.tsx`: an answer of 401 that reaches a page whose account has changed keeps no
   draft and signs nobody out.

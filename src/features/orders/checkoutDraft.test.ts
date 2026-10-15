@@ -5,6 +5,7 @@ import {
   discardCheckoutDraftUnlessOf,
   forgetCheckoutDraft,
   peekCheckoutDraft,
+  removeStaleCheckoutDraft,
   saveCheckoutDraft,
   startCheckoutDraftGuard,
 } from './checkoutDraft'
@@ -352,5 +353,294 @@ describe('the guard that follows who is signed in', () => {
     signedIn(OTHER)
 
     expect(stored()).not.toBeNull()
+  })
+})
+
+describe('taking an old draft out of storage (cleaning; the age checked on a read is what decides)', () => {
+  const TTL = CHECKOUT_DRAFT_TTL_MS
+  let stop: () => void = () => undefined
+  const timers = () => vi.getTimerCount()
+  const pageIs = (state: DocumentVisibilityState) => {
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(state)
+    document.dispatchEvent(new Event('visibilitychange'))
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(NOW)
+  })
+  afterEach(() => {
+    stop()
+    stop = () => undefined
+    vi.useRealTimers()
+  })
+
+  describe('as the site opens', () => {
+    it('removes an old draft with nobody signed in', () => {
+      saveCheckoutDraft(USER, DETAILS, NOW - TTL - 1)
+      expect(stored()).not.toBeNull()
+
+      stop = startCheckoutDraftGuard()
+
+      expect(stored()).toBeNull()
+      expect(timers()).toBe(0)
+    })
+
+    it('removes a draft made at a time that has not come, as a read would refuse it', () => {
+      saveCheckoutDraft(USER, DETAILS, NOW + 60_000)
+
+      stop = startCheckoutDraftGuard()
+
+      expect(stored()).toBeNull()
+    })
+
+    it('removes what is not a draft with nobody signed in', () => {
+      sessionStorage.setItem(CHECKOUT_DRAFT_KEY, '{not json')
+
+      stop = startCheckoutDraftGuard()
+
+      expect(stored()).toBeNull()
+    })
+
+    it('keeps a good draft of any account with nobody signed in, and sets one timer for its end', () => {
+      saveCheckoutDraft(USER, DETAILS, NOW - 1000)
+
+      stop = startCheckoutDraftGuard()
+
+      expect(peekCheckoutDraft(USER)).toEqual(DETAILS)
+      expect(timers()).toBe(1)
+    })
+
+    it('sets no timer when there is no draft (nothing polls)', () => {
+      stop = startCheckoutDraftGuard()
+
+      expect(timers()).toBe(0)
+      vi.advanceTimersByTime(3 * TTL)
+      expect(timers()).toBe(0)
+    })
+  })
+
+  describe('when the time of the draft is up', () => {
+    it('removes it when its timer fires, and not a moment before', () => {
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+      expect(timers()).toBe(1)
+
+      vi.advanceTimersByTime(TTL - 1)
+      expect(stored()).not.toBeNull()
+      expect(peekCheckoutDraft(USER)).toEqual(DETAILS)
+
+      vi.advanceTimersByTime(1)
+      expect(stored()).toBeNull()
+      expect(timers()).toBe(0)
+    })
+
+    it('sets the timer for the end of a draft that was there before the guard started', () => {
+      saveCheckoutDraft(USER, DETAILS, NOW - 10 * 60 * 1000)
+
+      stop = startCheckoutDraftGuard()
+      vi.advanceTimersByTime(TTL - 10 * 60 * 1000 - 1)
+      expect(stored()).not.toBeNull()
+      vi.advanceTimersByTime(1)
+
+      expect(stored()).toBeNull()
+    })
+
+    it('a timer that fires early removes nothing, and looks again for what is left', () => {
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+      // The timer runs while the clock says that 5 seconds are left (a clock that was set back).
+      const clock = vi.spyOn(Date, 'now').mockReturnValue(NOW + TTL - 5000)
+
+      vi.advanceTimersByTime(TTL)
+
+      expect(stored()).not.toBeNull()
+      expect(peekCheckoutDraft(USER)).toEqual(DETAILS)
+      expect(timers()).toBe(1)
+
+      clock.mockRestore()
+      vi.advanceTimersByTime(5000)
+
+      expect(stored()).toBeNull()
+      expect(timers()).toBe(0)
+    })
+
+    it('a newer draft is not removed by the timer of the one it replaced', () => {
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+      vi.advanceTimersByTime(TTL - 1000)
+      saveCheckoutDraft(USER, { ...DETAILS, city: 'חיפה' })
+      expect(timers()).toBe(1)
+
+      vi.advanceTimersByTime(1000) // the end of the first draft
+      expect(peekCheckoutDraft(USER)?.city).toBe('חיפה')
+
+      vi.advanceTimersByTime(TTL - 1000) // the end of the second
+      expect(stored()).toBeNull()
+    })
+
+    it('a timer that finds the draft already gone does nothing', () => {
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+      forgetCheckoutDraft()
+
+      expect(() => vi.advanceTimersByTime(TTL)).not.toThrow()
+
+      expect(stored()).toBeNull()
+      expect(timers()).toBe(0)
+    })
+  })
+
+  describe('when the page is shown again after the timer could not run', () => {
+    /** The page was suspended: the clock went on, and the timer did not run. */
+    function suspendedPastTheEnd() {
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+      vi.setSystemTime(NOW + TTL + 60_000)
+      expect(stored()).not.toBeNull() // nothing has removed it yet
+    }
+
+    it('removes the old draft when the page becomes visible', () => {
+      suspendedPastTheEnd()
+
+      pageIs('visible')
+
+      expect(stored()).toBeNull()
+      expect(timers()).toBe(0)
+    })
+
+    it('leaves it while the page stays hidden: only being shown looks', () => {
+      suspendedPastTheEnd()
+
+      pageIs('hidden')
+
+      expect(stored()).not.toBeNull()
+    })
+
+    it('removes nothing from a draft that is still good, and keeps its timer', () => {
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+      vi.setSystemTime(NOW + 60_000)
+
+      pageIs('visible')
+
+      expect(peekCheckoutDraft(USER)).toEqual(DETAILS)
+      expect(timers()).toBe(1)
+    })
+
+    it('stops looking when the guard is stopped: the timer and the listener are gone', () => {
+      suspendedPastTheEnd()
+
+      stop()
+      stop = () => undefined
+      expect(timers()).toBe(0)
+      pageIs('visible')
+
+      expect(stored()).not.toBeNull()
+    })
+  })
+
+  describe('an old draft is never restored, whether or not anything has removed it', () => {
+    it('with the guard running and its timer not yet run', () => {
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+      vi.setSystemTime(NOW + TTL)
+
+      expect(stored()).not.toBeNull()
+      expect(peekCheckoutDraft(USER)).toBeNull()
+    })
+
+    it('with no guard at all', () => {
+      saveCheckoutDraft(USER, DETAILS)
+      vi.setSystemTime(NOW + TTL)
+
+      expect(stored()).not.toBeNull()
+      expect(peekCheckoutDraft(USER)).toBeNull()
+    })
+
+    it('and a good draft just before its end is restored', () => {
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+      vi.setSystemTime(NOW + TTL - 1)
+
+      expect(peekCheckoutDraft(USER)).toEqual(DETAILS)
+    })
+  })
+
+  describe('stopping', () => {
+    it('twice counts one guard out once: a guard started after still sets its timer', () => {
+      const first = startCheckoutDraftGuard()
+      first()
+      first()
+
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+
+      expect(timers()).toBe(1)
+    })
+
+    it('one of two guards stopping leaves the timer of the other', () => {
+      const first = startCheckoutDraftGuard()
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+
+      first()
+
+      expect(timers()).toBe(1)
+    })
+  })
+
+  describe('removeStaleCheckoutDraft', () => {
+    it('says how long a good draft has left, and removes nothing', () => {
+      saveCheckoutDraft(USER, DETAILS, NOW - 1000)
+
+      expect(removeStaleCheckoutDraft(NOW)).toBe(TTL - 1000)
+      expect(stored()).not.toBeNull()
+    })
+
+    it('removes an old one, and says there is none', () => {
+      saveCheckoutDraft(USER, DETAILS, NOW - TTL)
+
+      expect(removeStaleCheckoutDraft(NOW)).toBeNull()
+      expect(stored()).toBeNull()
+    })
+
+    it('says there is none when storage cannot be read, and does not throw', () => {
+      saveCheckoutDraft(USER, DETAILS)
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new DOMException('blocked', 'SecurityError')
+      })
+
+      expect(removeStaleCheckoutDraft(NOW)).toBeNull()
+    })
+  })
+
+  describe('what stays as it was', () => {
+    it('another account that signs in still removes the draft at once', () => {
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+
+      useAuthStore.setState({
+        token: 'a-session-token-of-the-account',
+        expiresAt: null,
+        user: { id: OTHER, name: 'x', email: 'x@example.com' },
+        status: 'authenticated',
+      })
+
+      expect(stored()).toBeNull()
+      expect(timers()).toBe(1) // a reminder to look; it finds nothing and ends
+      vi.advanceTimersByTime(TTL)
+      expect(timers()).toBe(0)
+    })
+
+    it('forgetting the draft (as signing out does) removes it, with the guard running', () => {
+      stop = startCheckoutDraftGuard()
+      saveCheckoutDraft(USER, DETAILS)
+
+      forgetCheckoutDraft()
+
+      expect(stored()).toBeNull()
+      expect(peekCheckoutDraft(USER)).toBeNull()
+    })
   })
 })
