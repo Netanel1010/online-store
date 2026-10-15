@@ -1,6 +1,12 @@
 import { z } from 'zod'
 // The extension is required because the API (server/) imports this file through the checkout schema.
-import { asciiDigits, characterCount, hasNonText, stripInvisible } from './textRules.ts'
+import {
+  asciiDigits,
+  characterCount,
+  hasNonText,
+  normalizeLine,
+  stripInvisible,
+} from './textRules.ts'
 
 /** Building blocks shared by the login, registration and checkout forms (Hebrew messages). */
 
@@ -10,13 +16,29 @@ export const emailField = z
   .min(1, 'יש להזין כתובת אימייל')
   .pipe(z.email('כתובת האימייל אינה תקינה'))
 
+/**
+ * A one-line text that is required, such as the name of an account. It is read in the order that the
+ * delivery details are read (see `textRules.ts`): first the value **as it was typed** is refused if it
+ * holds anything that is not text (a tab, a line break, a control or direction character, ...), and only
+ * then is it tidied (`normalizeLine`: the invisible marks of a right-to-left copy dropped, every kind of
+ * space one space, none at either end, composed to NFC). A value that is refused is never tidied, so that
+ * `trim()` cannot be what makes a tab or a line break at the end go away. The length limits count what is
+ * left, as they always did.
+ *
+ * The API reads an account name with this same field, so the form and the API cannot disagree.
+ */
 export function requiredText(label: string, { min = 2, max = 80 } = {}) {
   return z
     .string()
-    .trim()
-    .min(1, `יש להזין ${label}`)
-    .min(min, `${label} קצר מדי`)
-    .max(max, `${label} ארוך מדי`)
+    .refine((value) => !hasNonText(value), `${label} מכיל תווים שאינם מותרים`)
+    .transform(normalizeLine)
+    .pipe(
+      z
+        .string()
+        .min(1, `יש להזין ${label}`)
+        .min(min, `${label} קצר מדי`)
+        .max(max, `${label} ארוך מדי`),
+    )
 }
 
 /** A phone number is never this long, however it is written (`+972 (0) 50-123-4567` is 20). */

@@ -1,4 +1,4 @@
-import { normalizePhone, phoneField } from './validation'
+import { normalizePhone, phoneField, requiredText } from './validation'
 
 const parse = (value: string) => phoneField.safeParse(value)
 const message = (value: string) => parse(value).error?.issues[0]?.message
@@ -141,5 +141,36 @@ describe('phoneField', () => {
     expect(normalizePhone('050\n1234567')).toBe('050\n1234567')
     expect(normalizePhone('050\u20281234567')).toBe('050\u20281234567')
     expect(normalizePhone('050/1234567')).toBe('050/1234567')
+  })
+})
+
+describe('requiredText', () => {
+  const NOT_ALLOWED = 'שם מכיל תווים שאינם מותרים'
+  const field = requiredText('שם', { min: 2, max: 60 })
+  const TAB = String.fromCharCode(0x09)
+  const messages = (value: string) => field.safeParse(value).error?.issues.map((i) => i.message)
+
+  it('looks at the value as it was typed, before it is tidied: a tab at the end is refused, not trimmed', () => {
+    expect(messages(`נתנאל כהן${TAB}`)).toEqual([NOT_ALLOWED])
+    expect(messages(`${TAB}נתנאל כהן`)).toEqual([NOT_ALLOWED])
+  })
+
+  it('says the label of the field in the message', () => {
+    expect(
+      requiredText('כינוי', { min: 2, max: 60 }).safeParse(`אב${TAB}גד`).error?.issues[0]?.message,
+    ).toBe('כינוי מכיל תווים שאינם מותרים')
+  })
+
+  it('tidies what it accepts, as the delivery details do', () => {
+    expect(
+      field.parse(`  Rene${String.fromCharCode(0x301)}   Cohen${String.fromCharCode(0xa0)}`),
+    ).toBe(`Ren${String.fromCharCode(0xe9)} Cohen`)
+  })
+
+  it('counts the length of what is left once it is tidied', () => {
+    expect(field.safeParse(`${'א'.repeat(60)}${String.fromCharCode(0x200b)}`).success).toBe(true)
+    expect(messages('א'.repeat(61))).toEqual(['שם ארוך מדי'])
+    expect(messages('א')).toEqual(['שם קצר מדי'])
+    expect(messages('')).toEqual(['יש להזין שם', 'שם קצר מדי'])
   })
 })

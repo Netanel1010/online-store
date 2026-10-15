@@ -85,6 +85,17 @@ check what the pages send and get back, and a test can end every session on the 
 what the page does when its token stops working. `authService.test.ts` and `authStore.test.ts` cover
 how the answers (401, 409, 429, 5xx, no network) are read and what is kept in the browser.
 
+The name of an account is read like the delivery details (a character that is not text is refused as it
+was typed, before any trimming, and only then is the name tidied), and the form and the API read it with
+one field (`requiredText` in `src/lib/validation.ts`). The characters and names are listed once, in
+`src/test/nameCases.ts`, and used by `server/src/auth/schemas.test.ts` (the API),
+`src/features/auth/schemas.test.ts` (the form), `src/features/auth/nameAgreement.test.ts` (the same names
+through the form, the API and the checkout's name rules), `server/src/auth/routes.test.ts` (HTTP: the
+error names the field and repeats nothing, and nothing is created) and `src/pages/auth.test.tsx` (a pasted
+name in the real form). The same files pin what the email accepts, as it always did: spaces and
+whitespace characters around an address are dropped, anything else that is not text is refused, and
+an address with a trailing line break registers as the clean address and signs in either way.
+
 The E2E tests register real accounts in the stub API that runs the same code, on another origin
 than the site (like the deployed site and API), and check, in a real browser, that the token goes
 in an `Authorization` header and no cookie is sent, that a session survives a reload, that signing

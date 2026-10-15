@@ -380,3 +380,39 @@ describe('the cart and the favorites when signing in and out', () => {
     expect(useFavoritesStore.getState().ids).toEqual(['P-1'])
   })
 })
+
+describe('the name in the registration form, with a control character in it', () => {
+  it('refuses a pasted name with a tab in it, with the approved message on the name field, and asks the server for nothing', async () => {
+    await openPage('/register')
+
+    await userEvent.click(nameBox())
+    await userEvent.paste(`${GOOD.name}${String.fromCharCode(0x09)}כהן`)
+    await userEvent.type(emailBox(), GOOD.email)
+    await userEvent.type(passwordBox(), GOOD.password)
+    await userEvent.type(confirmBox(), GOOD.password)
+    await submit('יצירת חשבון')
+
+    expect(await screen.findByText('שם מכיל תווים שאינם מותרים')).toBeInTheDocument()
+    expect(nameBox()).toHaveFocus()
+    expect(nameBox()).toBeInvalid()
+    expect(api.accounts().size).toBe(0)
+    expect(auth().status).toBe('anonymous')
+  })
+
+  it('registers a name that only needed tidying, with the tidied name', async () => {
+    await openPage('/register')
+
+    await userEvent.click(nameBox())
+    await userEvent.paste(
+      `${String.fromCharCode(0xa0)}${GOOD.name}${String.fromCharCode(0x200b)}  כהן `,
+    )
+    await userEvent.type(emailBox(), GOOD.email)
+    await userEvent.type(passwordBox(), GOOD.password)
+    await userEvent.type(confirmBox(), GOOD.password)
+    await submit('יצירת חשבון')
+
+    await waitFor(() => expect(url()).toBe('/'))
+    expect([...api.accounts().values()][0]).toMatchObject({ name: 'נתנאל כהן', email: GOOD.email })
+    expect(auth().user?.name).toBe('נתנאל כהן')
+  })
+})

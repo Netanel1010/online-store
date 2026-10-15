@@ -9,10 +9,13 @@ import {
   passwordHasDigit,
   passwordHasLetter,
 } from '../../../src/features/auth/rules.ts'
+import { requiredText } from '../../../src/lib/validation.ts'
 import { HttpError } from '../lib/httpError.ts'
 
-// The same rules as the registration form, which checks them first only to help the visitor.
-const name = z.string().trim().min(NAME_MIN_LENGTH).max(NAME_MAX_LENGTH)
+// The registration form's own field, so that it and the API read a name the same way: the value as it was
+// typed is refused if it holds anything that is not text, and only then is it tidied. (The messages are the
+// form's; the API answers with the name of the field and nothing that was sent.)
+const name = requiredText('שם', { min: NAME_MIN_LENGTH, max: NAME_MAX_LENGTH })
 
 const email = z
   .string()

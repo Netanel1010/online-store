@@ -1,4 +1,6 @@
 import openapi from '../../../docs/openapi.yaml?raw'
+import { parseRegisterBody } from '../../../server/src/auth/schemas'
+import { NAME_MAX_LENGTH, NAME_MIN_LENGTH } from '@/features/auth/rules'
 import { characterCount } from '@/lib/textRules'
 import { normalizePhone } from '@/lib/validation'
 import { DELIVERY_LIMITS, deliveryDetailsSchema } from './delivery'
@@ -8,6 +10,9 @@ import { DELIVERY_LIMITS, deliveryDetailsSchema } from './delivery'
  * what the schema (src/features/checkout/delivery.ts, which the API runs too) does. The document is
  * read here as text, with a reader for the part of YAML that those two schemas use: there is no YAML
  * dependency in the project, and a test is not a reason to add one.
+ *
+ * The last block does the same for the name in the registration request, whose limits are those of
+ * the normalized name and so are not stated as `minLength` and `maxLength`.
  */
 
 type Yaml = string | number | boolean | Yaml[] | { [key: string]: Yaml }
@@ -334,5 +339,53 @@ describe('the stored schema of the delivery details', () => {
     expect(openapi).toMatch(
       / {4}Order:[\s\S]*?delivery: \{ \$ref: '#\/components\/schemas\/DeliveryDetails' \}/,
     )
+  })
+})
+
+describe('the name in the registration request', () => {
+  const nameSchema = (schema('RegisterRequest').properties as Record<string, YamlMap>).name!
+  const rules = nameSchema['x-normalized'] as YamlMap
+  const NBSP = String.fromCharCode(0xa0)
+  const ZWSP = String.fromCharCode(0x200b)
+
+  /** Whether the API accepts the name, read by the schema that its route runs. */
+  const accepted = (name: string) => {
+    try {
+      parseRegisterBody({ name, email: 'netanel@example.com', password: 'Passw0rdOK' })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  it('states the limits of the normalized name, as the code has them', () => {
+    expect(rules).toEqual({ minLength: NAME_MIN_LENGTH, maxLength: NAME_MAX_LENGTH })
+  })
+
+  it('has no minLength or maxLength of its own: the limits are not those of the value as sent, so that no client can refuse what the API accepts', () => {
+    expect(Object.keys(nameSchema).sort()).toEqual(['description', 'type', 'x-normalized'])
+  })
+
+  it('applies the stated limits to the normalized name, in code points', () => {
+    const min = rules.minLength as number
+    const max = rules.maxLength as number
+    const emoji = String.fromCodePoint(0x1f600)
+
+    expect(accepted('א'.repeat(min))).toBe(true)
+    expect(accepted('א'.repeat(min - 1))).toBe(false)
+    expect(accepted('א'.repeat(max))).toBe(true)
+    expect(accepted('א'.repeat(max + 1))).toBe(false)
+    expect(accepted(emoji.repeat(max))).toBe(true)
+    expect(accepted(emoji.repeat(max + 1))).toBe(false)
+  })
+
+  it('accepts names that limits on the value as sent would have refused', () => {
+    const max = rules.maxLength as number
+    // Longer as sent than the longest name: the no-break spaces and the zero-width spaces are not part of it.
+    expect(accepted(`${NBSP}${'א'.repeat(max)}${NBSP}`)).toBe(true)
+    expect(accepted(`${'א'.repeat(max)}${ZWSP.repeat(10)}`)).toBe(true)
+    // Shorter as sent than the shortest name: U+0958 is written by NFC as two code points.
+    expect(Array.from(String.fromCodePoint(0x958))).toHaveLength(1)
+    expect(accepted(String.fromCodePoint(0x958))).toBe(true)
   })
 })

@@ -402,3 +402,72 @@ describe('an unknown route of the feature', () => {
     expect((await errorOf(response)).code).toBe('not_found')
   })
 })
+
+describe('the name and the email of an account, over HTTP', () => {
+  const NOT_TEXT = [
+    ['a tab', String.fromCharCode(0x09)],
+    ['a line break', String.fromCharCode(0x0a)],
+    ['a NUL', String.fromCharCode(0x00)],
+    ['a right-to-left override', String.fromCharCode(0x202e)],
+  ] as const
+
+  it.each(NOT_TEXT)(
+    'answers 400 invalid_input for a name with %s inside it, in the middle or at the end: no account, no session, and the name is not repeated',
+    async (_what, char) => {
+      for (const name of [`${GOOD.name}${char}כהן`, `${GOOD.name} כהן${char}`]) {
+        const response = await register({ ...GOOD, name })
+        const text = await response.text()
+
+        expect(response.status).toBe(400)
+        expect(JSON.parse(text).error).toEqual({
+          code: 'invalid_input',
+          message: 'The field "name" is not valid',
+        })
+        expect(text).not.toContain(GOOD.name)
+        expect(users.stored.size).toBe(0)
+        expect(sessions.stored.size).toBe(0)
+      }
+    },
+  )
+
+  it('stores and answers the name as it is read: no-break spaces and invisible marks are tidied away', async () => {
+    const typed = `${String.fromCharCode(0xa0)}נתנאל${String.fromCharCode(0x200b)}${String.fromCharCode(0xa0)}כהן${String.fromCharCode(0xfeff)}`
+
+    const response = await register({ ...GOOD, name: typed })
+
+    expect(response.status).toBe(201)
+    expect((await signedIn(response)).user.name).toBe('נתנאל כהן')
+    expect([...users.stored.values()][0]?.name).toBe('נתנאל כהן')
+  })
+
+  it('registers an email that ends with a line break as the clean address, and signs in with or without it', async () => {
+    const LF = String.fromCharCode(0x0a)
+    const registered = await signedIn(
+      await register({ ...GOOD, email: `Netanel@Example.com${LF}` }),
+    )
+    expect(registered.user.email).toBe('netanel@example.com')
+    expect([...users.stored.values()][0]?.email).toBe('netanel@example.com')
+
+    for (const email of [
+      'netanel@example.com',
+      `netanel@example.com${LF}`,
+      ` NETANEL@example.com${LF}`,
+    ]) {
+      const response = await login({ email, password: GOOD.password })
+
+      expect(response.status).toBe(200)
+      expect((await signedIn(response)).user.id).toBe(registered.user.id)
+    }
+  })
+
+  it('still refuses an email with a control character inside it', async () => {
+    const response = await register({
+      ...GOOD,
+      email: `neta${String.fromCharCode(0x09)}nel@example.com`,
+    })
+
+    expect(response.status).toBe(400)
+    expect((await errorOf(response)).code).toBe('invalid_input')
+    expect(users.stored.size).toBe(0)
+  })
+})
