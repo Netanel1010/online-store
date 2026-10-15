@@ -108,6 +108,17 @@ describe('the privacy page', () => {
     }
     expect(screen.getByText('האתר אינו משתמש בעוגיות.')).toBeInTheDocument()
   })
+
+  it('says that the delivery details are kept in the tab, for 30 minutes, when a session ends on an order', async () => {
+    renderApp(paths.info('privacy'))
+    await screen.findByRole('heading', { level: 1, name: 'מדיניות פרטיות' })
+
+    const notice = screen.getByText(/אם ההתחברות מסתיימת בזמן הזמנה/)
+    expect(notice).toHaveTextContent('רק בלשונית הפתוחה')
+    expect(notice).toHaveTextContent('עד 30 דקות')
+    expect(notice).toHaveTextContent('נמחקים אחרי שימוש אחד')
+    expect(notice).toHaveTextContent('ואינם נשלחים לשרת עד שמאשרים הזמנה')
+  })
 })
 
 describe('the accessibility statement', () => {
