@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { HttpError } from '../lib/httpError.ts'
+import {
+  NAMES_THAT_ARE_KEPT,
+  NAMES_THAT_ARE_TIDIED,
+  NAME_WITH,
+  NOT_TEXT_IN_A_NAME,
+} from '../../../src/test/nameCases.ts'
 import { parseLoginBody, parseRegisterBody } from './schemas.ts'
 
 const failure = (run: () => unknown) => {
@@ -107,4 +113,98 @@ describe('parseLoginBody', () => {
   ])('rejects %s', (_name, body) => {
     invalid(() => parseLoginBody(body))
   })
+})
+
+const chr = (code: number) => String.fromCharCode(code)
+
+describe('the name of an account', () => {
+  const refused = NOT_TEXT_IN_A_NAME.flatMap(([label, char]) =>
+    Object.entries(NAME_WITH).map(
+      ([where, make]) => [`${label} ${where}`, make(char)] as [string, string],
+    ),
+  )
+  const nameOf = (name: string) => parseRegisterBody({ ...good, name }).name
+
+  it.each(refused)('refuses a name with %s, instead of trimming or keeping it', (_where, name) => {
+    const error = invalid(() => parseRegisterBody({ ...good, name }))
+
+    // It names the field and nothing that was sent.
+    expect(error.message).toBe('The field "name" is not valid')
+    expect(error.message).not.toContain('נתנאל')
+  })
+
+  it.each(NAMES_THAT_ARE_TIDIED)('reads %s', (_what, typed, stored) => {
+    expect(nameOf(typed)).toBe(stored)
+    // Reading what was stored changes nothing.
+    expect(nameOf(stored)).toBe(stored)
+  })
+
+  it.each(NAMES_THAT_ARE_KEPT)('keeps %s as it was typed', (_what, name) => {
+    expect(nameOf(name)).toBe(name)
+  })
+
+  it('keeps the limits: 2 to 60 characters, counted once the name is read', () => {
+    expect(nameOf('אב')).toBe('אב')
+    expect(nameOf('א'.repeat(60))).toBe('א'.repeat(60))
+    expect(nameOf(`${chr(0xa0)}${'א'.repeat(60)}${chr(0xa0)}`)).toBe('א'.repeat(60))
+    invalid(() => parseRegisterBody({ ...good, name: 'א' }))
+    invalid(() => parseRegisterBody({ ...good, name: 'א'.repeat(61) }))
+    // The limit counts letters, not the halves that a character outside the basic plane is written in.
+    const emoji = String.fromCodePoint(0x1f600)
+    expect(nameOf(emoji.repeat(60))).toBe(emoji.repeat(60))
+    invalid(() => parseRegisterBody({ ...good, name: emoji.repeat(61) }))
+    // Nothing is left of a name that was only spaces and invisible marks.
+    invalid(() => parseRegisterBody({ ...good, name: `  ${chr(0x200b)}${chr(0xa0)} ` }))
+  })
+})
+
+describe('the email of an account: what it accepts is as it was, and what is stored is clean', () => {
+  // The characters that `trim()` takes off the ends of an address; the address is clean afterwards.
+  const TRIMMED_OFF = [
+    ['TAB', chr(0x09)],
+    ['LF', chr(0x0a)],
+    ['VT', chr(0x0b)],
+    ['FF', chr(0x0c)],
+    ['CR', chr(0x0d)],
+    ['NBSP', chr(0xa0)],
+    ['line separator', chr(0x2028)],
+    ['paragraph separator', chr(0x2029)],
+    ['BOM', chr(0xfeff)],
+    ['space', ' '],
+  ] as const
+  // Everything else that is not text is no part of an address: it is refused at the ends too.
+  const NOT_TRIMMED_OFF = [
+    ...NOT_TEXT_IN_A_NAME.filter(
+      ([label]) => !['TAB', 'LF', 'VT', 'FF', 'CR'].includes(label) && !label.includes('separator'),
+    ),
+    ['ZWSP', chr(0x200b)],
+    ['LRM', chr(0x200e)],
+  ] as const
+
+  it.each(TRIMMED_OFF)('register: %s around the address is dropped', (_label, char) => {
+    expect(parseRegisterBody({ ...good, email: `${char} Netanel@Example.COM ${char}` }).email).toBe(
+      'netanel@example.com',
+    )
+  })
+
+  it.each(TRIMMED_OFF)('sign-in: %s around the address is dropped', (_label, char) => {
+    expect(
+      parseLoginBody({ email: `${char}Netanel@Example.COM${char}`, password: 'x' }).email,
+    ).toBe('netanel@example.com')
+  })
+
+  it.each(NOT_TRIMMED_OFF)('%s around the address is refused', (_label, char) => {
+    invalid(() => parseRegisterBody({ ...good, email: `${char}netanel@example.com${char}` }))
+    invalid(() => parseLoginBody({ email: `${char}netanel@example.com${char}`, password: 'x' }))
+  })
+
+  it.each([...TRIMMED_OFF, ...NOT_TRIMMED_OFF].filter(([label]) => label !== 'space'))(
+    '%s inside the address is refused, in the part before the @ and after it',
+    (_label, char) => {
+      for (const email of [`net${char}anel@example.com`, `netanel@exa${char}mple.com`]) {
+        invalid(() => parseRegisterBody({ ...good, email }))
+        invalid(() => parseLoginBody({ email, password: 'x' }))
+      }
+    },
+  )
 })

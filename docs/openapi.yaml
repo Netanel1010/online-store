@@ -1009,7 +1009,21 @@ components:
       type: object
       required: [name, email, password]
       properties:
-        name: { type: string, minLength: 2, maxLength: 60, description: Trimmed. }
+        name:
+          type: string
+          minLength: 2
+          maxLength: 60
+          description: >-
+            Read in this order. First the value as it was sent is refused (`400 invalid_input`, naming the
+            field and nothing that was sent) if it holds, anywhere in it, anything that is not text: a
+            control character (a tab, a line break, NUL, DEL), a line or paragraph separator, or any
+            other invisible format character, among them those that reorder text (U+202A to U+202E,
+            U+2066 to U+2069), a lone surrogate or a private-use character. It is never trimmed first to
+            make such a character go away. Then it is normalized: every kind of space becomes one
+            space and none is left at either end, the text is composed (Unicode NFC), and the invisible
+            marks (a zero-width space, a left-to-right or right-to-left mark, a byte order mark) are
+            dropped. The limits count the name once normalized. Nothing else about the characters is
+            restricted.
         email: { type: string, format: email, maxLength: 254 }
         password:
           type: string
