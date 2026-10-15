@@ -205,8 +205,10 @@ use it up, so a page that is drawn twice gets the same answer.
   whoever is signed in or nobody (an old draft, or one that is not a draft, is removed, and a good one
   gets its timer); when a draft is made (a timer for the moment it expires); when that timer fires; and
   when the page becomes visible again. A timer that fires early finds the draft still good, removes
-  nothing and sets itself again for what is left. Nothing polls: there is at most one timer, and none
-  when there is no draft.
+  nothing and sets itself again for what is left. Nothing polls: there is at most one timer. No timer
+  is scheduled when no draft exists at the time of an inspection, but a timer left over from a draft
+  that was removed afterwards (by signing out, or by another account signing in) may remain until it
+  fires once, finds nothing and ends.
 
   **What this cannot promise.** JavaScript cannot be sure of running at the exact moment: a browser may
   delay or throttle a timer in a page that is hidden, may suspend a tab, and runs nothing in a tab
