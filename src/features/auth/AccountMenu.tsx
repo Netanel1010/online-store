@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import { paths } from '@/app/paths'
 import { LogoutIcon, UserIcon } from '@/components/icons'
+import { forgetCheckoutDraft } from '@/features/orders/checkoutDraft'
 import { useToast } from '@/features/notifications/toastContext'
 import { useAuthStatus, useAuthStore, useCurrentUser } from './authStore'
 import { isProtectedPath } from './routing'
@@ -52,6 +53,8 @@ export function AccountMenu({ variant }: { variant: 'header' | 'drawer' }) {
 
   const finishSignOut = useCallback(
     (message: string) => {
+      // The visitor chose to leave: what they typed on the checkout goes with them (see checkoutDraft.ts).
+      forgetCheckoutDraft()
       logout()
       toast.show({ message })
     },

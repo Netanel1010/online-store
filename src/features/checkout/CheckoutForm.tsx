@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { FormAlert } from '@/components/shared/Notices'
 import { Button } from '@/components/ui/Button'
 import { CheckboxField, TextAreaField, TextField } from '@/components/ui/fields'
+import type { DeliveryDetails } from './delivery'
 import { checkoutSchema, type CheckoutValues } from './schema'
 
 /** The line under the address heading that says the address is for the demo; the group is described by it. */
@@ -12,7 +13,11 @@ const ADDRESS_NOTE_ID = 'delivery-address-demo-note'
 export type SubmitOutcome = { ok: true } | { ok: false; message: string }
 
 interface CheckoutFormProps {
-  defaultValues: Pick<CheckoutValues, 'fullName' | 'email'>
+  /**
+   * What the form starts with: the name and email of the account, or the details of a draft. The demo
+   * tick is not among them, by type: it is always given afresh.
+   */
+  defaultValues: Pick<CheckoutValues, 'fullName' | 'email'> & Partial<DeliveryDetails>
   /** Returns an error message to show at the top of the form when the order could not be placed. */
   onSubmit: (values: CheckoutValues) => Promise<SubmitOutcome> | SubmitOutcome
   /** Shown just above the submit button, e.g. the total being confirmed. */
@@ -34,7 +39,6 @@ export function CheckoutForm({ defaultValues, onSubmit, totalNote, notice }: Che
   } = useForm<CheckoutValues>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      ...defaultValues,
       phone: '',
       city: '',
       street: '',
@@ -42,6 +46,7 @@ export function CheckoutForm({ defaultValues, onSubmit, totalNote, notice }: Che
       apartment: '',
       postalCode: '',
       notes: '',
+      ...defaultValues,
       acceptDemo: false,
     },
     mode: 'onTouched',
