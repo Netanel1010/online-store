@@ -55,8 +55,11 @@ let remembered: Attempts = {}
  */
 let storageRefusedWrite = false
 
-/** cyrb53: a small, fast, well-spread 53-bit hash of a text, as a short string. */
-function digest(text: string): string {
+/**
+ * cyrb53: a small, fast, well-spread 53-bit hash of a text, as a short string. Exported for the
+ * checkout draft (`checkoutDraft.ts`), which binds itself to an account the same way.
+ */
+export function digest(text: string): string {
   let h1 = 0xdeadbeef
   let h2 = 0x41c6ce57
   for (let index = 0; index < text.length; index += 1) {

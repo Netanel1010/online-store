@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, configure } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
 import { useAuthStore } from '@/features/auth/authStore'
+import { clearSessionEnded } from '@/features/auth/sessionEnded'
 import { cartSyncPolicy } from '@/features/cart/cartSync'
 import { useCartStore } from '@/features/cart/cartStore'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
@@ -50,4 +51,6 @@ afterEach(() => {
   resetProductCache()
   resetCategoryCounts()
   localStorage.clear()
+  sessionStorage.clear()
+  clearSessionEnded()
 })

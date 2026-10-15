@@ -78,6 +78,14 @@ A fifth key, `online-store:checkout-attempt`, keeps the `Idempotency-Key` of the
 placed. Everything read from `localStorage` is validated and treated as untrusted
 ([state persistence](state-persistence.md#stored-data-is-untrusted)).
 
+One more key lives in `sessionStorage` (this tab only, gone when the tab is closed), not in
+`localStorage`: `online-store:checkout-draft`. When an order is answered with 401 it keeps the nine
+delivery fields (never the demo tick, the token or the key of the attempt) restorable for at most 30
+minutes, so that signing in again does not mean typing them again. It is bound to the account, used
+once, removed when the visitor signs out or another account signs in, and read against a strict schema
+like any stored data; an old one is never restored and is cleaned out of storage on a best-effort basis
+([state persistence](state-persistence.md#a-session-that-ends-on-the-checkout)).
+
 **Failure containment.** An error boundary around the page keeps the header and footer alive, and a
 last one around the router catches the rest. A page that cannot be loaded after a new deployment says
 a new version is available and offers a reload (`lib/chunkError.ts`).

@@ -1,4 +1,4 @@
-import { Suspense, useRef } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { PageLoading } from '@/components/shared/StateMessages'
 import { useRestoreSession } from '@/features/auth/useRestoreSession'
 import { KeepCartSynced } from '@/features/cart/KeepCartSynced'
+import { startCheckoutDraftGuard } from '@/features/orders/checkoutDraft'
 import { ToastProvider } from '@/features/notifications/ToastProvider'
 import { ShopStateReconciler } from '@/features/shop/ShopStateReconciler'
 import { useFocusAtPageStart } from './useFocusAtPageStart'
@@ -16,6 +17,9 @@ export function RootLayout() {
   const { pathname } = useLocation()
   // Confirms the stored session with the API as soon as the site is on screen.
   useRestoreSession()
+  // What a visitor typed on the checkout before their session ended is for that visitor only: it goes
+  // as soon as another account is signed in.
+  useEffect(() => startCheckoutDraftGuard(), [])
 
   // BrowserRouter does not restore scroll or focus on navigation: see the hook.
   useFocusAtPageStart(mainRef, pathname)

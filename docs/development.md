@@ -124,7 +124,7 @@ About, contact, accessibility, privacy and terms are listed once, in `src/lib/in
 
 These pages state facts about the project, and a fact that stops being true is worse than none:
 
-- **Privacy** (`PrivacyPage.tsx`) lists what is stored, where, and what is logged. Change it in the same pull request as a change to what the API stores, what the browser keeps in `localStorage`, or what the API logs.
+- **Privacy** (`PrivacyPage.tsx`) lists what is stored, where, and what is logged. Change it in the same pull request as a change to what the API stores, what the browser keeps in `localStorage` or `sessionStorage`, or what the API logs.
 - **Accessibility** (`AccessibilityPage.tsx`) follows [`accessibility.md`](accessibility.md).
 - **Terms** (`TermsPage.tsx`) says that shipping and returns do not apply because nothing is bought. If the store ever takes a real order, those sections and the demo notices must be rewritten by someone who can state real policies.
 - **Contact** shows only the GitHub profile and repository (`src/lib/links.ts`). Add an email, a phone number or a WhatsApp link only when the owner provides it.

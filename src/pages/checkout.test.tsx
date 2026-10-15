@@ -1140,6 +1140,8 @@ describe('one order at a time', () => {
       expect(useAuthStore.getState().user?.email).toBe(DANA.email)
       expect(useAuthStore.getState().status).toBe('authenticated')
       expect(useCartStore.getState().items).toEqual([{ productId: 'GPU-1', quantity: 1 }])
+      // The 401 was the first account's: what it had typed is not kept, for it or for the new account.
+      expect(sessionStorage.getItem('online-store:checkout-draft')).toBeNull()
     })
 
     /**

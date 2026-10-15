@@ -134,6 +134,109 @@ Tested in `src/features/cart/cartStore.test.ts`, `cartTabSync.test.ts`, `KeepCar
 `src/pages/checkout.test.tsx` ("the checkout goes by the latest cart") and, with two tabs of a real
 browser sharing one storage, `e2e/cart-tabs.spec.ts`.
 
+## A session that ends on the checkout
+
+A session can end while the visitor is filling in the checkout: the account signed out of every
+device, or the session ran out. The only moment the site learns this is when the API answers 401 to
+what it is asked, and on the checkout that is the order (or the question about an earlier attempt that
+the page asks as it opens). Nothing polls the API or watches the tab for focus.
+
+What happens, in order, when an **order** is answered with 401 (`CheckoutPage.tsx`):
+
+1. The delivery details are kept (`features/orders/checkoutDraft.ts`).
+2. The page notes that the session ended (`features/auth/sessionEnded.ts`, a mark that expires after ten
+   seconds).
+3. The visitor is signed out, as before. That empties the cart in this browser (the account keeps its
+   cart on the API) and sends the visitor to the login page, which says "ההתחברות הסתיימה. התחברו שוב
+   כדי להמשיך להזמנה." because the redirect carries `reason: 'session-ended'`.
+4. After signing in, the visitor is taken back to the checkout (the existing `from` of the redirect). The
+   cart comes from the account, and the form starts with the details and says "שחזרנו את פרטי המשלוח
+   שמילאתם. בדקו אותם ואשרו שוב שזו הזמנת הדגמה."
+
+The question about an earlier attempt, answered with 401 as the checkout opens, gives the login-page
+message too. There is no form yet, so there is nothing to keep.
+
+**The draft.** `online-store:checkout-draft` in the `sessionStorage` of the tab (never `localStorage`):
+
+| Kept                                                                                      | Never kept                                                         |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| the nine delivery fields, listed one by one; the account as a digest; the time; a version | the "this is a demo" tick, the token, the key of the order attempt |
+| (the digest is the one `checkoutAttempt.ts` uses; the account id and name are not stored) | passwords, anything the form or the page holds that is not listed  |
+
+The draft is made **only** when an order is answered with 401. It is not made while the visitor types,
+after any other answer (a refusal for a price, a product, the input, a limit, the API being down), or
+when the order is placed. The details are those the form handed over after its own rules ran, so the
+draft is as clean as an order.
+
+**Restoring trusts nothing.** The stored record has to match a strict structure (a field that is not
+listed makes the whole record unusable), be younger than 30 minutes (a clock that went back makes it
+too old as well), belong to the account that is signed in, and its details go through the same schema as
+an order (`deliveryDetailsSchema`: `hasNonText`, the limits, the normalizing). A draft that fails any of
+this is not used and is removed. The restored form is an ordinary form: the visitor has to give the demo
+tick again, the form checks it again, the API checks it again, and the order carries the key of the
+attempt that was refused (one attempt, one key: see
+[ADR 0005](adr/0005-orders-priced-and-deduplicated-by-the-api.md)).
+
+**Used once.** The checkout of the signed-in account reads the draft as it opens and removes it in the
+same moment, whether it could use it or not (another account's, an old one, a spoilt one, or a page that
+shows an empty cart and no form). A reload, a second visit, the cart and back, and the Back button find
+nothing. The draft survives only what happens before the checkout opens: the login page can be reloaded
+(the destination is kept by the browser's history entry), and signing in leads back. Reading it does not
+use it up, so a page that is drawn twice gets the same answer.
+
+**Who may see it.** The draft belongs to the account whose session ended.
+
+- Another account that signs in removes it **at once**, wherever that account goes
+  (`startCheckoutDraftGuard`, started by `RootLayout`), and is shown nothing. Registering counts as
+  signing in.
+- The visitor **signing out** from the account menu (also "sign out of every device") removes it. Nothing
+  else signs out by the visitor's hand, and the 401 path is the only one that makes a draft.
+- It goes with the tab, and after 30 minutes it is never restored (see the next paragraph for when it is
+  taken out of storage).
+- Nothing about it is logged, and no message mentions its contents.
+
+**An old draft: refused on every read, cleaned out on a best-effort basis.** Two different things:
+
+- _Whether it may be restored_ is decided only by the age check that every read makes
+  (`read`, `peekCheckoutDraft`): a draft whose time is up is refused whether or not anything has
+  removed it yet. No timer or event takes part in that decision, so a late or missing timer cannot
+  authorize anything.
+- _Whether it is still in storage_ is cleaned up by `startCheckoutDraftGuard`: when the site opens,
+  whoever is signed in or nobody (an old draft, or one that is not a draft, is removed, and a good one
+  gets its timer); when a draft is made (a timer for the moment it expires); when that timer fires; and
+  when the page becomes visible again. A timer that fires early finds the draft still good, removes
+  nothing and sets itself again for what is left. Nothing polls: there is at most one timer. No timer
+  is scheduled when no draft exists at the time of an inspection, but a timer left over from a draft
+  that was removed afterwards (by signing out, or by another account signing in) may remain until it
+  fires once, finds nothing and ends.
+
+  **What this cannot promise.** JavaScript cannot be sure of running at the exact moment: a browser may
+  delay or throttle a timer in a page that is hidden, may suspend a tab, and runs nothing in a tab
+  that is closed (closing it ends its `sessionStorage` anyway). So an old draft is out of storage at the
+  next of those moments, not necessarily at the minute its time is up, and a tab that stays suspended
+  keeps it until it wakes, is shown, or is closed. The privacy page says the same.
+
+**What is deliberately not done.**
+
+- **The cart is not kept in the browser** after the session ends. The sign-out empties it, as it always
+  did, so that the next person on a shared computer does not find it; the account's cart comes back at
+  sign-in. A change to the cart that was made after the session ended and before the order was sent is
+  never sent to the API (the synchronization stops at the first 401), so it is lost with the sign-out.
+  Likewise a change in the last 400 ms before the session ended.
+- **The session is not watched.** A tab left open on the checkout learns that its session ended when it
+  orders, not before. Detecting the end of the session earlier (a check of the session when the tab is
+  shown, a timer on `expiresAt`) would be new behaviour with a cost, and nothing needed it: the details
+  are kept at the moment it matters. (The timer and the visibility check above are about cleaning an old
+  draft out of storage, and do not look at the session.)
+- **Signing out in another tab** ends this tab's session in the same way as far as the checkout can
+  tell, so an order from it is answered with 401 and handled as above. That is a consequence of the
+  cross-tab sign-out that is not handled (below), not something this feature does.
+- **A tab that is closed** loses the draft, by design (`sessionStorage`).
+
+Tested in `src/features/orders/checkoutDraft.test.ts`, `src/features/auth/sessionEnded.test.ts`,
+`src/pages/checkoutSessionRecovery.test.tsx` and, in a real browser,
+`e2e/checkout-session-recovery.spec.ts`.
+
 ## Not handled (yet)
 
 - **Signing out in one tab does not sign out the others.** The token is removed from storage, but a

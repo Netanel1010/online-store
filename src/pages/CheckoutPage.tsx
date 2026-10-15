@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { paths } from '@/app/paths'
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
-import { DemoNotice } from '@/components/shared/Notices'
+import { DemoNotice, StatusNotice } from '@/components/shared/Notices'
 import { PageMeta } from '@/components/shared/PageMeta'
 import { Skeleton } from '@/components/shared/Skeleton'
 import { EmptyState } from '@/components/shared/StateMessages'
 import { Button } from '@/components/ui/Button'
 import { buttonStyles } from '@/components/ui/buttonStyles'
 import { useAuthStore, useCurrentUser } from '@/features/auth/authStore'
+import { markSessionEnded } from '@/features/auth/sessionEnded'
 import { useCartStore } from '@/features/cart/cartStore'
 import { useCartIsLoading } from '@/features/cart/cartSyncStatus'
 import { takeCartNow } from '@/features/cart/cartTabSync'
@@ -18,6 +19,11 @@ import { buildCartLines, summarizeCart } from '@/features/cart/summary'
 import { CheckoutForm, type SubmitOutcome } from '@/features/checkout/CheckoutForm'
 import type { CheckoutValues } from '@/features/checkout/schema'
 import { forgetCheckoutAttempt, unresolvedAttemptKey } from '@/features/orders/checkoutAttempt'
+import {
+  forgetCheckoutDraft,
+  peekCheckoutDraft,
+  saveCheckoutDraft,
+} from '@/features/orders/checkoutDraft'
 import { lookupOrder } from '@/features/orders/orderService'
 import { OrderAttemptNotice, type AttemptRecovery } from '@/features/orders/OrderAttemptNotice'
 import { submitOrder } from '@/features/orders/submitOrder'
@@ -43,6 +49,9 @@ type Problem =
   { kind: 'unavailable'; productIds: string[] } | { kind: 'price-changed'; total: number }
 
 const GENERIC_FAILURE = 'לא הצלחנו להשלים את ההזמנה. נסו שוב.'
+
+/** Said above the form when it starts with the details that the visitor typed before their session ended. */
+const RESTORED_NOTICE = 'שחזרנו את פרטי המשלוח שמילאתם. בדקו אותם ואשרו שוב שזו הזמנת הדגמה.'
 
 /**
  * Reached only through RequireAuth, so a signed-in visitor is guaranteed here. The page is started
@@ -75,6 +84,9 @@ function CheckoutContent() {
   const [recovery, setRecovery] = useState<AttemptRecovery | null>(null)
   const token = useAuthStore((state) => state.token)
   const userId = user?.id
+  // The details the visitor had typed when their session ended, if this account has such a draft (see
+  // `checkoutDraft.ts`). Read once, as the page opens; the form takes them as what it starts with.
+  const [restored] = useState(() => (userId ? peekCheckoutDraft(userId) : null))
   // The page may be left while the order is on its way: the answer then changes the cart, not the page.
   const mounted = useRef(true)
   // The account whose visitor confirmed another order besides the one that exists: its next order
@@ -87,6 +99,15 @@ function CheckoutContent() {
       mounted.current = false
     }
   }, [])
+
+  // A draft is used once: from the moment the checkout of an account has opened, there is none. This
+  // covers every way it could be used again, and the ones that it could not be used at all (another
+  // account's, an old one, a spoilt one): a reload, a second visit and the Back button find nothing.
+  // Only for a signed-in visitor: a page that has just lost its account (the draft is made at that
+  // moment) is not one that has opened.
+  useEffect(() => {
+    if (userId) forgetCheckoutDraft()
+  }, [userId])
 
   // A page that opens with an unresolved attempt (after a reload, a lost answer, a return from the
   // login page) asks the API whether that attempt made an order, before the visitor retypes anything.
@@ -104,6 +125,7 @@ function CheckoutContent() {
         } else if (outcome.status === 'unverified') {
           setRecovery({ kind: 'unverified' })
         } else if (outcome.status === 'unauthorized') {
+          markSessionEnded()
           useAuthStore.getState().logout()
         }
       })
@@ -183,7 +205,12 @@ function CheckoutContent() {
 
       switch (outcome.reason) {
         case 'unauthorized':
-          // The session is over: signing out sends the visitor to the login page, and back here.
+          // The session is over, and the form is about to go with the page: the details are kept
+          // first, and only then is the visitor signed out, which sends them to the login page and,
+          // after signing in, back here. (Signing out by the visitor's own hand never comes through
+          // here, and removes the draft: see AccountMenu.)
+          saveCheckoutDraft(user.id, values)
+          markSessionEnded()
           useAuthStore.getState().logout()
           return { ok: false, message: 'ההתחברות הסתיימה. התחברו שוב כדי להשלים את ההזמנה.' }
         case 'product-unavailable':
@@ -317,8 +344,13 @@ function CheckoutContent() {
                   הפורמט, ולא נבדק שהיא קיימת. ההזמנה ופרטי המשלוח נשמרים בחשבון שלכם בשרת האתר, לכן
                   אל תזינו פרטים אמיתיים שאינכם רוצים שיישמרו.
                 </DemoNotice>
+                {restored && <StatusNotice>{RESTORED_NOTICE}</StatusNotice>}
                 <CheckoutForm
-                  defaultValues={{ fullName: user?.name ?? '', email: user?.email ?? '' }}
+                  defaultValues={{
+                    fullName: user?.name ?? '',
+                    email: user?.email ?? '',
+                    ...restored,
+                  }}
                   onSubmit={placeOrder(products)}
                   notice={notice(products)}
                   totalNote={

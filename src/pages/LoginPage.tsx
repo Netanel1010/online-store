@@ -3,7 +3,8 @@ import { paths } from '@/app/paths'
 import { AuthCard } from '@/features/auth/AuthCard'
 import { useCurrentUser } from '@/features/auth/authStore'
 import { LoginForm } from '@/features/auth/LoginForm'
-import { getRedirectTarget } from '@/features/auth/routing'
+import { getRedirectTarget, sessionEndedBefore } from '@/features/auth/routing'
+import { StatusNotice } from '@/components/shared/Notices'
 import { PageMeta } from '@/components/shared/PageMeta'
 import { noindexMeta } from '@/lib/seo'
 
@@ -32,6 +33,11 @@ export function LoginPage() {
           </>
         }
       >
+        {sessionEndedBefore(location.state) && (
+          <div className="mb-4">
+            <StatusNotice>ההתחברות הסתיימה. התחברו שוב כדי להמשיך להזמנה.</StatusNotice>
+          </div>
+        )}
         <LoginForm />
       </AuthCard>
     </>

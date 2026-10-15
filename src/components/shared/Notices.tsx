@@ -12,6 +12,18 @@ export function DemoNotice({ children }: { children: ReactNode }) {
   )
 }
 
+/** Something the visitor should know about what just happened to their page; not an error. Announced politely. */
+export function StatusNotice({ children }: { children: ReactNode }) {
+  return (
+    <div
+      role="status"
+      className="rounded-lg border border-brand/30 bg-brand-soft px-4 py-3 text-sm text-ink"
+    >
+      {children}
+    </div>
+  )
+}
+
 /** A form-level error (not tied to one field). Announced as soon as it appears. */
 export function FormAlert({ children }: { children: ReactNode }) {
   return (
