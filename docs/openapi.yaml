@@ -1011,8 +1011,6 @@ components:
       properties:
         name:
           type: string
-          minLength: 2
-          maxLength: 60
           description: >-
             Read in this order. First the value as it was sent is refused (`400 invalid_input`, naming the
             field and nothing that was sent) if it holds, anywhere in it, a character that is not text: a
@@ -1027,9 +1025,17 @@ components:
             U+200B, U+200E, U+200F, U+2060, U+061C and U+FEFF, which are dropped by the normalization.
             Then the name is normalized: those marks are dropped, the text is composed (Unicode NFC),
             every run of space separators (category Zs, such as a no-break space) becomes one space, and
-            no space is left at either end. The limits, 2 to 60, count the Unicode code points of the
-            normalized name (an emoji counts as one). Otherwise there is no list of allowed characters:
-            letters of any script, digits, punctuation and emoji are accepted.
+            no space is left at either end. The limits are on the normalized name, not on the value as
+            sent: `x-normalized` states them, 2 to 60 Unicode code points (an emoji counts as one). That
+            is why `minLength` and `maxLength` are not used on this field, so that a client which
+            validates a request against this schema cannot refuse a name that the API accepts, such as
+            60 letters with a no-break space at either end, or a character that NFC writes as two. The
+            only limit on the value as sent is the 100 kB limit of the request body. Otherwise there is
+            no list of allowed characters: letters of any script, digits, punctuation and emoji are
+            accepted.
+          x-normalized:
+            minLength: 2
+            maxLength: 60
         email: { type: string, format: email, maxLength: 254 }
         password:
           type: string
