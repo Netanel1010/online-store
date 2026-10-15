@@ -9,9 +9,10 @@
 const chr = (code: number) => String.fromCharCode(code)
 
 /**
- * What is not text (`hasNonText`): the control characters, the line and paragraph separators, and the
- * invisible format characters that reorder text or are not meant to be typed. A name that holds one is
- * refused, wherever in the name it is.
+ * What is not text (`hasNonText`): the control characters, the line and paragraph separators, the
+ * invisible format characters that reorder text or are not meant to be typed (among them the tag
+ * characters that a subdivision flag emoji is written with), a lone surrogate and a private-use
+ * character. A name that holds one is refused, wherever in the name it is.
  */
 export const NOT_TEXT_IN_A_NAME: readonly (readonly [label: string, char: string])[] = [
   ['TAB', chr(0x09)],
@@ -38,6 +39,8 @@ export const NOT_TEXT_IN_A_NAME: readonly (readonly [label: string, char: string
   ['FSI U+2068', chr(0x2068)],
   ['PDI U+2069', chr(0x2069)],
   ['private use U+E000', chr(0xe000)],
+  ['lone surrogate U+D800', chr(0xd800)],
+  ['tag character U+E0067', String.fromCodePoint(0xe0067)],
 ]
 
 /** Where in a name the character is put: it is refused in each of them. */
@@ -88,8 +91,11 @@ export const NAMES_THAT_ARE_TIDIED: readonly (readonly [
   ],
 ]
 
-/** Names that are accepted exactly as typed. */
-export const NAMES_THAT_ARE_KEPT: readonly (readonly [label: string, name: string])[] = [
+/**
+ * Names that are accepted exactly as typed, and that the checkout accepts as the name of the person it
+ * is for too, so that an account made with one of them has a name the checkout can start with.
+ */
+export const NAMES_THE_CHECKOUT_ACCEPTS: readonly (readonly [label: string, name: string])[] = [
   ['Hebrew', 'נתנאל כהן'],
   ['Hebrew with a geresh', "ג'ק כהן"],
   ['Hebrew with gershayim', 'צה"ל כהן'],
@@ -100,6 +106,13 @@ export const NAMES_THAT_ARE_KEPT: readonly (readonly [label: string, name: strin
   ['Arabic', 'محمد علي'],
   ['Persian with a zero-width non-joiner', `می${chr(0x200c)}خواهم`],
   ['digits', 'דנה 2'],
+]
+
+/**
+ * Names that are accepted exactly as typed by an account (there is no list of letters that a name may be
+ * made of) and not by the checkout, which has one. That is how it was and is not part of this change.
+ */
+export const NAMES_ONLY_AN_ACCOUNT_ACCEPTS: readonly (readonly [label: string, name: string])[] = [
   ['an emoji', '😀 דנה'],
   [
     'an emoji family joined with zero-width joiners',
@@ -107,11 +120,8 @@ export const NAMES_THAT_ARE_KEPT: readonly (readonly [label: string, name: strin
   ],
 ]
 
-/**
- * Names that the checkout accepts as the name of the person it is for, so that an account made with one
- * of them has a name the checkout can start with. (An emoji is accepted by an account and not by the
- * checkout; that is how it was and is not part of this.)
- */
-export const NAMES_THE_CHECKOUT_ACCEPTS = NAMES_THAT_ARE_KEPT.filter(
-  ([label]) => !label.includes('emoji'),
-)
+/** Every name that is accepted exactly as typed. */
+export const NAMES_THAT_ARE_KEPT: readonly (readonly [label: string, name: string])[] = [
+  ...NAMES_THE_CHECKOUT_ACCEPTS,
+  ...NAMES_ONLY_AN_ACCOUNT_ACCEPTS,
+]

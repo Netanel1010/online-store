@@ -14,6 +14,11 @@ import { registerSchema } from './schemas'
  * The registration form and the API read an account name with rules that must agree: the form helps the
  * visitor, the API is the one that cannot be argued with. This runs the same names through both, and
  * through the rules of the name on the checkout, which starts with the name of the account.
+ *
+ * It checks the agreement and does not repeat the other suites: where in a name a character is put (the
+ * start, the end, both ends, the middle) is tried for every character by the API's own tests
+ * (`server/src/auth/schemas.test.ts`) and the form's (`schemas.test.ts`), so each character is tried
+ * here once, in the middle of a name.
  */
 const password = 'Passw0rdOK'
 const email = 'netanel@example.com'
@@ -37,18 +42,17 @@ function byTheApi(name: string): string | null {
 
 const byTheCheckout = (name: string) => deliveryDetailsSchema.shape.fullName.safeParse(name)
 
-describe('a name that is not text', () => {
-  const cases = NOT_TEXT_IN_A_NAME.flatMap(([label, char]) =>
-    Object.entries(NAME_WITH).map(
-      ([where, make]) => [`${label} ${where}`, make(char)] as [string, string],
-    ),
-  )
+describe('a character that is not text, in the middle of a name', () => {
+  it.each(NOT_TEXT_IN_A_NAME)(
+    'is refused by the form, by the API and by the checkout: %s',
+    (_label, char) => {
+      const name = NAME_WITH.inTheMiddle(char)
 
-  it.each(cases)('is refused by the form, by the API and by the checkout: %s', (_where, name) => {
-    expect(byTheForm(name)).toBeNull()
-    expect(byTheApi(name)).toBeNull()
-    expect(byTheCheckout(name).success).toBe(false)
-  })
+      expect(byTheForm(name)).toBeNull()
+      expect(byTheApi(name)).toBeNull()
+      expect(byTheCheckout(name).success).toBe(false)
+    },
+  )
 })
 
 describe('a name that is read', () => {
