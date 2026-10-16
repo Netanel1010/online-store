@@ -448,12 +448,13 @@ describe('placing the order', () => {
     await signIn()
     useCartStore.getState().addItem('PSU-1')
     useCartStore.getState().addItem('GPU-1', 2)
-    useFavoritesStore.getState().toggle('GPU-1')
   })
 
   it('places the order with the API, opens its page, and empties the cart only', async () => {
     renderApp('/checkout', catalog)
     await screen.findByRole('heading', { level: 1, name: 'סיום הזמנה' })
+    // The favorites of the account that is signed in (the list that is shown is theirs).
+    act(() => useFavoritesStore.getState().toggle('GPU-1'))
 
     await fillValidForm()
     await userEvent.click(submitButton())

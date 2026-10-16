@@ -16,6 +16,8 @@ import { fetchProductsByIds } from '@/services/productService'
 export function ShopStateReconciler() {
   // While the account's cart is on its way the cart is not complete yet: look at it once it is.
   const reading = useCartSyncStatus((state) => state.reading)
+  // Whose favorites are shown: when it changes (someone signs in or out), the ids to ask about change.
+  const favoritesOwner = useFavoritesStore((state) => state.owner)
 
   useEffect(() => {
     if (reading) return
@@ -53,7 +55,7 @@ export function ShopStateReconciler() {
       },
     )
     return () => controller.abort()
-  }, [reading])
+  }, [reading, favoritesOwner])
 
   return null
 }

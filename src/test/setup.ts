@@ -5,7 +5,7 @@ import { useAuthStore } from '@/features/auth/authStore'
 import { clearSessionEnded } from '@/features/auth/sessionEnded'
 import { cartSyncPolicy } from '@/features/cart/cartSync'
 import { useCartStore } from '@/features/cart/cartStore'
-import { useFavoritesStore } from '@/features/favorites/favoritesStore'
+import { GUEST, resetFavoritesMemory, useFavoritesStore } from '@/features/favorites/favoritesStore'
 import { resetProductCache } from '@/features/products/productCache'
 import { resetCategoryCounts } from '@/features/products/useCategoryCounts'
 import { fetchPolicy } from '@/lib/fetchWithRetry'
@@ -46,7 +46,8 @@ afterEach(() => {
   // Persisted stores outlive a test: reset their state, then wipe what they wrote to storage.
   useAuthStore.setState({ token: null, expiresAt: null, user: null, status: 'anonymous' })
   useCartStore.setState({ items: [] })
-  useFavoritesStore.setState({ ids: [] })
+  useFavoritesStore.setState({ ids: [], owner: GUEST })
+  resetFavoritesMemory()
   // What a visit remembers about the catalog (the products seen, the category counts).
   resetProductCache()
   resetCategoryCounts()

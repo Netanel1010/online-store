@@ -362,7 +362,7 @@ describe('signed-in state and logout', () => {
 describe('the cart and the favorites when signing in and out', () => {
   const product = makeProduct({ id: 'P-1', name: 'מוצר' })
 
-  it('keeps the cart and favorites across login, and empties only the cart on logout', async () => {
+  it('keeps the cart across login, shows the account its own favorites, and on logout empties only the cart', async () => {
     api.setCatalog([product]) // the API keeps only the products it has
     useCartStore.getState().addItem('P-1', 2)
     useFavoritesStore.getState().toggle('P-1')
@@ -372,10 +372,13 @@ describe('the cart and the favorites when signing in and out', () => {
     await fillLogin(GOOD.email, GOOD.password)
     await waitFor(() => expect(url()).toBe('/'))
     expect(useCartStore.getState().items).toEqual([{ productId: 'P-1', quantity: 2 }])
+    // The favorites of the guest are not the account's: nothing of them goes into it.
+    expect(useFavoritesStore.getState().ids).toEqual([])
 
     await signOutFromHeader()
 
-    // The cart is the account's and stays with it; the favorites are this browser's.
+    // The cart is the account's and stays with it; the favorites are this browser's, and the guest's
+    // list is shown again.
     expect(useCartStore.getState().items).toEqual([])
     expect(useFavoritesStore.getState().ids).toEqual(['P-1'])
   })

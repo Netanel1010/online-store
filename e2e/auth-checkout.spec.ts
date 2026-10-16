@@ -399,8 +399,6 @@ test.describe('checkout', () => {
   test('places an order with the API: the confirmation appears and the cart is emptied', async ({
     page,
   }) => {
-    await page.goto('products')
-    await page.getByRole('button', { name: `מועדפים: ${RAM.name}` }).click()
     await addToCartFromProductPage(page, PSU)
     await page.goto('cart')
     await page.getByRole('button', { name: `הגדלת כמות: ${PSU.name}` }).click()
@@ -419,6 +417,13 @@ test.describe('checkout', () => {
     await expect(page.getByRole('textbox', { name: 'אימייל', exact: true })).toHaveValue(
       account.email,
     )
+    await expect.poll(() => summaryTotal(page)).toBe(2 * PSU.price.current)
+
+    // A favorite of the account (the favorites are the account's own: what a guest favorited is not in them).
+    await page.goto(`products/${RAM.id}`)
+    await page.getByRole('button', { name: `מועדפים: ${RAM.name}` }).click()
+    await page.goto('checkout')
+    await expect(page.getByRole('heading', { level: 1, name: 'סיום הזמנה' })).toBeVisible()
     await expect.poll(() => summaryTotal(page)).toBe(2 * PSU.price.current)
 
     await fillDeliveryForm(page)
