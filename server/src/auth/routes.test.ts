@@ -8,6 +8,7 @@ import {
   createMemoryUserRepository,
 } from '../testing/memoryAuthRepositories.ts'
 import { createRequireAuth, getAuth } from './middleware.ts'
+import { hashPassword } from './passwords.ts'
 import { createAuthRouter, NO_AUTH_RATE_LIMITS } from './routes.ts'
 import { createAuthService, SESSION_TTL_MS } from './service.ts'
 import { createLoginThrottle } from './throttle.ts'
@@ -145,7 +146,12 @@ describe('POST /api/auth/register', () => {
     ['a name that is too short', { ...GOOD, name: 'a' }],
     ['a malformed email', { ...GOOD, email: 'nope' }],
     ['a password that is too short', { ...GOOD, password: 'Ab1' }],
-    ['a password without a digit', { ...GOOD, password: 'OnlyLetters' }],
+    ['a password that is common', { ...GOOD, password: 'password1' }],
+    ['a password that is the email', { ...GOOD, password: GOOD.email }],
+    [
+      'a password with a lone surrogate',
+      { ...GOOD, password: `Passw0rd${String.fromCharCode(0xd800)}` },
+    ],
     ['a password that is too long', { ...GOOD, password: `A1${'a'.repeat(200)}` }],
     ['an operator instead of the email', { ...GOOD, email: { $ne: '' } }],
   ])('answers 400 invalid_input for %s, and creates nothing', async (_name, body) => {
@@ -469,5 +475,104 @@ describe('the name and the email of an account, over HTTP', () => {
     expect(response.status).toBe(400)
     expect((await errorOf(response)).code).toBe('invalid_input')
     expect(users.stored.size).toBe(0)
+  })
+})
+
+describe('the password of an account, over HTTP', () => {
+  const chr = (code: number) => String.fromCharCode(code)
+  // Passwords that the rules for a new password no longer accept, or never did: an account made before
+  // the rules were these has one of them, and has to be able to sign in with it.
+  const PASSWORDS_OF_OLDER_ACCOUNTS = [
+    ['a common password', 'password1'],
+    ['a password that is the email', GOOD.email],
+    ['a password with no digit', 'OnlyLetters'],
+    ['a password with no letter', '12345678'],
+    ['a password with seven characters', 'Abcdef1'],
+    ['a password with a lone surrogate', `abcdefg${chr(0xd800)}`],
+    ['a password that NFKC makes longer than 128', chr(0xfb03).repeat(43)],
+  ] as const
+
+  const accountWith = async (password: string) => {
+    await users.repository.create({
+      id: 'older-account',
+      name: GOOD.name,
+      email: GOOD.email,
+      passwordHash: await hashPassword(password),
+      createdAt: new Date(clock),
+    })
+  }
+
+  it.each(PASSWORDS_OF_OLDER_ACCOUNTS)(
+    'still signs in an account whose password is %s',
+    async (_what, password) => {
+      await accountWith(password)
+
+      const response = await login({ email: GOOD.email, password })
+
+      expect(response.status).toBe(200)
+      expect((await signedIn(response)).user.id).toBe('older-account')
+    },
+  )
+
+  it('still signs in an account with a password in the other form of the same text (NFKC)', async () => {
+    await accountWith('password1')
+
+    // A fullwidth copy is hashed as the plain text, as it always was.
+    const fullwidth = [...'password1']
+      .map((c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0))
+      .join('')
+    const response = await login({ email: GOOD.email, password: fullwidth })
+
+    expect(response.status).toBe(200)
+  })
+
+  it.each([
+    ['a phrase with spaces', 'correct horse battery staple'],
+    ['spaces around it', '  Spaces 1 around  '],
+    ['Hebrew', 'סיסמה ארוכה מאוד'],
+    ['emoji', `${String.fromCodePoint(0x1f512)}`.repeat(8)],
+  ])('registers with %s, and signs in with exactly that', async (_what, password) => {
+    const registered = await signedIn(await register({ ...GOOD, password }))
+
+    const response = await login({ email: GOOD.email, password })
+
+    expect(response.status).toBe(200)
+    expect((await signedIn(response)).user.id).toBe(registered.user.id)
+    // The password is its text, not a trimmed or a changed copy of it.
+    expect((await login({ email: GOOD.email, password: password.trim() + 'x' })).status).toBe(401)
+  })
+
+  it.each([
+    ['a common password', 'password1'],
+    ['the email', GOOD.email],
+    ['the email in capitals and with the address typed with spaces', 'NETANEL@EXAMPLE.COM'],
+    ['a password with a lone surrogate', `abcdefg${chr(0xd800)}`],
+  ])(
+    'answers 400 invalid_input for %s: no account, no session, and not why',
+    async (_what, password) => {
+      const response = await register({ ...GOOD, email: ' Netanel@Example.com ', password })
+      const text = await response.text()
+
+      expect(response.status).toBe(400)
+      expect(JSON.parse(text).error).toEqual({
+        code: 'invalid_input',
+        message: 'The field "password" is not valid',
+      })
+      expect(text).not.toContain(password)
+      expect(users.stored.size).toBe(0)
+      expect(sessions.stored.size).toBe(0)
+    },
+  )
+
+  it('accepts a password that is long only once it is hashed (NFKC) up to the limit, and refuses past it', async () => {
+    expect((await register({ ...GOOD, password: chr(0xfb03).repeat(42) + 'ab' })).status).toBe(201)
+
+    const past = await register({
+      ...GOOD,
+      email: 'other@example.com',
+      password: chr(0xfb03).repeat(43),
+    })
+
+    expect(past.status).toBe(400)
   })
 })

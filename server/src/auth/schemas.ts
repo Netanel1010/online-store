@@ -1,13 +1,12 @@
 import { z } from 'zod'
+import { passwordProblem } from '../../../src/features/auth/passwordPolicy.ts'
 import {
   EMAIL_MAX_LENGTH,
   NAME_MAX_LENGTH,
   NAME_MIN_LENGTH,
   normalizeEmail,
   PASSWORD_MAX_LENGTH,
-  PASSWORD_MIN_LENGTH,
-  passwordHasDigit,
-  passwordHasLetter,
+  passwordIsEmail,
 } from '../../../src/features/auth/rules.ts'
 import { requiredText } from '../../../src/lib/validation.ts'
 import { HttpError } from '../lib/httpError.ts'
@@ -23,18 +22,22 @@ const email = z
   .transform(normalizeEmail)
   .pipe(z.email().max(EMAIL_MAX_LENGTH))
 
+// A new password: any text that is long enough and is not one that everyone tries first (see
+// src/features/auth/passwordPolicy.ts, which the registration form asks as well). The first limit is on what
+// was sent, before anything is done with it; the others are on it and on what is hashed (NFKC).
 const newPassword = z
   .string()
-  .min(PASSWORD_MIN_LENGTH)
   .max(PASSWORD_MAX_LENGTH)
-  .refine(passwordHasLetter)
-  .refine(passwordHasDigit)
+  .refine((password) => passwordProblem(password) === null)
 
 // Signing in accepts any password that fits: the rules for a new one may have been different when
 // the account was made, and "wrong password" is the answer to a password that does not match.
 const existingPassword = z.string().min(1).max(PASSWORD_MAX_LENGTH)
 
-const registerSchema = z.object({ name, email, password: newPassword })
+// The password is not the address of the account either. It is the field that is named when it is.
+const registerSchema = z
+  .object({ name, email, password: newPassword })
+  .refine((body) => !passwordIsEmail(body.password, body.email), { path: ['password'] })
 const loginSchema = z.object({ email, password: existingPassword })
 
 export type RegisterInput = z.infer<typeof registerSchema>

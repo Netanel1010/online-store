@@ -1041,7 +1041,26 @@ components:
           type: string
           minLength: 8
           maxLength: 128
-          description: Must contain a letter and a digit.
+          description: >-
+            A new password. It is never trimmed or changed: a space at either end is part of it. There is
+            no rule about what it is made of, so letters of any script (Hebrew included), digits, spaces,
+            symbols and emoji are all accepted, with or without a letter or a digit. It is refused
+            (`400 invalid_input`, naming the field and neither the reason nor the value) if it has fewer
+            than 8 or more than 128 Unicode code points (an emoji is one), counted as it was sent and again
+            as it is hashed, which is its Unicode NFKC form, so that neither a character that NFKC makes
+            shorter nor one that it makes longer can get past the limits (`x-normalized` states the limits
+            of that form). It is also refused if it has a lone surrogate (half of a pair of UTF-16 units,
+            which is not text and which hashing turns into U+FFFD, so that different ones would be one
+            password); if it is the email of the account (compared in NFKC and without regard to case,
+            with the email as it is stored); or if it is one of the 2086 most common passwords of 8
+            characters or more, which are listed in `src/features/auth/commonPasswords.data.ts`, where
+            their source and licence are named (only the whole password is compared, in NFKC and in lower
+            case, so a password that merely contains a common one is accepted). Signing in has none of
+            these rules, only the limits of `LoginRequest`: an account may have been made when the rules
+            were others.
+          x-normalized:
+            minLength: 8
+            maxLength: 128
           writeOnly: true
 
     LoginRequest:

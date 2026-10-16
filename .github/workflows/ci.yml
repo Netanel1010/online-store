@@ -47,6 +47,9 @@ jobs:
       - run: npm run check:csp
         env:
           VITE_API_URL: ${{ vars.API_URL }}
+      # The list of common passwords is under a licence that asks for its notice to go with it: the build
+      # has to keep that comment (THIRD_PARTY_NOTICES.md).
+      - run: npm run check:notices
       - run: npm run build:server
       # On main only: keep the production build as the Pages artifact. It is published by the
       # `deploy` job below, and only if `e2e` passes as well.

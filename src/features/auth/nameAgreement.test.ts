@@ -8,7 +8,7 @@ import {
   NAME_WITH,
   NOT_TEXT_IN_A_NAME,
 } from '@/test/nameCases'
-import { registerSchema } from './schemas'
+import { registerSchema } from './registerSchema'
 
 /**
  * The registration form and the API read an account name with rules that must agree: the form helps the

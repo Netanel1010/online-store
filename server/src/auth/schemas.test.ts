@@ -6,6 +6,12 @@ import {
   NAME_WITH,
   NOT_TEXT_IN_A_NAME,
 } from '../../../src/test/nameCases.ts'
+import {
+  PASSWORDS_THAT_ARE_ACCEPTED,
+  PASSWORDS_THAT_ARE_NOT_THE_EMAIL,
+  PASSWORDS_THAT_ARE_REFUSED,
+  PASSWORDS_THAT_ARE_THE_EMAIL,
+} from '../../../src/test/passwordCases.ts'
 import { parseLoginBody, parseRegisterBody } from './schemas.ts'
 
 const failure = (run: () => unknown) => {
@@ -68,16 +74,15 @@ describe('parseRegisterBody', () => {
     ['an email that is not text', { ...good, email: ['a@b.co'] }],
     ['a missing password', { ...good, password: undefined }],
     ['a password that is too short', { ...good, password: 'Ab1' }],
-    ['a password without a digit', { ...good, password: 'OnlyLetters' }],
-    ['a password without a letter', { ...good, password: '12345678' }],
     ['a password that is too long', { ...good, password: `A1${'a'.repeat(127)}` }],
+    ['a password that is common', { ...good, password: 'password1' }],
     ['a password that is not text', { ...good, password: 12345678 }],
   ])('rejects %s', (_name, body) => {
     invalid(() => parseRegisterBody(body))
   })
 
   it('accepts a password of exactly 8 and exactly 128 characters', () => {
-    parseRegisterBody({ ...good, password: 'Abcdefg1' })
+    parseRegisterBody({ ...good, password: 'Xyzwvut1' })
     parseRegisterBody({ ...good, password: `A1${'a'.repeat(126)}` })
   })
 
@@ -99,6 +104,16 @@ describe('parseLoginBody', () => {
 
   it('does not apply the rules for new passwords: an older password still has to be accepted', () => {
     expect(parseLoginBody({ email: 'a@b.co', password: 'short' }).password).toBe('short')
+  })
+
+  it.each([
+    ['a common password', 'password1'],
+    ['a password that is the address', 'a@b.co'],
+    ['a password without a letter or a digit', '!!!!????'],
+    ['a password with a lone surrogate', `abcdefg${String.fromCharCode(0xd800)}`],
+    ['a password of 128 characters that NFKC makes longer', String.fromCharCode(0xfb03).repeat(43)],
+  ])('still accepts, for signing in, %s', (_what, password) => {
+    expect(parseLoginBody({ email: 'a@b.co', password }).password).toBe(password)
   })
 
   it.each([
@@ -207,4 +222,56 @@ describe('the email of an account: what it accepts is as it was, and what is sto
       }
     },
   )
+})
+
+describe('the password of a new account', () => {
+  const passwordOf = (password: string, email = good.email) =>
+    parseRegisterBody({ ...good, email, password }).password
+
+  it.each(PASSWORDS_THAT_ARE_ACCEPTED)(
+    'accepts %s, and keeps it as it was sent',
+    (_what, password) => {
+      expect(passwordOf(password)).toBe(password)
+    },
+  )
+
+  it.each(PASSWORDS_THAT_ARE_REFUSED)('refuses %s', (_what, password) => {
+    const error = invalid(() => parseRegisterBody({ ...good, password }))
+
+    // It names the field and nothing that was sent, not even which rule it broke.
+    expect(error.message).toBe('The field "password" is not valid')
+    expect(error.message).not.toContain(password)
+  })
+
+  it.each(PASSWORDS_THAT_ARE_THE_EMAIL)('refuses %s', (_what, password, email) => {
+    const error = invalid(() => parseRegisterBody({ ...good, email, password }))
+
+    expect(error.message).toBe('The field "password" is not valid')
+  })
+
+  it.each(PASSWORDS_THAT_ARE_NOT_THE_EMAIL)('accepts %s', (_what, password, email) => {
+    expect(passwordOf(password, email)).toBe(password)
+  })
+
+  it('compares with the address as it is stored: trimmed and in lower case', () => {
+    invalid(() =>
+      parseRegisterBody({ ...good, email: ' Dana@Example.COM ', password: 'dana@example.com' }),
+    )
+  })
+
+  it('refuses a password in the rules of the form for the first problem found, whichever it is', () => {
+    // The same answer for every reason: the API does not say which rule was broken.
+    const reasons = [
+      'Abcdef1',
+      'password1',
+      `A1${'a'.repeat(127)}`,
+      `abcdefg${String.fromCharCode(0xd800)}`,
+    ]
+
+    for (const password of reasons) {
+      expect(invalid(() => parseRegisterBody({ ...good, password })).message).toBe(
+        'The field "password" is not valid',
+      )
+    }
+  })
 })

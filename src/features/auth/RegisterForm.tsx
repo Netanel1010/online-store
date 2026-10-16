@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { TextField } from '@/components/ui/fields'
 import { useToast } from '@/features/notifications/toastContext'
 import { useAuthStore } from './authStore'
-import { registerSchema, type RegisterValues } from './schemas'
+import { registerSchema, type RegisterValues } from './registerSchema'
 
 /** On success the visitor is signed in and the page redirects (see RegisterPage). */
 export function RegisterForm() {
@@ -61,7 +61,7 @@ export function RegisterForm() {
         type="password"
         autoComplete="new-password"
         required
-        hint="לפחות 8 תווים, כולל אות וספרה."
+        hint="לפחות 8 תווים. אפשר להשתמש באותיות, בספרות, ברווחים ובסימנים."
         error={errors.password?.message}
         {...register('password')}
       />

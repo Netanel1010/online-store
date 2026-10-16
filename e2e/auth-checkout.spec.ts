@@ -129,11 +129,11 @@ test.describe('authentication', () => {
 
     await page.getByRole('textbox', { name: 'שם', exact: true }).fill('דנה')
     await page.getByRole('textbox', { name: 'אימייל', exact: true }).fill('dana@example.com')
-    await page.getByLabel(/^סיסמה/).fill('abcdefgh')
+    await page.getByLabel(/^סיסמה/).fill('password1')
     await page.getByLabel(/^אימות סיסמה/).fill('different')
     await page.getByRole('button', { name: 'יצירת חשבון' }).click()
 
-    await expect(page.getByText('הסיסמה חייבת להכיל לפחות ספרה אחת')).toBeVisible()
+    await expect(page.getByText('הסיסמה הזו נפוצה מדי. בחרו סיסמה אחרת.')).toBeVisible()
     await expect(page.getByText('הסיסמאות אינן תואמות')).toBeVisible()
     await expectSignedOut(page)
   })

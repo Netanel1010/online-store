@@ -15,9 +15,6 @@ export const PASSWORD_MIN_LENGTH = 8
 /** A limit on what the API has to hash, not a rule about strength. */
 export const PASSWORD_MAX_LENGTH = 128
 
-export const passwordHasLetter = (password: string) => /\p{L}/u.test(password)
-export const passwordHasDigit = (password: string) => /\d/.test(password)
-
 /**
  * What a password is hashed as: `server/src/auth/passwords.ts` hashes and checks `normalize('NFKC')` of
  * it. The length limits and the comparisons below are about this form as well as about what was typed.
@@ -33,6 +30,28 @@ export const passwordLength = (password: string) => [...password].length
  * spaces of a password are part of it.
  */
 export const passwordKey = (password: string) => normalizePassword(password).toLowerCase()
+
+/**
+ * Too few characters. A new password needs at least `PASSWORD_MIN_LENGTH` both as it was typed and as it is
+ * hashed (`normalizePassword`), so that neither a decomposed accent (two code points that NFKC makes one)
+ * nor a character that NFKC makes many (one typed, eighteen hashed) can be what makes it long enough.
+ */
+export const passwordTooShort = (password: string) =>
+  Math.min(passwordLength(password), passwordLength(normalizePassword(password))) <
+  PASSWORD_MIN_LENGTH
+
+/** Too many characters, as it was typed or as it is hashed: NFKC can make a password longer. */
+export const passwordTooLong = (password: string) =>
+  Math.max(passwordLength(password), passwordLength(normalizePassword(password))) >
+  PASSWORD_MAX_LENGTH
+
+/**
+ * Whether the password is the address of the account, compared as passwords are (NFKC, lower case) with
+ * the address as it is stored (`normalizeEmail`). The password is not trimmed: a space around it makes it
+ * another password.
+ */
+export const passwordIsEmail = (password: string, email: string) =>
+  passwordKey(password) === passwordKey(normalizeEmail(email))
 
 /**
  * Whether the text has no lone surrogate. A lone surrogate is not text: it cannot be written in UTF-8, so

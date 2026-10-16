@@ -1,6 +1,12 @@
 import openapi from '../../../docs/openapi.yaml?raw'
 import { parseRegisterBody } from '../../../server/src/auth/schemas'
-import { NAME_MAX_LENGTH, NAME_MIN_LENGTH } from '@/features/auth/rules'
+import { COMMON_PASSWORDS } from '@/features/auth/commonPasswords.data'
+import {
+  NAME_MAX_LENGTH,
+  NAME_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from '@/features/auth/rules'
 import { characterCount } from '@/lib/textRules'
 import { normalizePhone } from '@/lib/validation'
 import { DELIVERY_LIMITS, deliveryDetailsSchema } from './delivery'
@@ -387,5 +393,68 @@ describe('the name in the registration request', () => {
     // Shorter as sent than the shortest name: U+0958 is written by NFC as two code points.
     expect(Array.from(String.fromCodePoint(0x958))).toHaveLength(1)
     expect(accepted(String.fromCodePoint(0x958))).toBe(true)
+  })
+})
+
+describe('the password in the registration request', () => {
+  const passwordSchema = (schema('RegisterRequest').properties as Record<string, YamlMap>).password!
+  const description = passwordSchema.description as string
+  const emoji = String.fromCodePoint(0x1f600)
+
+  /** Whether the API accepts the password, read by the schema that its route runs. */
+  const accepted = (password: string) => {
+    try {
+      parseRegisterBody({ name: 'נתנאל', email: 'netanel@example.com', password })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  it('states the limits as the code has them, for what is sent and for what is hashed', () => {
+    expect(passwordSchema.minLength).toBe(PASSWORD_MIN_LENGTH)
+    expect(passwordSchema.maxLength).toBe(PASSWORD_MAX_LENGTH)
+    expect(passwordSchema['x-normalized']).toEqual({
+      minLength: PASSWORD_MIN_LENGTH,
+      maxLength: PASSWORD_MAX_LENGTH,
+    })
+  })
+
+  it('applies the limits in code points', () => {
+    const min = passwordSchema.minLength as number
+    const max = passwordSchema.maxLength as number
+
+    // (Not 'q' repeated: that is one of the common passwords.)
+    const of = (length: number) => `Zq7${'x'.repeat(length - 3)}`
+    expect(accepted(of(min - 1))).toBe(false)
+    expect(accepted(of(min))).toBe(true)
+    expect(accepted(of(max))).toBe(true)
+    expect(accepted(of(max + 1))).toBe(false)
+    expect(accepted(emoji.repeat(min))).toBe(true)
+    expect(accepted(emoji.repeat(max))).toBe(true)
+    expect(accepted(emoji.repeat(max + 1))).toBe(false)
+  })
+
+  it('has no rule about letters and digits, as it says', () => {
+    expect(description).not.toMatch(/must contain/i)
+    expect(accepted('48291035')).toBe(true)
+    expect(accepted('zebraquilt')).toBe(true)
+  })
+
+  it('gives the number of common passwords that the code has, and names the file', () => {
+    expect(description).toContain(`the ${COMMON_PASSWORDS.length} most common passwords`)
+    expect(description).toContain('src/features/auth/commonPasswords.data.ts')
+  })
+
+  it('names every rule that the API applies to a new password', () => {
+    for (const word of [
+      'NFKC',
+      'lone surrogate',
+      'email of the account',
+      'never trimmed',
+      'Signing in',
+    ]) {
+      expect(description).toContain(word)
+    }
   })
 })

@@ -8,6 +8,7 @@ import { setUpAuthApi } from '@/test/authApi'
 import { signOutFromHeader } from '@/test/accountMenu'
 import { makeProduct } from '@/test/fixtures'
 import { renderApp } from '@/test/renderApp'
+import { verifyPassword } from '../../server/src/auth/passwords'
 
 // The real authentication API (routes, validation, hashing, sessions) answers these tests.
 const api = setUpAuthApi()
@@ -171,19 +172,51 @@ describe('registration form', () => {
 
     await userEvent.type(nameBox(), GOOD.name)
     await userEvent.type(emailBox(), GOOD.email)
-    await userEvent.type(passwordBox(), 'abcdefgh')
+    await userEvent.type(passwordBox(), 'password1')
     await userEvent.type(confirmBox(), 'different')
     await submit('יצירת חשבון')
 
-    expect(await screen.findByText('הסיסמה חייבת להכיל לפחות ספרה אחת')).toBeInTheDocument()
+    expect(await screen.findByText('הסיסמה הזו נפוצה מדי. בחרו סיסמה אחרת.')).toBeInTheDocument()
     expect(screen.getByText('הסיסמאות אינן תואמות')).toBeInTheDocument()
     expect(api.accounts().size).toBe(0)
+  })
+
+  it('refuses a password that is the email, without asking the server', async () => {
+    await openPage('/register')
+
+    await userEvent.type(nameBox(), GOOD.name)
+    await userEvent.type(emailBox(), 'Dana@Example.com')
+    await userEvent.type(passwordBox(), 'dana@example.com')
+    await userEvent.type(confirmBox(), 'dana@example.com')
+    await submit('יצירת חשבון')
+
+    expect(await screen.findByText('הסיסמה לא יכולה להיות זהה לכתובת האימייל.')).toBeInTheDocument()
+    expect(api.accounts().size).toBe(0)
+  })
+
+  it('creates the account with a phrase that has spaces, Hebrew and an emoji, and signs in with it later', async () => {
+    const phrase = 'סיסמה ארוכה עם רווחים 🔒'
+    await openPage('/register')
+
+    await userEvent.type(nameBox(), GOOD.name)
+    await userEvent.type(emailBox(), GOOD.email)
+    await userEvent.type(passwordBox(), phrase)
+    await userEvent.type(confirmBox(), phrase)
+    await submit('יצירת חשבון')
+
+    await waitFor(() => expect(url()).toBe('/'))
+    expect(api.accounts().size).toBe(1)
+    // What the API stored a hash of is the phrase as it was typed.
+    const { passwordHash } = [...api.accounts().values()][0]!
+    expect(await verifyPassword(phrase, passwordHash)).toBe(true)
   })
 
   it('tells the visitor about the password rules up front', async () => {
     await openPage('/register')
 
-    expect(passwordBox()).toHaveAccessibleDescription('לפחות 8 תווים, כולל אות וספרה.')
+    expect(passwordBox()).toHaveAccessibleDescription(
+      'לפחות 8 תווים. אפשר להשתמש באותיות, בספרות, ברווחים ובסימנים.',
+    )
   })
 
   it('creates the account on the server, signs in and goes to the home page', async () => {
