@@ -17,7 +17,7 @@
  * A `<meta>` tag carries part of a policy. `frame-ancestors`, `report-uri` and `sandbox` are ignored in
  * it (a browser reports it in the console), so they are not in it, and the protection they give (a page
  * that cannot be put in a frame) is there only where the host can send a header: see
- * `contentSecurityPolicyHeader` and docs/adr/0012-security-headers-for-the-static-site.md.
+ * `contentSecurityPolicyHeader` and docs/adr/0013-csp-in-a-tag-and-favorites-for-each-person.md.
  */
 
 const SELF = "'self'"

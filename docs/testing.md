@@ -255,6 +255,29 @@ they are tested:
   visitor would end it: the same account signs in from a second browser context and signs out of every
   device.
 
+## The Content-Security-Policy, the headers and the favorites of each person
+
+- `scripts/csp.test.ts`: the policy (the exact text, the API address as an origin only and refused when it is
+  not `http` or `https`, nothing unsafe or broad, nothing that a `<meta>` tag cannot carry, the header equals
+  the tag plus the frame rule) and `policyProblems`, which says what is wrong with the policy of a page.
+- `scripts/netlifyHeaders.test.ts`: `netlify.toml` sends, for every path, the policy of the build for the API
+  that the same file builds the site for, plus `frame-ancestors 'none'`, and the other headers. The file is
+  read as text, with a reader for the part of TOML it uses.
+- `npm run check:csp` (a CI step after the build): every HTML file of `dist/`, `404.html` included, has
+  exactly one policy tag, and it is the policy of the build. `scripts/siteSmoke.test.mjs` covers the same
+  check for a deployed site (`check:site`).
+- `e2e/csp.spec.ts`: eight kinds of page carry the one tag with the policy of the build, and a real browser
+  stops inline code, a script and an image from another site, a style attribute and a request to another
+  site (and allows the page's own changes to a style through the style object). A violation is a console
+  error, which the safety net of the suite turns into a failure, so every other end-to-end test also runs
+  under the policy.
+- `src/features/favorites/favoritesStore.test.ts`: the lists of the guest and of each account apart, the
+  session that ends, stale tabs and other tabs, the limits (100 products, 10 accounts), malformed data, storage
+  that cannot be read or written, a reload with and without a stored session, and the removal of the legacy
+  key. `src/pages/favoritesIsolation.test.tsx` runs it through the application (header, pages, sign-in and
+  sign-out, the API ending a session), and `e2e/favorites-isolation.spec.ts` with two accounts in a real
+  browser.
+
 ## Accessibility tests
 
 Automated checks (axe-core, WCAG 2.0 to 2.2 A and AA rules) find only part of the problems.
