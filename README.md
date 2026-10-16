@@ -362,7 +362,7 @@ The full index, by what you want to do, is [`docs/README.md`](docs/README.md).
 
 ## License
 
-Released under the [MIT License](LICENSE). The licence covers the source code and documentation of this repository. The product names, brands, logos and product images in the catalog are not covered by it: they belong to their owners and appear here only as the content of a demonstration store.
+Released under the [MIT License](LICENSE). The licence covers the source code and documentation of this repository, except one data file, the list of common passwords (`src/features/auth/commonPasswords.data.ts`), which is derived from a list by Mark Burnett and is under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/), not the MIT License: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The product names, brands, logos and product images in the catalog are not covered by it: they belong to their owners and appear here only as the content of a demonstration store.
 
 ---
 

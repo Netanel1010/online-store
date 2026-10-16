@@ -24,6 +24,7 @@
     "check:site": "node scripts/check-site.mjs",
     "check:bundle": "node scripts/check-bundle.mjs",
     "check:csp": "node scripts/check-csp.mjs",
+    "build:common-passwords": "node scripts/build-common-passwords.mjs",
     "test:server": "npm test --workspace server",
     "test:integration": "npm run test:integration --workspace server",
     "format": "prettier --write .",
