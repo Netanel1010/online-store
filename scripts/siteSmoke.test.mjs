@@ -1,7 +1,10 @@
+import { contentSecurityPolicy, contentSecurityPolicyTag } from './csp.ts'
 import { siteProblems } from './siteSmoke.mjs'
 
 const base = 'https://owner.github.io/online-store/'
 const sku = 'CC-9011240-WW'
+/** The policy that every page of a deployed site carries (its API address is not known to the check). */
+const policy = contentSecurityPolicyTag('https://api.example.com')
 
 /** The answers of a site that is deployed as it should be. */
 function good() {
@@ -11,12 +14,12 @@ function good() {
     home: {
       status: 200,
       type: 'text/html; charset=utf-8',
-      text: '<script src="/online-store/assets/index-abc.js"></script><div id="root"></div>',
+      text: `${policy}<script src="/online-store/assets/index-abc.js"></script><div id="root"></div>`,
     },
     product: {
       status: 200,
       type: 'text/html; charset=utf-8',
-      text: `<link rel="canonical" href="${base}products/${sku}/" /><script type="application/ld+json">{}</script>`,
+      text: `${policy}<link rel="canonical" href="${base}products/${sku}/" /><script type="application/ld+json">{}</script>`,
     },
     sitemap: {
       status: 200,
@@ -26,7 +29,7 @@ function good() {
     unknown: {
       status: 404,
       type: 'text/html; charset=utf-8',
-      text: '<meta name="robots" content="noindex, follow" />',
+      text: `${policy}<meta name="robots" content="noindex, follow" />`,
     },
   }
 }
@@ -44,7 +47,7 @@ describe('siteProblems', () => {
 
   it('reports a home page that does not mount the app', () => {
     const answers = good()
-    answers.home = { ...answers.home, text: '<html></html>' }
+    answers.home = { ...answers.home, text: `${policy}<html></html>` }
     const problems = siteProblems(answers)
     expect(problems).toHaveLength(2)
     expect(problems[0]).toContain('no <div id="root">')
@@ -53,13 +56,16 @@ describe('siteProblems', () => {
 
   it('reports a site built for another base path', () => {
     const answers = good()
-    answers.home = { ...answers.home, text: '<script src="/assets/a.js"></script><div id="root">' }
+    answers.home = {
+      ...answers.home,
+      text: `${policy}<script src="/assets/a.js"></script><div id="root">`,
+    }
     expect(siteProblems(answers)).toEqual([expect.stringContaining('/online-store/assets/')])
   })
 
   it('reports a product page without its canonical address or structured data', () => {
     const answers = good()
-    answers.product = { ...answers.product, text: '<title>x</title>' }
+    answers.product = { ...answers.product, text: `${policy}<title>x</title>` }
     const problems = siteProblems(answers)
     expect(problems).toEqual([
       expect.stringContaining('no canonical address'),
@@ -77,10 +83,39 @@ describe('siteProblems', () => {
 
   it('reports an unknown address that answers 200, or is not noindex', () => {
     const answers = good()
-    answers.unknown = { status: 200, type: 'text/html', text: '<div id="root"></div>' }
+    answers.unknown = { status: 200, type: 'text/html', text: `${policy}<div id="root"></div>` }
     expect(siteProblems(answers)).toEqual([
       expect.stringContaining('answers 200, not 404'),
       expect.stringContaining('not marked noindex'),
+    ])
+  })
+
+  it.each([
+    ['home', 'the home page'],
+    ['product', `the page of product ${sku}`],
+    ['unknown', 'the page for an unknown address'],
+  ])('reports a %s page that has no Content-Security-Policy', (which, name) => {
+    const answers = good()
+    answers[which] = { ...answers[which], text: answers[which].text.replace(policy, '') }
+    expect(siteProblems(answers)).toEqual([`${name} has no Content-Security-Policy tag`])
+  })
+
+  it('reports a page whose policy lets scripts run from anywhere or inline', () => {
+    const answers = good()
+    const loose = contentSecurityPolicy('https://api.example.com').replace(
+      "script-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+    )
+    answers.home = {
+      ...answers.home,
+      text: answers.home.text.replace(
+        policy,
+        `<meta http-equiv="Content-Security-Policy" content="${loose}" />`,
+      ),
+    }
+    expect(siteProblems(answers)).toEqual([
+      "the home page allows scripts from somewhere else than 'self'",
+      expect.stringContaining('the home page allows something unsafe or too broad'),
     ])
   })
 

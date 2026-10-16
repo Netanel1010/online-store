@@ -2,6 +2,8 @@
 // separate from check-site.mjs so it can be tested without a network: check-site.mjs fetches the
 // answers and this says what is wrong with them.
 
+import { policyProblems } from './csp.ts'
+
 /**
  * @typedef {{ status: number, type: string, text: string }} Answer
  *
@@ -54,6 +56,16 @@ export function siteProblems({ base, sku, home, product, sitemap, unknown }) {
     `an address that is not a page answers ${unknown.status}, not 404 (a crawler would index it)`,
   )
   need(unknown.text.includes('noindex'), 'the page for an unknown address is not marked noindex')
+
+  // Every page is the same template, and the policy is in it: a page without it runs without a policy.
+  // Only the shape of the policy is known here (the API address belongs to the build that was deployed).
+  for (const [name, answer] of [
+    ['the home page', home],
+    [`the page of product ${sku}`, product],
+    ['the page for an unknown address', unknown],
+  ]) {
+    for (const problem of policyProblems(answer.text)) need(false, `${name} ${problem}`)
+  }
 
   return problems
 }
