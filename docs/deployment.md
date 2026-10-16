@@ -271,7 +271,7 @@ To check it by hand against the deployed API (use a throwaway address; the accou
 
 ```bash
 curl -s -X POST "$API_URL/api/auth/register" -H 'Content-Type: application/json' \
-  -d '{"name":"Check","email":"check-1@example.com","password":"<a password with a letter and a digit>"}'
+  -d '{"name":"Check","email":"check-1@example.com","password":"<a password of 8 or more characters that is not a common one>"}'
 curl -s "$API_URL/api/auth/me" -H "Authorization: Bearer <the token of the answer>"
 ```
 

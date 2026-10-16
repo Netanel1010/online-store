@@ -307,6 +307,8 @@ The production API accepts requests only from the deployed sites (CORS), so a lo
 | `npm run seed:products`                    | Copy the product catalog to MongoDB                                               |
 | `npm run check:api` · `npm run check:site` | Check a deployed API · check a deployed site (`SITE_URL`)                         |
 | `npm run check:bundle`                     | Check the build against the weight budget of the first page                       |
+| `npm run check:csp` · `npm run check:notices` | Check every page of the build for its Content-Security-Policy · check that the build keeps the notice of the password list |
+| `npm run build:common-passwords`           | Make the list of common passwords again from its pinned source (by hand; CC BY-SA 3.0, see `THIRD_PARTY_NOTICES.md`) |
 
 More commands, the map of the repository and common tasks: [`docs/development.md`](docs/development.md).
 

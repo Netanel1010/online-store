@@ -50,14 +50,14 @@ state.
 
 CI runs these, so run the ones that match your change:
 
-| Your change touches…                  | Run                                                                   |
-| ------------------------------------- | --------------------------------------------------------------------- |
-| Anything                              | `npm run format:check`, `npm run lint`, `npm run typecheck`           |
-| The site                              | `npm test`                                                            |
-| The API                               | `npm run test:server`                                                 |
-| MongoDB queries, indexes, concurrency | `MONGODB_TEST_URI=mongodb://localhost:27017 npm run test:integration` |
-| What a visitor sees, or an API answer | `npm run test:e2e` (it builds first)                                  |
-| Anything that ships                   | `npm run build`, `npm run check:bundle` and `npm run build:server`    |
+| Your change touches…                  | Run                                                                                                              |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Anything                              | `npm run format:check`, `npm run lint`, `npm run typecheck`                                                      |
+| The site                              | `npm test`                                                                                                       |
+| The API                               | `npm run test:server`                                                                                            |
+| MongoDB queries, indexes, concurrency | `MONGODB_TEST_URI=mongodb://localhost:27017 npm run test:integration`                                            |
+| What a visitor sees, or an API answer | `npm run test:e2e` (it builds first)                                                                             |
+| Anything that ships                   | `npm run build`, `npm run check:bundle`, `npm run check:csp`, `npm run check:notices` and `npm run build:server` |
 
 `npm run format` fixes formatting. Prettier (no semicolons, single quotes, 100 columns) and ESLint
 cover the whole repository, the API included.
@@ -71,6 +71,10 @@ cover the whole repository, the API included.
   not, and contain no secret.
 - **Layers on the API:** `routes.ts` reads the request and sends the answer, `service.ts` holds the
   rules, `repository.ts` is the only code that knows MongoDB. A route never imports the driver.
+- **The list of common passwords** (`src/features/auth/commonPasswords.data.ts`) is made by
+  `npm run build:common-passwords`, never by hand and never at build time. It is under CC BY-SA 3.0, not the
+  MIT License of the repository; renewing it means changing the pinned revision, `THIRD_PARTY_NOTICES.md` and
+  the script together ([ADR 0013](adr/0013-csp-in-a-tag-and-favorites-for-each-person.md)).
 - **Files the API imports from `src/`** (the product schema, cart limits, delivery details, password
   rules, the listing query and search) use `.ts` extensions in their imports and not the `@/` alias,
   because the API runs as Node ES modules. Everything else in `src/` uses `@/`.

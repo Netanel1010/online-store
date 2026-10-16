@@ -278,6 +278,30 @@ they are tested:
   sign-out, the API ending a session), and `e2e/favorites-isolation.spec.ts` with two accounts in a real
   browser.
 
+## The rules for a new password
+
+- `src/test/passwordCases.ts`: the passwords that are accepted, refused (and why) or the email, written once,
+  with the unusual characters built from their numbers. `src/features/auth/passwordPolicy.test.ts` (the rules,
+  the length as typed and as hashed), `schemas.test.ts` (the form: message and field),
+  `server/src/auth/schemas.test.ts` (the API) and `passwordAgreement.test.ts` (the same passwords through both:
+  they must answer alike) all use it.
+- `rules.test.ts`: the length in code points, `passwordKey`, and the hand-written check for a lone surrogate
+  against the language's `isWellFormed` for every combination of up to three interesting units.
+- Existing accounts: `server/src/auth/passwords.test.ts` verifies hashes made before the change and pins what
+  hashing does (NFKC, no trimming, a lone surrogate as U+FFFD, which is why one is refused), and `routes.test.ts`
+  signs in accounts whose passwords a new account could not have.
+- The list: `src/features/auth/commonPasswords.test.ts` (sorted, once, folded, in range, the credit and licence
+  in its header, exact matching only), `scripts/commonPasswords.test.mjs` (the pinned revision, the filter, the
+  data file), `scripts/notices.test.mjs` and `npm run check:notices` (a CI step after the build: the chunk that
+  has the list has its notice). `openapiContract.test.ts` holds `docs/openapi.yaml` to the code.
+- `e2e/password-policy.spec.ts`: a real browser and the API: the hint, a common password and the email refused,
+  a phrase with spaces, Hebrew and an emoji accepted and signed in with, and a password with spaces around it
+  not signing in without them.
+- Each rule was broken on purpose (one change at a time) to see a test fail for the right reason. The changes
+  that nothing noticed were one that the API cannot show (it normalizes the email before the password is
+  compared, and the form's test shows it), and a missing case (130 typed characters that NFKC shortens to 65),
+  which was then added.
+
 ## Accessibility tests
 
 Automated checks (axe-core, WCAG 2.0 to 2.2 A and AA rules) find only part of the problems.
@@ -288,13 +312,15 @@ management and the mobile menu dialog.
 
 ## Quality checks beyond the test suites
 
-Three checks that are not tests of behaviour, each with one job:
+Checks that are not tests of behaviour, each with one job:
 
-| Check                    | Command and place                                                                  | What it guards                                                                                                                                       | Can it fail a pull request? |
-| ------------------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| Weight of the first page | `npm run check:bundle`, in `verify` after the build                                | the JavaScript (160 KiB) and CSS (16 KiB) that `index.html` loads up front, after gzip; today 133 KiB and 7.7 KiB. `scripts/bundleBudget.mjs`        | yes, and it blocks a deploy |
-| Lighthouse               | `lighthouse.yml`, budgets in `lighthouserc.json`                                   | accessibility at least 0.95, best practices and SEO at least 0.9, layout shift at most 0.25 (errors); performance at least 0.6 (warning)             | yes, but not a deploy gate  |
-| Production smoke         | `smoke.yml` every night and by hand: `check-api.mjs` (strict) and `check-site.mjs` | the deployed API and the deployed site, from outside: health, products, CORS, headers, catalog drift; home page, a static product page, sitemap, 404 | no (it runs on a schedule)  |
+| Check                       | Command and place                                                                  | What it guards                                                                                                                                                     | Can it fail a pull request? |
+| --------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- |
+| Weight of the first page    | `npm run check:bundle`, in `verify` after the build                                | the JavaScript (160 KiB) and CSS (16 KiB) that `index.html` loads up front, after gzip; today 133 KiB and 7.7 KiB. `scripts/bundleBudget.mjs`                      | yes, and it blocks a deploy |
+| Policy of every page        | `npm run check:csp`, in `verify` after the build                                   | every HTML file of `dist/`, `404.html` included, has exactly one Content-Security-Policy tag, and it is the policy of this build (`scripts/csp.ts`)                | yes                         |
+| Notice of the password list | `npm run check:notices`, in `verify` after the build                               | the chunk of the build that has the list of common passwords also has its credit and licence (CC BY-SA 3.0, [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)) | yes                         |
+| Lighthouse                  | `lighthouse.yml`, budgets in `lighthouserc.json`                                   | accessibility at least 0.95, best practices and SEO at least 0.9, layout shift at most 0.25 (errors); performance at least 0.6 (warning)                           | yes, but not a deploy gate  |
+| Production smoke            | `smoke.yml` every night and by hand: `check-api.mjs` (strict) and `check-site.mjs` | the deployed API and the deployed site, from outside: health, products, CORS, headers, catalog drift; home page, a static product page, sitemap, 404               | no (it runs on a schedule)  |
 
 **Lighthouse** runs three times on each of the home page, the listing and a product page, against the
 production build served like GitHub Pages with the stub API of the browser tests, and judges the
@@ -316,7 +342,8 @@ what a red run means. The accessibility checks, including the manual pass, are i
 
 1. **verify**: `npm ci`, format check, lint, typecheck, unit tests, API tests, the site build (with
    `VITE_API_URL` from the `API_URL` repository variable), the weight budget of the first page
-   (`npm run check:bundle`) and the API build.
+   (`npm run check:bundle`), the Content-Security-Policy of every page (`npm run check:csp`), the notice of
+   the list of common passwords (`npm run check:notices`) and the API build.
 2. **integration**: the tests of the code that talks to MongoDB (queries, unique indexes, sorting,
    the index that expires sessions, and the cart and order writes that must stay correct when requests
    arrive at the same moment: one cart per account, no lost update, one order per idempotency key) against a real MongoDB 8 that exists only for the job: a

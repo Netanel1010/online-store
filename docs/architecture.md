@@ -159,8 +159,12 @@ every later request: Authorization: Bearer <token>
 - **Session:** opaque and server-side, 7 days, revocable. No JWT and no signing secret
   ([ADR 0003](adr/0003-opaque-sessions-and-scrypt.md)). An account keeps at most 10 sessions (the
   oldest ends at the next sign-in); `POST /api/auth/logout-all` ends all of them.
-- **Passwords:** 8 to 128 characters with a letter and a digit, hashed with scrypt from Node's
-  `crypto`; a decoy hash makes an unknown email cost as much as a wrong password.
+- **Passwords:** hashed with scrypt from Node's `crypto`; a decoy hash makes an unknown email cost as much as
+  a wrong password. A new password is 8 to 128 characters (as typed and as hashed, in Unicode NFKC) of anything,
+  with no rule about letters or digits, and is refused if it holds a lone surrogate, is the account's email or
+  is one of 2086 common passwords (exact match; the list is under CC BY-SA 3.0, see
+  [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)). Signing in applies none of this
+  ([ADR 0013](adr/0013-csp-in-a-tag-and-favorites-for-each-person.md)).
 - **Authorization:** one kind of account, no roles. A route is protected by putting `createRequireAuth`
   in front of it, and the cart and orders are always those of the session's account, never one named
   in the request.
