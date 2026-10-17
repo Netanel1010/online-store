@@ -146,39 +146,206 @@ describe('the tag in a page', () => {
     ).toEqual([policy])
     expect(policiesOfPage(contentSecurityPolicyTag(API).repeat(2))).toEqual([policy, policy])
   })
+
+  it('is not read from a comment, which a browser does not apply', () => {
+    const tag = contentSecurityPolicyTag(API)
+
+    expect(policiesOfPage(`<!-- ${tag} -->`)).toEqual([])
+    expect(policiesOfPage(`<!-- old -->${tag}<!-- ${tag}`)).toEqual([contentSecurityPolicy(API)])
+  })
 })
 
 describe('policyProblems', () => {
   const page = (policy: string) =>
     `<head><meta http-equiv="Content-Security-Policy" content="${policy}" /></head>`
+  const EVIL = 'https://evil.example'
 
-  it('finds nothing wrong with a page that has the policy of the build', () => {
-    expect(policyProblems(page(contentSecurityPolicy(API)), contentSecurityPolicy(API))).toEqual([])
+  it('finds nothing wrong with a page that has the policy of the build for its API', () => {
+    expect(policyProblems(page(contentSecurityPolicy(API)), API)).toEqual([])
+    expect(policyProblems(page(contentSecurityPolicy(undefined)), undefined)).toEqual([])
   })
 
-  it('finds nothing wrong with a deployed page whose build it did not see, when the shape is right', () => {
-    expect(policyProblems(page(contentSecurityPolicy(API)))).toEqual([])
+  it('reads the API address as the build does: an origin, whatever follows it', () => {
+    expect(policyProblems(page(contentSecurityPolicy(API)), `${API}/some/path/`)).toEqual([])
   })
 
   it('says when there is no policy', () => {
-    expect(policyProblems('<head></head>')).toEqual(['has no Content-Security-Policy tag'])
+    expect(policyProblems('<head></head>', API)).toEqual(['has no Content-Security-Policy tag'])
   })
 
   it('says when there are two', () => {
-    expect(policyProblems(contentSecurityPolicyTag(API).repeat(2))).toEqual([
+    expect(policyProblems(contentSecurityPolicyTag(API).repeat(2), API)).toEqual([
       'has 2 Content-Security-Policy tags, not one',
     ])
   })
 
-  it('says when the policy is not the one of the build', () => {
-    const problems = policyProblems(
-      page(contentSecurityPolicy(undefined)),
-      contentSecurityPolicy(API),
+  it('does not count a tag inside a comment, which a browser does not apply', () => {
+    expect(policyProblems(`<head><!-- ${contentSecurityPolicyTag(API)} --></head>`, API)).toEqual([
+      'has no Content-Security-Policy tag',
+    ])
+  })
+
+  it('says when the tag comes after something that loads, which then loads without the policy', () => {
+    const tag = contentSecurityPolicyTag(API)
+
+    for (const html of [
+      `<head><script src="/a.js"></script>${tag}</head>`,
+      `<head><link rel="stylesheet" href="/a.css" />${tag}</head>`,
+      `<head></head><body>${tag}</body>`,
+    ]) {
+      expect(policyProblems(html, API), html).toEqual([expect.stringContaining('after')])
+    }
+    expect(policyProblems(`<head>${tag}<script src="/a.js"></script></head>`, API)).toEqual([])
+  })
+
+  it('says when the policy is the one of a build for another API, or for none', () => {
+    expect(policyProblems(page(contentSecurityPolicy(undefined)), API)).toEqual([
+      `does not allow ${API} in connect-src`,
+    ])
+    expect(policyProblems(page(contentSecurityPolicy(API)), undefined)).toEqual([
+      expect.stringContaining(`allows ${API} in connect-src`),
+    ])
+    expect(policyProblems(page(contentSecurityPolicy(EVIL)), API)).toEqual([
+      expect.stringContaining(`allows ${EVIL} in connect-src`),
+      `does not allow ${API} in connect-src`,
+    ])
+  })
+
+  it('says when the policy lets the page send requests to another site, as well as to its API', () => {
+    const policy = contentSecurityPolicy(API).replace(
+      `connect-src 'self' ${API}`,
+      `connect-src 'self' ${API} ${EVIL}`,
     )
 
-    expect(problems).toHaveLength(1)
-    expect(problems[0]).toContain('not the one of this build')
+    expect(policyProblems(page(policy), API)).toEqual([
+      expect.stringContaining(`allows ${EVIL} in connect-src`),
+    ])
   })
+
+  it('says when a short policy lets the page reach another site (scripts from the site only is not enough)', () => {
+    const problems = policyProblems(
+      page(`default-src 'none'; script-src 'self'; connect-src 'self' ${EVIL}`),
+      API,
+    )
+
+    expect(problems).toContainEqual(expect.stringContaining(`allows ${EVIL} in connect-src`))
+    expect(problems).toContain(`does not allow ${API} in connect-src`)
+    for (const name of ['style-src', 'img-src', 'base-uri', 'form-action']) {
+      expect(problems).toContain(`has no ${name}`)
+    }
+  })
+
+  it('says when the policy lets images come from another site', () => {
+    const policy = contentSecurityPolicy(API).replace("img-src 'self'", `img-src 'self' ${EVIL}`)
+
+    expect(policyProblems(page(policy), API)).toEqual([
+      expect.stringContaining(`allows ${EVIL} in img-src`),
+    ])
+  })
+
+  it.each([...directivesOf(contentSecurityPolicy(API)).keys()])(
+    'says when %s allows another site',
+    (name) => {
+      const policy = contentSecurityPolicy(API).replace(`${name} `, `${name} ${EVIL} `)
+
+      expect(policy).not.toBe(contentSecurityPolicy(API))
+      expect(policyProblems(page(policy), API)).toContainEqual(
+        expect.stringContaining(`allows ${EVIL} in ${name}`),
+      )
+    },
+  )
+
+  it.each([
+    ['fonts', `font-src ${EVIL}`],
+    ['frames', `frame-src ${EVIL}`],
+    ['plugins', `object-src ${EVIL}`],
+    ['workers', "worker-src 'self'"],
+    ['media', `media-src ${EVIL}`],
+    ['a manifest', `manifest-src ${EVIL}`],
+    ['scripts by another directive', `script-src-elem ${EVIL}`],
+  ])('says when the policy has a directive for %s, which the site does not use', (_what, extra) => {
+    const name = extra.split(' ')[0]
+
+    expect(policyProblems(page(`${contentSecurityPolicy(API)}; ${extra}`), API)).toContainEqual(
+      expect.stringContaining(`has ${name}`),
+    )
+  })
+
+  it('says when a directive comes twice: a browser uses the first, so the second hides nothing', () => {
+    const problems = policyProblems(
+      page(`connect-src 'self' ${EVIL}; ${contentSecurityPolicy(API)}`),
+      API,
+    )
+
+    expect(problems).toContain('has connect-src more than once (a browser uses the first)')
+    expect(problems).toContainEqual(expect.stringContaining(`allows ${EVIL} in connect-src`))
+  })
+
+  it('reads names and sources however they are written', () => {
+    const policy = contentSecurityPolicy(API).replace(
+      `connect-src 'self' ${API}`,
+      `CONNECT-SRC 'SELF' ${API.toUpperCase()} HTTPS://EVIL.EXAMPLE`,
+    )
+
+    expect(policyProblems(page(policy), API)).toEqual([
+      expect.stringContaining('allows https://evil.example in connect-src'),
+    ])
+  })
+
+  it('says when a directive that does not fall back to default-src is missing', () => {
+    for (const name of ['base-uri', 'form-action']) {
+      const policy = contentSecurityPolicy(API)
+        .split('; ')
+        .filter((part) => !part.startsWith(name))
+        .join('; ')
+
+      expect(policyProblems(page(policy), API)).toEqual([`has no ${name}`])
+    }
+  })
+
+  it('says when the policy says the same thing in another order or spacing', () => {
+    const policy = contentSecurityPolicy(API).split('; ').reverse().join(';  ')
+
+    expect(policyProblems(page(policy), API)).toEqual([
+      expect.stringContaining('not written as the site writes it'),
+    ])
+  })
+
+  it.each([
+    "'unsafe-hashes'",
+    "'wasm-unsafe-eval'",
+    "'nonce-abc'",
+    "'sha256-abc'",
+    "'strict-dynamic'",
+    'wss://evil.example',
+    'ws:',
+    'filesystem:',
+    'blob:',
+    '*.example.com',
+  ])('says when the policy allows %s', (source) => {
+    const policy = contentSecurityPolicy(API).replace(
+      "script-src 'self'",
+      `script-src 'self' ${source}`,
+    )
+
+    expect(policyProblems(page(policy), API)).toContainEqual(
+      expect.stringContaining(`allows ${source.toLowerCase()} in script-src`),
+    )
+  })
+
+  it.each(["'unsafe-hashes'", "'wasm-unsafe-eval'"])(
+    'calls %s unsafe whatever the policy of the site allows',
+    (source) => {
+      const policy = contentSecurityPolicy(API).replace(
+        "style-src 'self'",
+        `style-src 'self' ${source}`,
+      )
+
+      expect(policyProblems(page(policy), API)).toContainEqual(
+        expect.stringContaining('allows something unsafe or too broad'),
+      )
+    },
+  )
 
   it.each([
     [
@@ -210,21 +377,32 @@ describe('policyProblems', () => {
       contentSecurityPolicy(API).replace("img-src 'self'", "img-src 'self' https:"),
     ],
   ])('says when the policy allows %s', (_what, policy) => {
-    expect(policyProblems(page(policy)).length).toBeGreaterThan(0)
+    expect(policyProblems(page(policy), API).length).toBeGreaterThan(0)
   })
 
   it('says when the policy does not start from nothing, or lets scripts come from elsewhere than the site', () => {
-    expect(policyProblems(page("script-src 'self'"))).toContain(
+    expect(policyProblems(page("script-src 'self'"), API)).toContain(
       "does not start from default-src 'none'",
     )
-    expect(policyProblems(page("default-src 'none'"))).toContain(
+    expect(policyProblems(page("default-src 'none'"), API)).toContain(
       "allows scripts from somewhere else than 'self'",
     )
   })
 
   it('says when the tag holds a directive that a tag cannot carry', () => {
-    const problems = policyProblems(page(`${contentSecurityPolicy(API)}; frame-ancestors 'none'`))
+    const problems = policyProblems(
+      page(`${contentSecurityPolicy(API)}; frame-ancestors 'none'`),
+      API,
+    )
 
     expect(problems).toEqual(['has a directive that a <meta> tag cannot carry'])
+  })
+})
+
+describe('directivesOf', () => {
+  it('keeps the first of a directive that comes twice, as a browser does', () => {
+    expect(
+      directivesOf("connect-src 'self' https://a.example; connect-src 'self'").get('connect-src'),
+    ).toEqual(["'self'", 'https://a.example'])
   })
 })

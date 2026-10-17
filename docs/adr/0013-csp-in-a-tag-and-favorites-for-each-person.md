@@ -44,8 +44,9 @@ connect-src 'self' <API origin>; base-uri 'none'; form-action 'self'
   `https` address is accepted.
 - Production builds only: the dev server needs inline code for hot reloading.
 - `npm run check:csp` (a CI step after the build) fails unless every HTML file of `dist/` has exactly one
-  tag with the policy of that build; `npm run check:site` fails against a deployed site whose pages have none
-  or an unsafe one.
+  tag with the policy of that build; `npm run check:site` fails against a deployed site whose pages have none,
+  or one that is not the policy of a build for `API_URL` (the API the site was built for): another site in any
+  directive, a directive the site does not have, a directive twice, or the tag after what it should govern.
 
 **Headers where a host can send them.** `netlify.toml` sends, for every path, the same policy plus
 `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,

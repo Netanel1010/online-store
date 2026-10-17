@@ -1,7 +1,8 @@
 /**
  * The Content-Security-Policy of the site, in one place for everything that needs it: the build, which
  * writes it into every page as a `<meta>` tag (vite.config.ts), the check of the build
- * (scripts/check-csp.mjs), the check of the deployed site (scripts/siteSmoke.mjs) and the tests.
+ * (scripts/check-csp.mjs), the check of the deployed site (scripts/siteSmoke.mjs) and the tests. Both
+ * checks hold a page to the policy of a build for a known API (`policyProblems`), not to its shape alone.
  *
  * What the site needs, and so all that it is allowed: its own scripts and style sheet (`script-src` and
  * `style-src` are `'self'`, with no `'unsafe-inline'` and no `'unsafe-eval'`), its own images, and
@@ -64,37 +65,67 @@ export function contentSecurityPolicyTag(apiUrl: string | undefined): string {
 
 const POLICY_TAG = /<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]*)"\s*\/?>/gi
 
-/** The policies that the `<meta>` tags of a page carry, in the order they appear. */
+/** A comment, whose tags a browser does not read. */
+const COMMENT = /<!--[\s\S]*?(?:-->|$)/g
+
+/**
+ * The start of an element that loads something, or of the body. A policy in a `<meta>` tag governs only
+ * what comes after it, and a browser ignores the tag in the body, so the tag must come before all of them.
+ */
+const LOADS_OR_BODY = /<(?:script|link|style|img|iframe|object|embed|base|body)\b/i
+
+const META_ONLY_IGNORES = ['frame-ancestors', 'report-uri', 'sandbox']
+
+/** The policies that the `<meta>` tags of a page carry, in the order they appear (not in a comment). */
 export function policiesOfPage(html: string): string[] {
-  return [...html.matchAll(POLICY_TAG)].map((match) => match[1]!)
+  return [...html.replace(COMMENT, '').matchAll(POLICY_TAG)].map((match) => match[1]!)
 }
 
-/** The directives of a policy, by name. */
+/** The parts of a policy, as `[name, sources]`, in their order, names in lower case. */
+function partsOf(policy: string): [string, string[]][] {
+  return policy.split(';').flatMap((part): [string, string[]][] => {
+    const [name, ...values] = part.trim().split(/\s+/)
+    return name ? [[name.toLowerCase(), values]] : []
+  })
+}
+
+/** The directives of a policy, by name. A directive that comes again is ignored, as a browser ignores it. */
 export function directivesOf(policy: string): Map<string, string[]> {
   const directives = new Map<string, string[]>()
-  for (const part of policy.split(';')) {
-    const [name, ...values] = part.trim().split(/\s+/)
-    if (name) directives.set(name.toLowerCase(), values)
+  for (const [name, values] of partsOf(policy)) {
+    if (!directives.has(name)) directives.set(name, values)
   }
   return directives
 }
 
 /**
- * What is wrong with the policy of a page, one sentence each; empty when the page has exactly one tag
- * with `expected`. `expected` is undefined when only the shape of the policy is known (a deployed site,
- * whose build this check did not see): then the page must have a policy that allows scripts from the
- * site only, and nothing unsafe.
+ * What is wrong with the policy of a page, one sentence each; empty when the page has exactly one tag,
+ * before anything that loads, with the policy of a build for the API at `apiUrl` (`contentSecurityPolicy`).
+ *
+ * `apiUrl` is the API that the build was made for: `VITE_API_URL` for the check of the build, the
+ * repository variable `API_URL` for the check of a deployed site. Undefined means no API but the site
+ * itself. The page may allow exactly what that policy allows: every directive of it, no other, and no
+ * source that it does not name, so a deployed policy cannot be loosened (another site in `connect-src` or
+ * `img-src`, a directive for fonts or frames) without this saying so. A few checks stand on their own,
+ * whatever `contentSecurityPolicy` says, so that loosening it too is not enough: the policy starts from
+ * `default-src 'none'`, scripts come from the site only, and nothing unsafe or broad is allowed.
  */
-export function policyProblems(html: string, expected?: string): string[] {
-  const policies = policiesOfPage(html)
+export function policyProblems(html: string, apiUrl: string | undefined): string[] {
+  const page = html.replace(COMMENT, '')
+  const policies = policiesOfPage(page)
   if (policies.length === 0) return ['has no Content-Security-Policy tag']
   if (policies.length > 1) return [`has ${policies.length} Content-Security-Policy tags, not one`]
 
   const policy = policies[0]!
+  const expected = contentSecurityPolicy(apiUrl)
   const problems: string[] = []
-  if (expected !== undefined && policy !== expected) {
-    problems.push(`has a policy that is not the one of this build (${policy})`)
+  const loads = page.search(LOADS_OR_BODY)
+  if (loads !== -1 && loads < page.search(POLICY_TAG)) {
+    problems.push(
+      'has its Content-Security-Policy tag after something that loads, or in the body, and what comes before it runs without the policy',
+    )
   }
+
   const directives = directivesOf(policy)
   if (directives.get('default-src')?.join(' ') !== NONE) {
     problems.push("does not start from default-src 'none'")
@@ -102,17 +133,56 @@ export function policyProblems(html: string, expected?: string): string[] {
   if (directives.get('script-src')?.join(' ') !== SELF) {
     problems.push("allows scripts from somewhere else than 'self'")
   }
-  if (/'unsafe-(?:inline|eval)'|\*|\bdata:|\bblob:|\bhttps?:(?=\s|;|$)/i.test(policy)) {
+  if (/unsafe-|\*|\bdata:|\bblob:|\bhttps?:(?=\s|;|$)/i.test(policy)) {
     problems.push(
       'allows something unsafe or too broad (unsafe-inline, unsafe-eval, *, data:, blob: or a whole scheme)',
     )
   }
-  if (
-    directives.has('frame-ancestors') ||
-    directives.has('report-uri') ||
-    directives.has('sandbox')
-  ) {
+  if (META_ONLY_IGNORES.some((name) => directives.has(name))) {
     problems.push('has a directive that a <meta> tag cannot carry')
+  }
+
+  const counts = new Map<string, number>()
+  for (const [name] of partsOf(policy)) counts.set(name, (counts.get(name) ?? 0) + 1)
+  for (const [name, count] of counts) {
+    if (count > 1) problems.push(`has ${name} more than once (a browser uses the first)`)
+  }
+
+  const allowed = directivesOf(expected)
+  const which = apiOrigin(apiUrl) ?? 'none but the site itself'
+  for (const [name, values] of directives) {
+    const permitted = allowed.get(name)
+    if (!permitted) {
+      if (!META_ONLY_IGNORES.includes(name)) {
+        problems.push(`has ${name}, which the policy of the site does not have`)
+      }
+      continue
+    }
+    for (const value of values.map((value) => value.toLowerCase())) {
+      if (!permitted.includes(value)) {
+        problems.push(
+          name === 'connect-src'
+            ? `allows ${value} in connect-src, which is not the site or its API (the API checked for: ${which}; is API_URL the API the site was built for?)`
+            : `allows ${value} in ${name}, which the policy of the site does not`,
+        )
+      }
+    }
+  }
+  for (const [name, values] of allowed) {
+    const present = directives.get(name)?.map((value) => value.toLowerCase())
+    if (!present) {
+      problems.push(`has no ${name}`)
+      continue
+    }
+    for (const value of values) {
+      if (!present.includes(value)) problems.push(`does not allow ${value} in ${name}`)
+    }
+  }
+
+  if (problems.length === 0 && policy !== expected) {
+    problems.push(
+      `has a policy that says the same but is not written as the site writes it (${policy})`,
+    )
   }
   return problems
 }

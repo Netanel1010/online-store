@@ -24,7 +24,8 @@ function htmlFiles(directory) {
   })
 }
 
-const expected = contentSecurityPolicy(loadEnv('production', process.cwd(), 'VITE_').VITE_API_URL)
+const apiUrl = loadEnv('production', process.cwd(), 'VITE_').VITE_API_URL
+const expected = contentSecurityPolicy(apiUrl)
 const files = htmlFiles(dist)
 const names = files.map((file) => relative(dist, file).split(sep).join('/'))
 
@@ -35,7 +36,7 @@ if (!names.includes('index.html') || !names.includes('404.html')) {
 
 let failed = 0
 for (const [index, file] of files.entries()) {
-  for (const problem of policyProblems(readFileSync(file, 'utf8'), expected)) {
+  for (const problem of policyProblems(readFileSync(file, 'utf8'), apiUrl)) {
     console.error(`FAIL  ${names[index]} ${problem}`)
     failed += 1
   }

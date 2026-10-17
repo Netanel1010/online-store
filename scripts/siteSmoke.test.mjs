@@ -3,14 +3,34 @@ import { siteProblems } from './siteSmoke.mjs'
 
 const base = 'https://owner.github.io/online-store/'
 const sku = 'CC-9011240-WW'
-/** The policy that every page of a deployed site carries (its API address is not known to the check). */
-const policy = contentSecurityPolicyTag('https://api.example.com')
+/** The API that the deployed site was built for (the repository variable API_URL). */
+const api = 'https://api.example.com'
+/** The policy that every page of the deployed site carries: the one of a build for that API. */
+const policy = contentSecurityPolicyTag(api)
+const pages = [
+  ['home', 'the home page'],
+  ['product', `the page of product ${sku}`],
+  ['unknown', 'the page for an unknown address'],
+]
+
+/** The answers with the policy tag of one page replaced by a tag with another policy. */
+function withPolicy(answers, which, other) {
+  answers[which] = {
+    ...answers[which],
+    text: answers[which].text.replace(
+      policy,
+      `<meta http-equiv="Content-Security-Policy" content="${other}" />`,
+    ),
+  }
+  return answers
+}
 
 /** The answers of a site that is deployed as it should be. */
 function good() {
   return {
     base,
     sku,
+    api,
     home: {
       status: 200,
       type: 'text/html; charset=utf-8',
@@ -90,33 +110,81 @@ describe('siteProblems', () => {
     ])
   })
 
-  it.each([
-    ['home', 'the home page'],
-    ['product', `the page of product ${sku}`],
-    ['unknown', 'the page for an unknown address'],
-  ])('reports a %s page that has no Content-Security-Policy', (which, name) => {
+  it.each(pages)('reports a %s page that has no Content-Security-Policy', (which, name) => {
     const answers = good()
     answers[which] = { ...answers[which], text: answers[which].text.replace(policy, '') }
     expect(siteProblems(answers)).toEqual([`${name} has no Content-Security-Policy tag`])
   })
 
   it('reports a page whose policy lets scripts run from anywhere or inline', () => {
-    const answers = good()
-    const loose = contentSecurityPolicy('https://api.example.com').replace(
+    const loose = contentSecurityPolicy(api).replace(
       "script-src 'self'",
       "script-src 'self' 'unsafe-inline'",
     )
-    answers.home = {
-      ...answers.home,
-      text: answers.home.text.replace(
-        policy,
-        `<meta http-equiv="Content-Security-Policy" content="${loose}" />`,
-      ),
-    }
-    expect(siteProblems(answers)).toEqual([
+    expect(siteProblems(withPolicy(good(), 'home', loose))).toEqual([
       "the home page allows scripts from somewhere else than 'self'",
       expect.stringContaining('the home page allows something unsafe or too broad'),
+      expect.stringContaining("the home page allows 'unsafe-inline' in script-src"),
     ])
+  })
+
+  it.each(pages)(
+    'reports the %s page when its policy lets it send requests to another site',
+    (which, name) => {
+      const loose = contentSecurityPolicy(api).replace(
+        `connect-src 'self' ${api}`,
+        `connect-src 'self' ${api} https://evil.example`,
+      )
+      expect(siteProblems(withPolicy(good(), which, loose))).toEqual([
+        expect.stringContaining(`${name} allows https://evil.example in connect-src`),
+      ])
+    },
+  )
+
+  it.each(pages)(
+    'reports the %s page when its policy lets images come from another site',
+    (which, name) => {
+      const loose = contentSecurityPolicy(api).replace(
+        "img-src 'self'",
+        "img-src 'self' https://evil.example",
+      )
+      expect(siteProblems(withPolicy(good(), which, loose))).toEqual([
+        expect.stringContaining(`${name} allows https://evil.example in img-src`),
+      ])
+    },
+  )
+
+  it('reports a short policy that only keeps scripts to the site', () => {
+    const short = "default-src 'none'; script-src 'self'; connect-src 'self' https://evil.example"
+    const problems = siteProblems(withPolicy(good(), 'home', short))
+
+    expect(problems.length).toBeGreaterThan(0)
+    expect(problems).toContainEqual(
+      expect.stringContaining('the home page allows https://evil.example in connect-src'),
+    )
+    expect(problems.every((problem) => problem.startsWith('the home page '))).toBe(true)
+  })
+
+  it('reports a site that was built for another API than the one it is checked with', () => {
+    const problems = siteProblems({ ...good(), api: 'https://other-api.example' })
+
+    expect(problems).toHaveLength(pages.length * 2)
+    for (const [, name] of pages) {
+      expect(problems).toContainEqual(
+        expect.stringContaining(`${name} allows ${api} in connect-src`),
+      )
+      expect(problems).toContain(`${name} does not allow https://other-api.example in connect-src`)
+    }
+  })
+
+  it('expects no API but the site itself when it is not told which API the site was built for', () => {
+    const answers = good()
+    delete answers.api
+    const problems = siteProblems(answers)
+
+    expect(problems).toHaveLength(pages.length)
+    expect(problems[0]).toContain(`the home page allows ${api} in connect-src`)
+    expect(problems[0]).toContain('API_URL')
   })
 
   it('reports a page that is not HTML', () => {

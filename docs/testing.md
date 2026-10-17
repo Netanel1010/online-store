@@ -265,7 +265,13 @@ they are tested:
   read as text, with a reader for the part of TOML it uses.
 - `npm run check:csp` (a CI step after the build): every HTML file of `dist/`, `404.html` included, has
   exactly one policy tag, and it is the policy of the build. `scripts/siteSmoke.test.mjs` covers the same
-  check for a deployed site (`check:site`).
+  check for a deployed site (`check:site`, given `API_URL`, the API the site was built for).
+- `policyProblems` holds a page to the policy of a build for a known API, directive by directive and source
+  by source, so a loosened policy is reported, not taken for the right shape: another site in `connect-src`,
+  `img-src` or any directive, another API, a directive the site does not have, one that is missing, one that
+  comes twice (a browser uses the first), the tag after something that loads, in the body or in a comment,
+  and, on their own, `default-src 'none'`, scripts from the site only and nothing unsafe. Each of these was
+  broken on purpose to see a test fail.
 - `e2e/csp.spec.ts`: eight kinds of page carry the one tag with the policy of the build, and a real browser
   stops inline code, a script and an image from another site, a style attribute and a request to another
   site (and allows the page's own changes to a style through the style object). A violation is a console

@@ -2,13 +2,17 @@
 // at the first problem. It is run every night by the `smoke` workflow, next to check-api.mjs, and by
 // hand after a deployment:
 //
-//   SITE_URL=https://owner.github.io/online-store/ npm run check:site
+//   SITE_URL=https://owner.github.io/online-store/ API_URL=https://example.onrender.com npm run check:site
 //
 //  - SITE_URL  the address of the site with its base path (a closing slash is added)
+//  - API_URL   the API the site was built for (the repository variable API_URL). Every page must carry
+//              the Content-Security-Policy of a build for it, and allow no other site. Without it, the
+//              site is expected to call no API but itself, as a build without VITE_API_URL does.
 //
 // It reads public addresses only: the home page, the sitemap, the static page of the first product the
 // sitemap lists, and an address that is not a page. It creates nothing and signs nobody in.
 
+import { apiOrigin } from './csp.ts'
 import { siteProblems } from './siteSmoke.mjs'
 
 const raw = process.env.SITE_URL ?? ''
@@ -17,6 +21,13 @@ if (!URL.canParse(raw)) {
   process.exit(1)
 }
 const base = `${raw.replace(/\/+$/, '')}/`
+const api = process.env.API_URL?.trim() || undefined
+if (api !== undefined && apiOrigin(api) === undefined) {
+  console.error(
+    'API_URL must be an http or https address, for example https://example.onrender.com',
+  )
+  process.exit(1)
+}
 
 async function get(path) {
   const response = await fetch(`${base}${path}`, { signal: AbortSignal.timeout(30_000) })
@@ -45,7 +56,7 @@ const [home, product, unknown] = await Promise.all([
   get(`no-such-page-${Date.now()}`),
 ])
 
-const problems = siteProblems({ base, sku, home, product, sitemap, unknown })
+const problems = siteProblems({ base, sku, api, home, product, sitemap, unknown })
 if (problems.length > 0) {
   for (const problem of problems) console.error(`FAIL  ${problem}`)
   process.exit(1)
@@ -55,4 +66,7 @@ console.log(`ok    the home page mounts the app under ${new URL(base).pathname}`
 console.log(`ok    the static page of product ${sku} has its canonical address and structured data`)
 console.log('ok    sitemap.xml lists it')
 console.log('ok    an address that is not a page answers 404 and is not indexed')
+console.log(
+  `ok    each of them carries the Content-Security-Policy for ${apiOrigin(api) ?? 'no API but the site'}, and no other site`,
+)
 console.log('\nThe site is up.')
