@@ -8,7 +8,7 @@ are the details.
 | Document                                                             | Read it to…                                                                         |
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | [`architecture.md`](architecture.md)                                 | see how the site, the API and the database fit together, and how a request travels   |
-| [`adr/`](adr/README.md)                                              | know why it is built this way: twelve decision records                              |
+| [`adr/`](adr/README.md)                                              | know why it is built this way: fourteen decision records                              |
 | [`openapi.yaml`](openapi.yaml)                                       | use the API: every endpoint, parameter, body, answer and error                      |
 | [`../server/README.md`](../server/README.md)                         | understand the API's behaviour: search, sessions, cart, orders, limits, configuration |
 | [`state-persistence.md`](state-persistence.md)                       | understand the cart and favorites in the browser, and how the cart syncs with the account |

@@ -8,7 +8,7 @@
 A React frontend, an Express API, a real database, and a pipeline that only ships what has passed.
 
 [![CI](https://github.com/Netanel1010/online-store/actions/workflows/ci.yml/badge.svg)](https://github.com/Netanel1010/online-store/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-2%2C450-brightgreen)
+![Tests](https://img.shields.io/badge/tests-4%2C916-brightgreen)
 ![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -21,7 +21,7 @@ A React frontend, an Express API, a real database, and a pipeline that only ship
 
 <img src="docs/images/storefront.jpg" alt="The storefront home page: a Hebrew right-to-left layout with a banner slider and the product categories" width="860">
 
-<sub>Hebrew RTL · React 19 + TypeScript · Express 5 · MongoDB Atlas · 2,450 automated tests</sub>
+<sub>Hebrew RTL · React 19 + TypeScript · Express 5 · MongoDB Atlas · 4,916 automated tests</sub>
 
 <p>
   <a href="#take-a-tour">Tour</a> ·
@@ -70,7 +70,7 @@ Open the [live demo](https://netanel1010.github.io/online-store/) and:
 | **Local-first cart**   | It is instant and works offline, and a small engine mirrors it to the account. Signing in merges the carts, and the server uses compare-and-swap.      | [0007](docs/adr/0007-local-first-cart-mirrored-to-the-account.md)                                          |
 | **Real API in tests**  | The browser tests talk to a stub that runs the actual API code over in-memory data, not to a hand-written mock.                                        | [0012](docs/adr/0012-tests-run-the-real-api-code.md)                                                       |
 | **Deployment gates**   | The site is published only after `verify`, `integration` and `e2e` pass, and the production API is checked first.                                      | [0011](docs/adr/0011-one-workflow-gates-both-deployments.md)                                               |
-| **Security**           | scrypt passwords, opaque revocable sessions, an exact CORS allow-list, security headers and rate limits, without extra libraries.                      | [0003](docs/adr/0003-opaque-sessions-and-scrypt.md) · [0010](docs/adr/0010-in-house-limits-and-headers.md) |
+| **Security**           | scrypt passwords checked against a common-password list, opaque revocable sessions, an exact CORS allow-list, a Content-Security-Policy, security headers and rate limits.                      | [0003](docs/adr/0003-opaque-sessions-and-scrypt.md) · [0010](docs/adr/0010-in-house-limits-and-headers.md) · [0013](docs/adr/0013-csp-in-a-tag-and-favorites-for-each-person.md) |
 
 ## Project evolution
 
@@ -155,7 +155,7 @@ Why it is built this way: [`docs/architecture.md`](docs/architecture.md) and the
   </tr>
   <tr>
     <td valign="top"><b>Demo checkout</b><br><sub>A validated delivery form; the API prices the order</sub></td>
-    <td valign="top"><b>Orders</b><br><sub>A confirmation that survives a reload, and "my orders"</sub></td>
+    <td valign="top"><b>Orders</b><br><sub>A confirmation that survives a reload, a simulated payment, and "my orders"</sub></td>
     <td valign="top"><b>Information pages</b><br><sub>About, contact, accessibility, privacy and terms</sub></td>
   </tr>
 </table>
@@ -209,14 +209,14 @@ The accounts of the first, browser-only version of the site were never stored on
 
 <table align="center">
   <tr>
-    <td align="center" width="25%"><h3>964</h3><sub>site tests</sub></td>
-    <td align="center" width="25%"><h3>1,061</h3><sub>API tests</sub></td>
-    <td align="center" width="25%"><h3>96</h3><sub>integration tests</sub></td>
-    <td align="center" width="25%"><h3>329</h3><sub>end-to-end tests</sub></td>
+    <td align="center" width="25%"><h3>2,811</h3><sub>site tests</sub></td>
+    <td align="center" width="25%"><h3>1,615</h3><sub>API tests</sub></td>
+    <td align="center" width="25%"><h3>116</h3><sub>integration tests</sub></td>
+    <td align="center" width="25%"><h3>374</h3><sub>end-to-end tests</sub></td>
   </tr>
 </table>
 
-<p align="center"><b>2,450 automated tests</b>, run on every pull request.</p>
+<p align="center"><b>4,916 automated tests</b>, run on every pull request.</p>
 
 | Layer         | Tool                           | Where                       |
 | ------------- | ------------------------------ | --------------------------- |
@@ -353,7 +353,7 @@ The full index, by what you want to do, is [`docs/README.md`](docs/README.md).
 
 | I want to…                              | Read                                                                                                                                |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| understand the system                   | [`docs/architecture.md`](docs/architecture.md) · [`docs/adr/`](docs/adr/README.md) (12 decisions)                                   |
+| understand the system                   | [`docs/architecture.md`](docs/architecture.md) · [`docs/adr/`](docs/adr/README.md) (14 decisions)                                   |
 | use the API                             | [`docs/openapi.yaml`](docs/openapi.yaml) · [`server/README.md`](server/README.md)                                                   |
 | work on the code                        | [`docs/development.md`](docs/development.md) · [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                 |
 | understand the tests and accessibility  | [`docs/testing.md`](docs/testing.md) · [`docs/accessibility.md`](docs/accessibility.md)                                             |
