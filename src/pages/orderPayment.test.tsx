@@ -84,7 +84,9 @@ describe('the simulated payment of an order', () => {
     await screen.findByRole('region', { name: 'תשלום מדומה' })
 
     await userEvent.click(within(panel()).getByRole('button', { name: 'תשלום מאושר' }))
-    expect(await within(panel()).findByRole('button', { name: 'בטל' })).toBeInTheDocument()
+    expect(
+      await within(panel()).findByRole('button', { name: 'ביטול הניסיון' }),
+    ).toBeInTheDocument()
     expect(within(panel()).getByRole('status')).toHaveTextContent('בעיבוד')
     expect(within(panel()).getByRole('list', { name: 'ניסיונות התשלום' })).toHaveTextContent(
       'ניסיון 1: תשלום מאושר · בעיבוד',
@@ -150,6 +152,65 @@ describe('the simulated payment of an order', () => {
     expect(within(panel()).queryByRole('group')).toBeNull()
   })
 
+  it('explains that the order stays waiting after three attempts that did not succeed, and offers no new one', async () => {
+    const order = await placed()
+    renderApp(`/orders/${order.orderNumber}`, catalog)
+    await screen.findByRole('region', { name: 'תשלום מדומה' })
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      await userEvent.click(await within(panel()).findByRole('button', { name: 'תשלום נדחה' }))
+      await waitFor(
+        () =>
+          expect(within(panel()).getByRole('list', { name: 'ניסיונות התשלום' })).toHaveTextContent(
+            `ניסיון ${attempt}: תשלום נדחה · נכשל`,
+          ),
+        { timeout: 3000 },
+      )
+    }
+
+    expect(await within(panel()).findByText(/שלושת הניסיונות נוצלו/)).toHaveTextContent(
+      'ההזמנה תישאר ממתינה לתשלום עד שזמן התשלום יפוג.',
+    )
+    expect(within(panel()).getByRole('status')).toHaveTextContent('ממתין לתשלום')
+    expect(within(panel()).queryByRole('group')).toBeNull()
+    expect(within(panel()).queryAllByRole('button')).toEqual([])
+    expect(within(panel()).queryByText(/זמן התשלום מסתיים/)).toBeNull()
+  })
+
+  it('does not show that note while an attempt is left or processing', async () => {
+    const order = await placed()
+    renderApp(`/orders/${order.orderNumber}`, catalog)
+    await screen.findByRole('region', { name: 'תשלום מדומה' })
+    expect(within(panel()).queryByText(/שלושת הניסיונות נוצלו/)).toBeNull()
+
+    await userEvent.click(within(panel()).getByRole('button', { name: 'תשלום נדחה' }))
+    await within(panel()).findByRole('group', { name: 'לנסות שוב' }, { timeout: 3000 })
+    expect(within(panel()).queryByText(/שלושת הניסיונות נוצלו/)).toBeNull()
+  })
+
+  it('says that no answer has come, with a reload, when the polling gave up on an attempt', async () => {
+    api.setPaymentTimings({ settleDelayMs: 150, attemptTimeoutMs: 30_000, expiryMs: 60_000 })
+    paymentPolling.limit = 3
+    const order = await placed()
+    renderApp(`/orders/${order.orderNumber}`, catalog)
+    await screen.findByRole('region', { name: 'תשלום מדומה' })
+
+    await userEvent.click(within(panel()).getByRole('button', { name: 'הספק לא עונה' }))
+
+    expect(
+      await within(panel()).findByText(
+        'עדיין לא התקבלה תשובה מהספק המדומה.',
+        {},
+        { timeout: 3000 },
+      ),
+    ).toBeInTheDocument()
+    expect(
+      within(panel())
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['רענון מצב התשלום', 'ביטול הניסיון'])
+  })
+
   it('shows nothing about a payment that contradicts itself, offers no action, and only a reload', async () => {
     const order = await placed()
     const through = globalThis.fetch
@@ -176,7 +237,7 @@ describe('the simulated payment of an order', () => {
       within(panel())
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['רענון'])
+    ).toEqual(['רענון מצב התשלום'])
     expect(within(panel()).queryByRole('status')).toBeNull()
   })
 })

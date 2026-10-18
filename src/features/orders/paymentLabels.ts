@@ -53,3 +53,8 @@ export const CLOSING_NOTE = 'לא ניתן להתחיל תשלום חדש: זמ�
 export const OPEN_TO_UPDATE = 'פתחו את ההזמנה לעדכון המצב'
 export const INCONSISTENT_NOTE =
   'מצב התשלום של ההזמנה הזו לא עקבי. רעננו את הדף. אם זה חוזר, זו תקלה.'
+export const CANCEL_ATTEMPT = 'ביטול הניסיון'
+export const RELOAD_PAYMENT = 'רענון מצב התשלום'
+export const NO_ANSWER_NOTE = 'עדיין לא התקבלה תשובה מהספק המדומה.'
+export const ATTEMPTS_EXHAUSTED_NOTE =
+  'שלושת הניסיונות נוצלו, ולא ניתן להתחיל תשלום נוסף להזמנה הזו. ההזמנה תישאר ממתינה לתשלום עד שזמן התשלום יפוג.'
