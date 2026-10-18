@@ -267,9 +267,19 @@ describe('the payment of an order on its page', () => {
     const { result } = renderHook(() => useOrder(order.orderNumber))
     await waitFor(() => expect(result.current.view.status).toBe('ready'))
 
+    let reads = 0
+    intercept(async (url, init, answer) => {
+      if (url.endsWith(`/api/orders/${order.orderNumber}`) && !init?.method) reads += 1
+      return answer()
+    })
     act(() => result.current.payment.start('no_answer'))
     await waitFor(() => expect(result.current.payment.waitingTooLong).toBe(true), { timeout: 3000 })
     expect(lastStatus(result.current.view)).toBe('processing')
+    // And it does stop: no question in ten more intervals.
+    const asked = reads
+    expect(asked).toBe(3)
+    await new Promise((resolve) => setTimeout(resolve, paymentPolling.intervalMs * 10))
+    expect(reads).toBe(asked)
   })
 
   it('sends a start whose answer was lost again with the same key, and makes one attempt', async () => {

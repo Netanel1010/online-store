@@ -15,6 +15,7 @@ import { createMemoryOrderRepository } from '../testing/memoryOrderRepository.ts
 import { createMemoryProductRepository } from '../testing/memoryProductRepository.ts'
 import { makeProduct } from '../testing/products.ts'
 import { createOrdersRouter, NO_ORDER_RATE_LIMITS, ORDER_RATE_LIMITS } from './routes.ts'
+import { parseAttemptNumber } from './schemas.ts'
 import { createOrderService } from './service.ts'
 import type { PublicOrder } from './types.ts'
 
@@ -238,6 +239,22 @@ describe('cancelling and refunding', () => {
     expect((await post(`/${number}/payment/refund`, { token, body: { amount: 5 } })).status).toBe(
       400,
     )
+  })
+})
+
+describe('the number of an attempt in the address', () => {
+  it.each(['0', '4', '9', '10', 'x', '', ' 1', '1 ', undefined, 1])('is not one: %j', (value) => {
+    expect(() => parseAttemptNumber(value)).toThrow(
+      expect.objectContaining({ status: 404, code: 'payment_attempt_not_found' }),
+    )
+  })
+
+  it.each([
+    ['1', 1],
+    ['2', 2],
+    ['3', 3],
+  ])('is %j', (value, attempt) => {
+    expect(parseAttemptNumber(value)).toBe(attempt)
   })
 })
 

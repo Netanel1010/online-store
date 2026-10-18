@@ -694,6 +694,21 @@ describe('ambiguous writes and lagging confirmation [P4]', () => {
     expect(again.payment!.refundedAt).toBe(at(70).toISOString())
   })
 
+  it(`a command whose write keeps conflicting tries ${MAX_PAYMENT_WRITE_ATTEMPTS} times, then answers 503 and stores nothing`, async () => {
+    await orders.startPayment(ME, number, 'pay-key-0000000000001', 'approve')
+    memory.controls.counters.casAttempts = 0
+    memory.controls.beforeWrite = () => {
+      stored().payment!.version += 1
+    }
+
+    expect(await failure(orders.cancelPayment(ME, number, 1))).toMatchObject({
+      status: 503,
+      code: 'database_unavailable',
+    })
+    expect(memory.controls.counters.casAttempts).toBe(MAX_PAYMENT_WRITE_ATTEMPTS)
+    expect(stored().payment!.attempts[0]!.status).toBe('processing')
+  })
+
   it('a database failure before the write changes nothing, and the repeat does it once', async () => {
     memory.controls.failWrites.push('error')
     expect(

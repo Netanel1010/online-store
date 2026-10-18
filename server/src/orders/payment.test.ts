@@ -202,6 +202,19 @@ describe('what is due', () => {
     ])
   })
 
+  it('never ends an order while an attempt is processing, even one stored past its time', () => {
+    // The start guards keep an attempt from ending after the order; this pins the rule itself.
+    const payment = withAttempt('approve', 100)
+    const stretched = {
+      ...payment,
+      attempts: [{ ...payment.attempts[0]!, settlesAt: at(E + 500), timeoutAt: at(E + 600) }],
+    }
+
+    const due = settleDue(ORDER, stretched, at(E + 100))
+    expect(due.payment.state).toBe('awaiting')
+    expect(due.guards).toEqual([])
+  })
+
   it('has nothing due for a paid, refunded or expired order, or a decided attempt', () => {
     const paid = settleDue(ORDER, withAttempt('approve'), at(60)).payment
     const expired = settleDue(ORDER, fresh(), at(E)).payment
