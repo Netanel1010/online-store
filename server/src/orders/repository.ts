@@ -252,12 +252,10 @@ export function createOrderRepository(database: Database): OrderRepository {
   // Looked up when used, not when created: the database is connected before the first request.
   const orders = () => database.db().collection<Order>(COLLECTION, { writeConcern: WRITE_CONCERN })
   const fromMajority = () =>
-    database
-      .db()
-      .collection<Order>(COLLECTION, {
-        writeConcern: WRITE_CONCERN,
-        readConcern: { level: 'majority' },
-      })
+    database.db().collection<Order>(COLLECTION, {
+      writeConcern: WRITE_CONCERN,
+      readConcern: { level: 'majority' },
+    })
   const collection = (options?: ReadOptions) => (options?.majority ? fromMajority() : orders())
 
   return {
