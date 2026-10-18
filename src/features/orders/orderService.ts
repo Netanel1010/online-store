@@ -4,6 +4,7 @@ import type { DeliveryDetails } from '@/features/checkout/delivery'
 import { apiUrl } from '@/lib/api'
 import { fetchWithRetry } from '@/lib/fetchWithRetry'
 import { orderPageSchema, orderSchema, type Order, type OrderPage } from './orderSchema'
+import type { PaymentScenario } from './payment'
 
 /** Why an order was not placed, in the terms the checkout cares about. */
 export type PlaceOrderFailure =
@@ -165,7 +166,8 @@ export async function lookupOrder(
 }
 
 export type FetchOrderOutcome =
-  | { status: 'ok'; order: Order }
+  /** `requestId` is the API's `X-Request-Id`, for a report of an answer that cannot be right. */
+  | { status: 'ok'; order: Order; requestId?: string }
   /** No such order in this account: it does not exist, or it is somebody else's. */
   | { status: 'not-found' }
   | { status: 'unauthorized' }
@@ -195,7 +197,106 @@ export async function fetchOrder(
   if (response.status === 401) return { status: 'unauthorized' }
   if (!response.ok) return { status: 'unavailable' }
   const parsed = orderSchema.safeParse(await response.json().catch(() => null))
-  return parsed.success ? { status: 'ok', order: parsed.data } : { status: 'unavailable' }
+  return parsed.success
+    ? { status: 'ok', order: parsed.data, ...requestIdOf(response) }
+    : { status: 'unavailable' }
+}
+
+const requestIdOf = (response: Response) => {
+  const requestId = response.headers.get('X-Request-Id')
+  return requestId ? { requestId } : {}
+}
+
+/** What a payment command came to, in the terms the order page cares about. */
+export type PaymentCommandOutcome =
+  | { ok: true; order: Order; requestId?: string }
+  | {
+      ok: false
+      /**
+       * `conflict`: the payment is not what the page thought (another tab, the provider decided, the
+       * time is up): read the order again. `unavailable`: no answer, or one that did not confirm the
+       * change; the order may have changed, so read it again, and a repeat with the same key is safe.
+       */
+      reason: 'unauthorized' | 'not-found' | 'conflict' | 'too-many-requests' | 'unavailable'
+    }
+
+async function paymentCommand(
+  token: string,
+  path: string,
+  init: { headers?: Record<string, string>; body?: unknown },
+  signal?: AbortSignal,
+): Promise<PaymentCommandOutcome> {
+  let response: Response
+  try {
+    // Every one of these may be repeated: a start carries its Idempotency-Key, and cancelling or
+    // refunding again is the same cancellation or refund.
+    response = await fetchWithRetry(apiUrl(path), signal, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...init.headers,
+      },
+      body: JSON.stringify(init.body ?? {}),
+    })
+  } catch (error) {
+    if (signal?.aborted) throw error
+    return { ok: false, reason: 'unavailable' }
+  }
+  if (response.status === 200 || response.status === 201) {
+    const parsed = orderSchema.safeParse(await response.json().catch(() => null))
+    return parsed.success
+      ? { ok: true, order: parsed.data, ...requestIdOf(response) }
+      : { ok: false, reason: 'unavailable' }
+  }
+  if (response.status === 401) return { ok: false, reason: 'unauthorized' }
+  if (response.status === 404) return { ok: false, reason: 'not-found' }
+  if (response.status === 409) return { ok: false, reason: 'conflict' }
+  if (response.status === 429) return { ok: false, reason: 'too-many-requests' }
+  return { ok: false, reason: 'unavailable' }
+}
+
+const orderPath = (orderNumber: string) => `/api/orders/${encodeURIComponent(orderNumber)}`
+
+/**
+ * Starts a simulated payment: only the scenario is sent, never a status or an outcome. The key is the
+ * attempt's, and the same for every repeat of it.
+ */
+export function startPayment(
+  token: string,
+  orderNumber: string,
+  idempotencyKey: string,
+  scenario: PaymentScenario,
+  signal?: AbortSignal,
+): Promise<PaymentCommandOutcome> {
+  return paymentCommand(
+    token,
+    `${orderPath(orderNumber)}/payment/attempts`,
+    { headers: { 'Idempotency-Key': idempotencyKey }, body: { scenario } },
+    signal,
+  )
+}
+
+export function cancelPaymentAttempt(
+  token: string,
+  orderNumber: string,
+  attemptNumber: number,
+  signal?: AbortSignal,
+): Promise<PaymentCommandOutcome> {
+  return paymentCommand(
+    token,
+    `${orderPath(orderNumber)}/payment/attempts/${attemptNumber}/cancel`,
+    {},
+    signal,
+  )
+}
+
+export function refundPayment(
+  token: string,
+  orderNumber: string,
+  signal?: AbortSignal,
+): Promise<PaymentCommandOutcome> {
+  return paymentCommand(token, `${orderPath(orderNumber)}/payment/refund`, {}, signal)
 }
 
 export type FetchOrdersOutcome =

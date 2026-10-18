@@ -4,11 +4,14 @@ import { createAuthRouter, NO_AUTH_RATE_LIMITS } from '../../server/src/auth/rou
 import { createAuthService } from '../../server/src/auth/service'
 import { createLoginThrottle } from '../../server/src/auth/throttle'
 import { createConcurrencyGate } from '../../server/src/lib/concurrencyGate'
+import { silentLogger } from '../../server/src/lib/logger'
 import { errorHandler } from '../../server/src/middleware/errorHandler'
 import { notFound } from '../../server/src/middleware/notFound'
+import { requestLogging } from '../../server/src/middleware/requestLogging'
 import { createCartRouter, NO_CART_RATE_LIMITS } from '../../server/src/cart/routes'
 import { createCartService } from '../../server/src/cart/service'
 import { createOrdersRouter, NO_ORDER_RATE_LIMITS } from '../../server/src/orders/routes'
+import { DEMO_PAYMENT_TIMINGS, type PaymentTimings } from '../../server/src/orders/payment'
 import { createOrderService } from '../../server/src/orders/service'
 import { listen } from '../../server/src/testing/listen'
 import {
@@ -42,6 +45,7 @@ export function setUpAuthApi() {
   let service = build()
   let orders = createMemoryOrderRepository()
   let catalog = createMemoryProductRepository()
+  let paymentTimings: PaymentTimings = DEMO_PAYMENT_TIMINGS
   let orderService = buildOrders()
   let carts = createMemoryCartRepository()
   let cartService = buildCarts()
@@ -56,7 +60,11 @@ export function setUpAuthApi() {
   }
 
   function buildOrders() {
-    return createOrderService({ orders: orders.repository, products: catalog.repository })
+    return createOrderService({
+      orders: orders.repository,
+      products: catalog.repository,
+      paymentTimings,
+    })
   }
 
   function buildCarts() {
@@ -64,6 +72,8 @@ export function setUpAuthApi() {
   }
 
   const app = express()
+  // As in the real app: every answer has an X-Request-Id (nothing is logged here).
+  app.use(requestLogging(silentLogger))
   app.use(express.json())
   app.use(
     '/api/auth',
@@ -125,6 +135,7 @@ export function setUpAuthApi() {
     service = build()
     orders = createMemoryOrderRepository()
     catalog = createMemoryProductRepository()
+    paymentTimings = DEMO_PAYMENT_TIMINGS
     orderService = buildOrders()
     carts = createMemoryCartRepository()
     cartService = buildCarts()
@@ -150,6 +161,13 @@ export function setUpAuthApi() {
     },
     /** The orders the API has stored, in the order they were placed. */
     orders: () => orders.stored,
+    /** What the in-memory database can be made to do: a lagging majority, failed writes, its clock. */
+    orderControls: () => orders.controls,
+    /** The payment timings the next orders get (the demo's by default; shorter ones keep tests quick). */
+    setPaymentTimings: (timings: PaymentTimings) => {
+      paymentTimings = timings
+      orderService = buildOrders()
+    },
     /** The carts the API has stored, by account id. */
     carts: () => carts.stored,
   }
