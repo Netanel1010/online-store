@@ -1,6 +1,11 @@
 import { z } from 'zod'
 import { MAX_ORDER_LINES, MAX_QUANTITY } from '../../../src/features/cart/limits.ts'
 import { deliveryDetailsSchema } from '../../../src/features/checkout/delivery.ts'
+import {
+  MAX_PAYMENT_ATTEMPTS,
+  PAYMENT_SCENARIOS,
+  type PaymentScenario,
+} from '../../../src/features/orders/payment.ts'
 import { HttpError } from '../lib/httpError.ts'
 import { productIdSchema } from '../products/schemas.ts'
 import { ORDER_NUMBER_PATTERN } from './orderNumber.ts'
@@ -85,6 +90,70 @@ export function parseLookupBody(body: unknown): string {
 }
 
 export const orderNotFound = () => new HttpError(404, 'order_not_found', 'The order was not found')
+
+/** A short wait before the same request is sent again, for the 503s that a retry resolves. */
+const RETRY_SOON = { 'Retry-After': '2' } as const
+
+/**
+ * The order exists, but not yet on a majority of the database: it could still be undone by a
+ * failover, so it is neither shown nor reported missing. The same request again resolves it.
+ */
+export const orderNotConfirmed = () =>
+  new HttpError(503, 'order_not_confirmed', 'The order is not confirmed yet. Try again', RETRY_SOON)
+
+/** A write may have been applied but was not confirmed: asking again, with the same key, is safe. */
+export const writeNotConfirmed = () =>
+  new HttpError(
+    503,
+    'write_not_confirmed',
+    'The change is not confirmed yet. Try again',
+    RETRY_SOON,
+  )
+
+/** The database could not be asked safely: nothing is reported. */
+export const databaseUnavailable = () =>
+  new HttpError(
+    503,
+    'database_unavailable',
+    'The order cannot be read right now. Try again',
+    RETRY_SOON,
+  )
+
+// The bodies of the payment commands are strict: a field the API does not read is refused, not
+// dropped, so a client that sends a status, an outcome or a payment state is told it cannot.
+const startPaymentSchema = z.strictObject({ scenario: z.enum(PAYMENT_SCENARIOS) })
+const emptyBodySchema = z.strictObject({})
+
+function invalidBody(error: z.ZodError): HttpError {
+  const issue = error.issues[0]
+  const where = issue?.code === 'unrecognized_keys' ? issue.keys[0] : describe(issue?.path ?? [])
+  return new HttpError(
+    400,
+    'invalid_input',
+    where ? `The field "${where}" is not valid` : 'The request body is not valid',
+  )
+}
+
+/** The body that starts a simulated payment: only the scenario the fictional provider will follow. */
+export function parseStartPaymentBody(body: unknown): PaymentScenario {
+  const result = startPaymentSchema.safeParse(body)
+  if (!result.success) throw invalidBody(result.error)
+  return result.data.scenario
+}
+
+/** The body of a command that needs none (cancel, refund): nothing, or an empty object. */
+export function parseEmptyBody(body: unknown): void {
+  const result = emptyBodySchema.safeParse(body ?? {})
+  if (!result.success) throw invalidBody(result.error)
+}
+
+/** The number of an attempt in an address. Anything that cannot be one is an attempt not found. */
+export function parseAttemptNumber(value: unknown): number {
+  if (typeof value !== 'string' || !/^[1-9]$/.test(value) || Number(value) > MAX_PAYMENT_ATTEMPTS) {
+    throw new HttpError(404, 'payment_attempt_not_found', 'The attempt was not found')
+  }
+  return Number(value)
+}
 
 /**
  * An order number in an address. One that cannot be an order number is the same "not found" as one

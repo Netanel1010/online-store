@@ -36,7 +36,7 @@ let catalog: ReturnType<typeof createMemoryProductRepository>
 
 /** Order numbers ORD-1, ORD-2, ... unless a test supplies its own. */
 function setUp(generate?: () => string) {
-  orders = createMemoryOrderRepository()
+  orders = createMemoryOrderRepository({ now: () => new Date(clock) })
   catalog = createMemoryProductRepository([card, sale])
   let counter = 0
   return createOrderService({
@@ -133,6 +133,7 @@ describe('placing an order: what it costs', () => {
       'lines',
       'orderNumber',
       'originalTotal',
+      'payment',
       'savings',
       'status',
       'total',

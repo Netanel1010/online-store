@@ -86,6 +86,11 @@ export function setUpAuthApi() {
         lookup: (userId, key) => orderService.lookup(userId, key),
         get: (userId, orderNumber) => orderService.get(userId, orderNumber),
         list: (userId, params) => orderService.list(userId, params),
+        startPayment: (userId, orderNumber, key, scenario) =>
+          orderService.startPayment(userId, orderNumber, key, scenario),
+        cancelPayment: (userId, orderNumber, attempt) =>
+          orderService.cancelPayment(userId, orderNumber, attempt),
+        refundPayment: (userId, orderNumber) => orderService.refundPayment(userId, orderNumber),
       },
       createRequireAuth({ authenticate: (token) => service.authenticate(token) }),
       NO_ORDER_RATE_LIMITS,

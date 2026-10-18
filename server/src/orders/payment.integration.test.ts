@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../db/database.ts'
 import { initialPayment, type StoredAttempt, type StoredPayment } from './payment.ts'
 import { createOrderRepository, type OrderRepository } from './repository.ts'
+import { createOrderService, MAX_PAYMENT_WRITE_ATTEMPTS } from './service.ts'
 import type { Order } from './types.ts'
 
 // Optional: runs only when MONGODB_TEST_URI points at a real MongoDB, like orders.integration.test.ts,
@@ -77,8 +78,8 @@ describe.skipIf(!uri)(
         version: 3,
         state: 'awaiting' as const,
         expiresAt: new Date(now + offsets.expires),
-        settleDelayMs: offsets.settles + 1_000,
-        attemptTimeoutMs: offsets.timeout + 1_000,
+        settleDelayMs: 3_000,
+        attemptTimeoutMs: 120_000,
         attempts: [attempt],
       }
     }
@@ -306,6 +307,116 @@ describe.skipIf(!uri)(
           expect(attempt[field], field).toBeInstanceOf(Date)
         }
         expect(JSON.stringify(raw)).not.toContain('$$NOW')
+      })
+    })
+
+    describe('the service', () => {
+      /** The repository, counting the payment writes that matched, and able to delay them. */
+      function instrumented(delayMs = 0) {
+        const counts = { attempts: 0, matched: 0 }
+        const repository: OrderRepository = {
+          ...orders,
+          async updatePayment(...args) {
+            counts.attempts += 1
+            if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs))
+            const written = await orders.updatePayment(...args)
+            if (written) counts.matched += 1
+            return written
+          },
+        }
+        return { repository, counts }
+      }
+      const serviceOver = (repository: OrderRepository, now?: () => Date) =>
+        createOrderService({
+          orders: repository,
+          products: { findByIds: () => Promise.resolve([]) },
+          ...(now && { now }),
+        })
+
+      it('[C1] 50 reads at once after the deadline: one write matches, the version moves by one, all show the decision', async () => {
+        const payment = await paymentAround({ settles: -1_000, timeout: 20_000, expires: 600_000 })
+        const order = await orderWith(payment)
+        const { repository, counts } = instrumented()
+        const service = serviceOver(repository)
+
+        const answers = await Promise.all(
+          Array.from({ length: 50 }, () => service.get(order.userId, order.orderNumber)),
+        )
+
+        // This counts compare-and-set matches. On a single server, the majority is that server: it
+        // shows atomicity and that one write wins, not durability across a failover.
+        expect(counts.matched).toBe(1)
+        expect(counts.attempts).toBeLessThanOrEqual(50 * MAX_PAYMENT_WRITE_ATTEMPTS)
+        const stored = await orders.findByOrderNumber(order.userId, order.orderNumber, {
+          majority: true,
+        })
+        expect(stored!.payment).toMatchObject({ state: 'paid', version: payment.version + 1 })
+        expect(stored!.payment!.paidAt).toEqual(payment.attempts[0]!.settlesAt)
+        expect(answers.every((answer) => answer.payment!.attempts[0]!.status === 'succeeded')).toBe(
+          true,
+        )
+      })
+
+      it('[K2e] a start whose write is delayed past the window: no attempt, and closing', async () => {
+        const now = (await databaseNow()).getTime()
+        // The window closes 300 ms from now; the write happens 600 ms later than its read.
+        const payment: StoredPayment = {
+          version: 0,
+          state: 'awaiting',
+          expiresAt: new Date(now + 20_000 + 300),
+          settleDelayMs: 3_000,
+          attemptTimeoutMs: 20_000,
+          attempts: [],
+        }
+        const order = await orderWith(payment)
+        const { repository, counts } = instrumented(600)
+
+        const refused = serviceOver(repository).startPayment(
+          order.userId,
+          order.orderNumber,
+          randomUUID(),
+          'approve',
+        )
+        await expect(refused).rejects.toMatchObject({
+          status: 409,
+          code: 'payment_not_open',
+          details: { reason: 'closing' },
+        })
+        expect(counts.matched).toBe(0)
+        const stored = await orders.findByOrderNumber(order.userId, order.orderNumber)
+        expect(stored!.payment).toMatchObject({ version: 0, attempts: [] })
+      })
+
+      it('a cancellation read before the deadline and written after it is refused, and the decision stands', async () => {
+        const payment = await paymentAround({ settles: 300, timeout: 20_000, expires: 600_000 })
+        const order = await orderWith(payment)
+        const { repository, counts } = instrumented(600)
+
+        await expect(
+          serviceOver(repository).cancelPayment(order.userId, order.orderNumber, 1),
+        ).rejects.toMatchObject({ status: 409, code: 'payment_attempt_settled' })
+        expect(counts.matched).toBe(0)
+        const read = await serviceOver(orders).get(order.userId, order.orderNumber)
+        expect(read.payment!.attempts[0]!.status).toBe('succeeded')
+      })
+
+      it("decides on the database's clock: a process clock an hour off changes nothing", async () => {
+        const payment = await paymentAround({ settles: -1_000, timeout: 20_000, expires: 600_000 })
+        const ahead = await orderWith(payment)
+        const behind = await orderWith(payment)
+
+        const hour = 60 * 60 * 1000
+        const early = await serviceOver(orders, () => new Date(Date.now() - hour)).get(
+          behind.userId,
+          behind.orderNumber,
+        )
+        const late = await serviceOver(orders, () => new Date(Date.now() + hour)).get(
+          ahead.userId,
+          ahead.orderNumber,
+        )
+        expect(early.payment!.attempts[0]!.status).toBe('succeeded')
+        expect(late.payment!.attempts[0]!.status).toBe('succeeded')
+        expect(early.payment!.paidAt).toBe(late.payment!.paidAt)
       })
     })
   },

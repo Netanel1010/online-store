@@ -1,4 +1,5 @@
 import type { DeliveryDetails } from '../../../src/features/checkout/delivery.ts'
+import type { PublicPayment } from '../../../src/features/orders/payment.ts'
 import type { StoredPayment } from './payment.ts'
 
 export type { DeliveryDetails }
@@ -55,6 +56,8 @@ export interface PublicOrder {
   originalTotal: number
   savings: number
   delivery: DeliveryDetails
+  /** The simulated payment (see `payment.ts`), or null for an order placed before payments existed. */
+  payment: PublicPayment | null
 }
 
 /** One page of an account's orders, the newest first. */
