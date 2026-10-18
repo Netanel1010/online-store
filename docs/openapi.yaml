@@ -574,8 +574,15 @@ paths:
         are stored (normalized, see `DeliveryDetailsRequest`), so details typed another way that read the
         same (`+972501234567` and `050-1234567`) are the same request.
 
-        Nothing is charged, shipped or emailed: this is a demo checkout. Limited to 20 orders per hour per
-        client address (checked before the session).
+        Nothing is charged, shipped or emailed: this is a demo checkout. A new order waits for a
+        **simulated** payment (`payment.state` `awaiting`, see `Payment`) for 30 minutes. Limited to 20
+        orders per hour per client address (checked before the session).
+
+        **An order is reported only once it cannot be undone.** The order is written with a majority write
+        concern. If the database does not confirm it in time, the answer is `503 write_not_confirmed`: it
+        may exist, and the same request with the same key finds out. A repeat that finds the order before
+        a majority of the database has it is `503 order_not_confirmed`, never a success and never "no
+        order"; the same request again resolves it.
       security:
         - bearerAuth: []
       parameters:
@@ -630,6 +637,10 @@ paths:
       tags: [Orders]
       operationId: listOrders
       summary: The orders of the account, newest first
+      description: |
+        Read from a majority of the database, and never written: a payment decision that has become due
+        and is not stored yet is shown as it is stored, with `payment.pendingUpdate` true. Reading the
+        order itself stores it.
       security:
         - bearerAuth: []
       parameters:
@@ -669,7 +680,8 @@ paths:
         answer (another status, another code, an empty or unreadable body, a route-level `404 not_found`
         from an API that does not have this route yet) means that it could not be verified, and the
         client must not place a new order on the strength of it. A key of another account is not found
-        either, so the answer reveals nothing about other accounts.
+        either, so the answer reveals nothing about other accounts. An order that exists but that a
+        majority of the database does not have yet is `503 order_not_confirmed`, not `404`.
       security:
         - bearerAuth: []
       requestBody:
@@ -711,6 +723,13 @@ paths:
       tags: [Orders]
       operationId: getOrder
       summary: One order of the account
+      description: |
+        A payment decision that has become due (the provider decided an attempt, or the order's time is
+        up) is **stored before the order is shown**, in one write of this order only: the outcome was
+        already fixed by what is stored and by the database's clock, and storing it first is what keeps
+        an outcome that was shown from being undone. A repeat of the request changes nothing more. The
+        payment shown is what a majority of the database has, or what this request stored; if that
+        cannot be read, the answer is `503 database_unavailable` and shows nothing.
       security:
         - bearerAuth: []
       parameters:
@@ -737,6 +756,170 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
+  /api/orders/{orderNumber}/payment/attempts:
+    post:
+      tags: [Orders]
+      operationId: startPayment
+      summary: Start a simulated payment attempt
+      description: |
+        **Nothing is charged: the payment is a simulation.** There is no card field and no provider. The
+        body says only which `scenario` the fictional provider will follow (`PaymentScenario`); it is
+        stored with the attempt, and the outcome is worked out from it and from the database's clock
+        alone. A body with any other field (a status, an outcome, an amount) is `400 invalid_input`.
+
+        An attempt may start while the order is `awaiting`, with no attempt `processing`, fewer than
+        three attempts, and enough time left for it to end before the order does
+        (`now + attempt timeout <= expiresAt`, checked when the request decides and again by the database
+        when it writes). The same `Idempotency-Key` with the same scenario is the attempt it made (`200`);
+        with another scenario it is `409 idempotency_key_reuse` (`details.attemptNumber`).
+
+        Starting, cancelling and refunding share a limit of 30 per hour per client address.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderNumberInPath'
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: One per attempt the visitor starts, reused by every retry of it.
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9_-]{16,128}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [scenario]
+              properties:
+                scenario: { $ref: '#/components/schemas/PaymentScenario' }
+      responses:
+        '201':
+          description: The order, with the attempt that was just started.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '200':
+          description: The order, with the attempt this key started before.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400':
+          description: '`invalid_input` (the message names the field), `idempotency_key_required` or `invalid_idempotency_key`.'
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: '`order_not_found`, also for an order of another account.'
+          $ref: '#/components/responses/Error'
+        '409':
+          description: |
+            `payment_not_open` (`details.reason`: `legacy`, `paid`, `refunded`, `expired` or `closing`),
+            `payment_attempt_active`, `payment_attempts_exhausted` or `idempotency_key_reuse`
+            (`details.attemptNumber`).
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/orders/{orderNumber}/payment/attempts/{attemptNumber}/cancel:
+    post:
+      tags: [Orders]
+      operationId: cancelPaymentAttempt
+      summary: Cancel a simulated payment attempt that is still processing
+      description: |
+        Only before the fictional provider decides the attempt (`now < settlesAt`, or `timeoutAt` for
+        `no_answer`, by the database's clock when it writes): at the deadline the provider comes first.
+        Cancelling an attempt the visitor already cancelled is that cancellation again (`200`).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderNumberInPath'
+        - name: attemptNumber
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 3 }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        '200':
+          description: The order, with the attempt cancelled.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400':
+          description: '`invalid_input`: the body has a field.'
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: '`order_not_found` or `payment_attempt_not_found`.'
+          $ref: '#/components/responses/Error'
+        '409':
+          description: '`payment_attempt_settled` (`details.status`): the attempt was already decided.'
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /api/orders/{orderNumber}/payment/refund:
+    post:
+      tags: [Orders]
+      operationId: refundPayment
+      summary: Refund a paid order (simulated)
+      description: |
+        A full, simulated refund, once: nothing is paid back because nothing was charged. Asking again
+        for a refunded order is that refund (`200`, the same `refundedAt`).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderNumberInPath'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        '200':
+          description: The order, refunded.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400':
+          description: '`invalid_input`: the body has a field.'
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: '`order_not_found`.'
+          $ref: '#/components/responses/Error'
+        '409':
+          description: '`refund_not_allowed` (`details.state`: `legacy`, `awaiting` or `expired`).'
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -759,6 +942,11 @@ components:
       schema: { type: integer, minimum: 1 }
 
   parameters:
+    OrderNumberInPath:
+      name: orderNumber
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/OrderNumber' }
     Page:
       name: page
       in: query
@@ -807,7 +995,12 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     Unavailable:
-      description: '`database_not_configured` (no database in this environment) or `request_timeout` (no answer within 25 seconds; has `Retry-After`).'
+      description: |
+        `database_not_configured` (no database in this environment), `request_timeout` (no answer within
+        25 seconds; has `Retry-After`), and for orders `order_not_confirmed` (the order exists but a
+        majority of the database does not have it yet), `write_not_confirmed` (a change may have been
+        made but was not confirmed: send the same request again) or `database_unavailable`. The last
+        three have `Retry-After` and are resolved by the same request again.
       headers:
         Cache-Control:
           $ref: '#/components/headers/NoStore'
@@ -1310,15 +1503,21 @@ components:
 
     Order:
       type: object
-      description: An immutable record. The account is never part of it.
-      required: [orderNumber, createdAt, status, lines, total, originalTotal, savings, delivery]
+      description: What was ordered never changes; only the simulated `payment` does. The account is never part of it.
+      required:
+        [orderNumber, createdAt, status, lines, total, originalTotal, savings, delivery, payment]
       properties:
         orderNumber: { $ref: '#/components/schemas/OrderNumber' }
         createdAt: { type: string, format: date-time }
         status:
           type: string
           const: placed
-          description: The only state. Payment, shipping and the rest of an order's life are not modelled.
+          description: Always `placed`. Shipping is not modelled, and the payment has a state of its own, so a client that knows only `placed` still reads every order.
+        payment:
+          description: The simulated payment, or null for an order placed before payments existed.
+          oneOf:
+            - { $ref: '#/components/schemas/Payment' }
+            - { type: 'null' }
         lines:
           type: array
           items: { $ref: '#/components/schemas/OrderLine' }
@@ -1326,6 +1525,91 @@ components:
         originalTotal: { type: integer, description: The total before the sale. }
         savings: { type: integer, description: '`originalTotal` minus `total`.' }
         delivery: { $ref: '#/components/schemas/DeliveryDetails' }
+
+    PaymentScenario:
+      type: string
+      description: |
+        What the fictional provider will do, chosen by the visitor when an attempt starts: approve,
+        decline, cancel on its side, never answer (the attempt times out), or approve twice (the second
+        approval is ignored and counted in `ignoredConfirmations`; the order is paid once).
+      enum: [approve, decline, provider_cancel, no_answer, duplicate_approval]
+
+    AttemptStatus:
+      type: string
+      description: '`processing` until the provider decides or the visitor cancels; every other status is final.'
+      enum: [processing, succeeded, failed, cancelled, timed_out]
+
+    PaymentState:
+      type: string
+      description: '`awaiting` until an attempt succeeds (`paid`) or the time is up (`expired`); `paid` can become `refunded`. `refunded` and `expired` are final.'
+      enum: [awaiting, paid, refunded, expired]
+
+    Timestamp:
+      type: string
+      format: date-time
+      description: Always UTC with milliseconds, as `Date.prototype.toISOString()` writes it.
+      pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'
+
+    PaymentAttempt:
+      type: object
+      required: [number, scenario, createdAt, settlesAt, timeoutAt, status, ignoredConfirmations]
+      properties:
+        number: { type: integer, minimum: 1, maximum: 3 }
+        scenario: { $ref: '#/components/schemas/PaymentScenario' }
+        createdAt: { $ref: '#/components/schemas/Timestamp' }
+        settlesAt:
+          { $ref: '#/components/schemas/Timestamp', description: When the provider decides it. }
+        timeoutAt:
+          {
+            $ref: '#/components/schemas/Timestamp',
+            description: When it times out if the provider never answers.,
+          }
+        status: { $ref: '#/components/schemas/AttemptStatus' }
+        settledAt:
+          {
+            $ref: '#/components/schemas/Timestamp',
+            description: When it was decided; only once it is.,
+          }
+        cancelledBy:
+          { type: string, enum: [visitor, provider], description: Only for a cancelled attempt. }
+        ignoredConfirmations:
+          {
+            type: integer,
+            minimum: 0,
+            description: Messages from the provider that changed nothing (a duplicate approval).,
+          }
+
+    Payment:
+      type: object
+      description: |
+        The simulated payment of an order. Every field is what is stored, never a decision that is due
+        but not stored. The times are the database's clock.
+      required: [state, expiresAt, attemptsOpenUntil, attemptsLeft, pendingUpdate, attempts]
+      properties:
+        state: { $ref: '#/components/schemas/PaymentState' }
+        expiresAt:
+          {
+            $ref: '#/components/schemas/Timestamp',
+            description: When an unpaid order stops waiting (30 minutes after it was placed).,
+          }
+        attemptsOpenUntil:
+          {
+            $ref: '#/components/schemas/Timestamp',
+            description: The last moment an attempt can start and still end by `expiresAt`.,
+          }
+        attemptsLeft: { type: integer, minimum: 0, maximum: 3 }
+        paidAt:
+          { $ref: '#/components/schemas/Timestamp', description: 'Only when paid or refunded.' }
+        refundedAt: { $ref: '#/components/schemas/Timestamp', description: 'Only when refunded.' }
+        pendingUpdate:
+          {
+            type: boolean,
+            description: A decision is due that is not stored yet; reading the order stores it.,
+          }
+        attempts:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/PaymentAttempt' }
 
     OrderPage:
       type: object

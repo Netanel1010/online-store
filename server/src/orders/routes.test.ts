@@ -630,7 +630,7 @@ describe('POST /api/orders/lookup', () => {
   })
 
   it('is not limited by the limit on placing orders', async () => {
-    build({ place: { max: 1, windowMs: 60_000 } })
+    build({ ...NO_ORDER_RATE_LIMITS, place: { max: 1, windowMs: 60_000 } })
     const { token } = await account('netanel')
     await place(token)
 
@@ -784,7 +784,7 @@ describe('GET /api/orders', () => {
 })
 
 describe('the limit on placing orders', () => {
-  const LIMITED = { place: { max: 2, windowMs: 60_000 } }
+  const LIMITED = { ...NO_ORDER_RATE_LIMITS, place: { max: 2, windowMs: 60_000 } }
 
   it('answers 429 rate_limited with Retry-After past the limit, and makes no order for it', async () => {
     build(LIMITED)
