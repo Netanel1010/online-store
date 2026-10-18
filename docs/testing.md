@@ -255,6 +255,59 @@ they are tested:
   visitor would end it: the same account signs in from a second browser context and signs out of every
   device.
 
+## The Content-Security-Policy, the headers and the favorites of each person
+
+- `scripts/csp.test.ts`: the policy (the exact text, the API address as an origin only and refused when it is
+  not `http` or `https`, nothing unsafe or broad, nothing that a `<meta>` tag cannot carry, the header equals
+  the tag plus the frame rule) and `policyProblems`, which says what is wrong with the policy of a page.
+- `scripts/netlifyHeaders.test.ts`: `netlify.toml` sends, for every path, the policy of the build for the API
+  that the same file builds the site for, plus `frame-ancestors 'none'`, and the other headers. The file is
+  read as text, with a reader for the part of TOML it uses.
+- `npm run check:csp` (a CI step after the build): every HTML file of `dist/`, `404.html` included, has
+  exactly one policy tag, and it is the policy of the build. `scripts/siteSmoke.test.mjs` covers the same
+  check for a deployed site (`check:site`, given `API_URL`, the API the site was built for).
+- `policyProblems` holds a page to the policy of a build for a known API, directive by directive and source
+  by source, so a loosened policy is reported, not taken for the right shape: another site in `connect-src`,
+  `img-src` or any directive, another API, a directive the site does not have, one that is missing, one that
+  comes twice (a browser uses the first), the tag after something that loads, in the body or in a comment,
+  and, on their own, `default-src 'none'`, scripts from the site only and nothing unsafe. Each of these was
+  broken on purpose to see a test fail.
+- `e2e/csp.spec.ts`: eight kinds of page carry the one tag with the policy of the build, and a real browser
+  stops inline code, a script and an image from another site, a style attribute and a request to another
+  site (and allows the page's own changes to a style through the style object). A violation is a console
+  error, which the safety net of the suite turns into a failure, so every other end-to-end test also runs
+  under the policy.
+- `src/features/favorites/favoritesStore.test.ts`: the lists of the guest and of each account apart, the
+  session that ends, stale tabs and other tabs, the limits (100 products, 10 accounts), malformed data, storage
+  that cannot be read or written, a reload with and without a stored session, and the removal of the legacy
+  key. `src/pages/favoritesIsolation.test.tsx` runs it through the application (header, pages, sign-in and
+  sign-out, the API ending a session), and `e2e/favorites-isolation.spec.ts` with two accounts in a real
+  browser.
+
+## The rules for a new password
+
+- `src/test/passwordCases.ts`: the passwords that are accepted, refused (and why) or the email, written once,
+  with the unusual characters built from their numbers. `src/features/auth/passwordPolicy.test.ts` (the rules,
+  the length as typed and as hashed), `schemas.test.ts` (the form: message and field),
+  `server/src/auth/schemas.test.ts` (the API) and `passwordAgreement.test.ts` (the same passwords through both:
+  they must answer alike) all use it.
+- `rules.test.ts`: the length in code points, `passwordKey`, and the hand-written check for a lone surrogate
+  against the language's `isWellFormed` for every combination of up to three interesting units.
+- Existing accounts: `server/src/auth/passwords.test.ts` verifies hashes made before the change and pins what
+  hashing does (NFKC, no trimming, a lone surrogate as U+FFFD, which is why one is refused), and `routes.test.ts`
+  signs in accounts whose passwords a new account could not have.
+- The list: `src/features/auth/commonPasswords.test.ts` (sorted, once, folded, in range, the credit and licence
+  in its header, exact matching only), `scripts/commonPasswords.test.mjs` (the pinned revision, the filter, the
+  data file), `scripts/notices.test.mjs` and `npm run check:notices` (a CI step after the build: the chunk that
+  has the list has its notice). `openapiContract.test.ts` holds `docs/openapi.yaml` to the code.
+- `e2e/password-policy.spec.ts`: a real browser and the API: the hint, a common password and the email refused,
+  a phrase with spaces, Hebrew and an emoji accepted and signed in with, and a password with spaces around it
+  not signing in without them.
+- Each rule was broken on purpose (one change at a time) to see a test fail for the right reason. The changes
+  that nothing noticed were one that the API cannot show (it normalizes the email before the password is
+  compared, and the form's test shows it), and a missing case (130 typed characters that NFKC shortens to 65),
+  which was then added.
+
 ## Accessibility tests
 
 Automated checks (axe-core, WCAG 2.0 to 2.2 A and AA rules) find only part of the problems.
@@ -265,13 +318,15 @@ management and the mobile menu dialog.
 
 ## Quality checks beyond the test suites
 
-Three checks that are not tests of behaviour, each with one job:
+Checks that are not tests of behaviour, each with one job:
 
-| Check                    | Command and place                                                                  | What it guards                                                                                                                                       | Can it fail a pull request? |
-| ------------------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| Weight of the first page | `npm run check:bundle`, in `verify` after the build                                | the JavaScript (160 KiB) and CSS (16 KiB) that `index.html` loads up front, after gzip; today 133 KiB and 7.7 KiB. `scripts/bundleBudget.mjs`        | yes, and it blocks a deploy |
-| Lighthouse               | `lighthouse.yml`, budgets in `lighthouserc.json`                                   | accessibility at least 0.95, best practices and SEO at least 0.9, layout shift at most 0.25 (errors); performance at least 0.6 (warning)             | yes, but not a deploy gate  |
-| Production smoke         | `smoke.yml` every night and by hand: `check-api.mjs` (strict) and `check-site.mjs` | the deployed API and the deployed site, from outside: health, products, CORS, headers, catalog drift; home page, a static product page, sitemap, 404 | no (it runs on a schedule)  |
+| Check                       | Command and place                                                                  | What it guards                                                                                                                                                     | Can it fail a pull request? |
+| --------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- |
+| Weight of the first page    | `npm run check:bundle`, in `verify` after the build                                | the JavaScript (160 KiB) and CSS (16 KiB) that `index.html` loads up front, after gzip; today 133 KiB and 7.7 KiB. `scripts/bundleBudget.mjs`                      | yes, and it blocks a deploy |
+| Policy of every page        | `npm run check:csp`, in `verify` after the build                                   | every HTML file of `dist/`, `404.html` included, has exactly one Content-Security-Policy tag, and it is the policy of this build (`scripts/csp.ts`)                | yes                         |
+| Notice of the password list | `npm run check:notices`, in `verify` after the build                               | the chunk of the build that has the list of common passwords also has its credit and licence (CC BY-SA 3.0, [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)) | yes                         |
+| Lighthouse                  | `lighthouse.yml`, budgets in `lighthouserc.json`                                   | accessibility at least 0.95, best practices and SEO at least 0.9, layout shift at most 0.25 (errors); performance at least 0.6 (warning)                           | yes, but not a deploy gate  |
+| Production smoke            | `smoke.yml` every night and by hand: `check-api.mjs` (strict) and `check-site.mjs` | the deployed API and the deployed site, from outside: health, products, CORS, headers, catalog drift; home page, a static product page, sitemap, 404               | no (it runs on a schedule)  |
 
 **Lighthouse** runs three times on each of the home page, the listing and a product page, against the
 production build served like GitHub Pages with the stub API of the browser tests, and judges the
@@ -293,7 +348,8 @@ what a red run means. The accessibility checks, including the manual pass, are i
 
 1. **verify**: `npm ci`, format check, lint, typecheck, unit tests, API tests, the site build (with
    `VITE_API_URL` from the `API_URL` repository variable), the weight budget of the first page
-   (`npm run check:bundle`) and the API build.
+   (`npm run check:bundle`), the Content-Security-Policy of every page (`npm run check:csp`), the notice of
+   the list of common passwords (`npm run check:notices`) and the API build.
 2. **integration**: the tests of the code that talks to MongoDB (queries, unique indexes, sorting,
    the index that expires sessions, and the cart and order writes that must stay correct when requests
    arrive at the same moment: one cart per account, no lost update, one order per idempotency key) against a real MongoDB 8 that exists only for the job: a

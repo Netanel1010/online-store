@@ -11,3 +11,17 @@
   # The API, as for GitHub Pages (the repository variable API_URL). It is public. The API only answers
   # origins listed in its CORS_ORIGINS, so this site's address has to be in that list as well.
   VITE_API_URL = "https://online-store-api-9hz8.onrender.com"
+
+# Response headers. GitHub Pages cannot send any, so on that host the Content-Security-Policy is a <meta>
+# tag in every page (written by the build, scripts/csp.ts) and the rest of this block has no equivalent.
+# Netlify can, so here the same policy is sent as a header as well, with `frame-ancestors 'none'` (no page
+# may put the site in a frame), which a <meta> tag cannot carry. The address in `connect-src` is the
+# VITE_API_URL above, and scripts/netlifyHeaders.test.ts fails if the two or the policy of the build drift.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://online-store-api-9hz8.onrender.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "no-referrer"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), usb=()"

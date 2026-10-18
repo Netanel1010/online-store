@@ -8,6 +8,7 @@ import { setUpAuthApi } from '@/test/authApi'
 import { signOutFromHeader } from '@/test/accountMenu'
 import { makeProduct } from '@/test/fixtures'
 import { renderApp } from '@/test/renderApp'
+import { verifyPassword } from '../../server/src/auth/passwords'
 
 // The real authentication API (routes, validation, hashing, sessions) answers these tests.
 const api = setUpAuthApi()
@@ -171,19 +172,51 @@ describe('registration form', () => {
 
     await userEvent.type(nameBox(), GOOD.name)
     await userEvent.type(emailBox(), GOOD.email)
-    await userEvent.type(passwordBox(), 'abcdefgh')
+    await userEvent.type(passwordBox(), 'password1')
     await userEvent.type(confirmBox(), 'different')
     await submit('יצירת חשבון')
 
-    expect(await screen.findByText('הסיסמה חייבת להכיל לפחות ספרה אחת')).toBeInTheDocument()
+    expect(await screen.findByText('הסיסמה הזו נפוצה מדי. בחרו סיסמה אחרת.')).toBeInTheDocument()
     expect(screen.getByText('הסיסמאות אינן תואמות')).toBeInTheDocument()
     expect(api.accounts().size).toBe(0)
+  })
+
+  it('refuses a password that is the email, without asking the server', async () => {
+    await openPage('/register')
+
+    await userEvent.type(nameBox(), GOOD.name)
+    await userEvent.type(emailBox(), 'Dana@Example.com')
+    await userEvent.type(passwordBox(), 'dana@example.com')
+    await userEvent.type(confirmBox(), 'dana@example.com')
+    await submit('יצירת חשבון')
+
+    expect(await screen.findByText('הסיסמה לא יכולה להיות זהה לכתובת האימייל.')).toBeInTheDocument()
+    expect(api.accounts().size).toBe(0)
+  })
+
+  it('creates the account with a phrase that has spaces, Hebrew and an emoji, and signs in with it later', async () => {
+    const phrase = 'סיסמה ארוכה עם רווחים 🔒'
+    await openPage('/register')
+
+    await userEvent.type(nameBox(), GOOD.name)
+    await userEvent.type(emailBox(), GOOD.email)
+    await userEvent.type(passwordBox(), phrase)
+    await userEvent.type(confirmBox(), phrase)
+    await submit('יצירת חשבון')
+
+    await waitFor(() => expect(url()).toBe('/'))
+    expect(api.accounts().size).toBe(1)
+    // What the API stored a hash of is the phrase as it was typed.
+    const { passwordHash } = [...api.accounts().values()][0]!
+    expect(await verifyPassword(phrase, passwordHash)).toBe(true)
   })
 
   it('tells the visitor about the password rules up front', async () => {
     await openPage('/register')
 
-    expect(passwordBox()).toHaveAccessibleDescription('לפחות 8 תווים, כולל אות וספרה.')
+    expect(passwordBox()).toHaveAccessibleDescription(
+      'לפחות 8 תווים. אפשר להשתמש באותיות, בספרות, ברווחים ובסימנים.',
+    )
   })
 
   it('creates the account on the server, signs in and goes to the home page', async () => {
@@ -362,7 +395,7 @@ describe('signed-in state and logout', () => {
 describe('the cart and the favorites when signing in and out', () => {
   const product = makeProduct({ id: 'P-1', name: 'מוצר' })
 
-  it('keeps the cart and favorites across login, and empties only the cart on logout', async () => {
+  it('keeps the cart across login, shows the account its own favorites, and on logout empties only the cart', async () => {
     api.setCatalog([product]) // the API keeps only the products it has
     useCartStore.getState().addItem('P-1', 2)
     useFavoritesStore.getState().toggle('P-1')
@@ -372,10 +405,13 @@ describe('the cart and the favorites when signing in and out', () => {
     await fillLogin(GOOD.email, GOOD.password)
     await waitFor(() => expect(url()).toBe('/'))
     expect(useCartStore.getState().items).toEqual([{ productId: 'P-1', quantity: 2 }])
+    // The favorites of the guest are not the account's: nothing of them goes into it.
+    expect(useFavoritesStore.getState().ids).toEqual([])
 
     await signOutFromHeader()
 
-    // The cart is the account's and stays with it; the favorites are this browser's.
+    // The cart is the account's and stays with it; the favorites are this browser's, and the guest's
+    // list is shown again.
     expect(useCartStore.getState().items).toEqual([])
     expect(useFavoritesStore.getState().ids).toEqual(['P-1'])
   })

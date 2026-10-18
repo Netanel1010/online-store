@@ -1,16 +1,18 @@
 # Cart and favorites state
 
 Cart and favorites live in two small Zustand stores (`features/cart/cartStore.ts`,
-`features/favorites/favoritesStore.ts`) that persist to `localStorage` with the `persist`
-middleware. The favorites stay in the browser. The cart is also kept in the visitor's account when
-they are signed in: [Keeping the cart in the account](#keeping-the-cart-in-the-account) says how.
+`features/favorites/favoritesStore.ts`) that persist to `localStorage`. The cart uses the `persist`
+middleware; the favorites keep a list for each person, with the rules in
+[The favorites of each person](#the-favorites-of-each-person). The favorites stay in the browser. The
+cart is also kept in the visitor's account when they are signed in:
+[Keeping the cart in the account](#keeping-the-cart-in-the-account) says how.
 
 ## Decision: persist product IDs only, never product copies
 
-| Store     | Key                      | Persisted shape                        |
-| --------- | ------------------------ | -------------------------------------- |
-| Cart      | `online-store:cart`      | `{ items: [{ productId, quantity }] }` |
-| Favorites | `online-store:favorites` | `{ ids: [productId, ...] }`            |
+| Store     | Key                                                                       | Persisted shape                                 |
+| --------- | ------------------------------------------------------------------------- | ----------------------------------------------- |
+| Cart      | `online-store:cart`                                                       | `{ items: [{ productId, quantity }] }`          |
+| Favorites | `online-store:favorites:guest`, `online-store:favorites:account:<digest>` | `{ version: 1, ids: [productId, ...], usedAt }` |
 
 Both use `version: 1`. The cart has a third small key, `online-store:cart-sync`, described below.
 
@@ -85,8 +87,54 @@ here and is never touched.
 
 **Signing out** empties the cart in the browser and forgets the marker, so that the next person on a
 shared computer does not find it. The account keeps its cart, and it comes back at the next sign-in,
-here or on another device. The favorites are not touched. Placing an order empties the cart like any
+here or on another device. The favorites are not emptied: the list shown becomes the guest's, and the
+account's stays for when it comes back. Placing an order empties the cart like any
 other change, so the account's cart is emptied too.
+
+## The favorites of each person
+
+A browser is sometimes shared, so the favorites belong to **whoever is using it**, not to the browser:
+the visitor who is not signed in (the guest) has a list of their own, and so has every account. A list is
+a `localStorage` key of its own: `online-store:favorites:guest` and
+`online-store:favorites:account:<digest>`, the digest being the short hash that
+`features/orders/checkoutAttempt.ts` uses for the same purpose, so the id of an account is not in storage.
+(`features/favorites/favoritesStore.ts`)
+
+| What happens                                                | The list that is shown                                                 |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Nobody is signed in                                         | the guest's                                                            |
+| An account signs in or registers                            | the account's own (empty at first); **nothing of the guest's goes in** |
+| Signing out                                                 | the guest's again; the account's stays where it is                     |
+| A session ends (the API answers 401 and the page signs out) | the guest's; the account's is shown again when it signs in             |
+| Another account signs in on the same browser                | its own; it never reads the list of the account before it              |
+| A reload with a stored session                              | the account's, at once (it was remembered), then confirmed by the API  |
+
+- **The guest list is never merged into an account**, in either direction: what a visitor favorited before
+  signing in may have been put there by somebody else on a shared browser. The visitor sees their own list
+  again after signing out.
+- **The list kept before this change** (`online-store:favorites`, one for the whole browser) is removed when
+  the page opens: nobody can say whose it was. Favorites made before then are gone.
+- **Writing.** A change starts from what the browser keeps for that person, not from the copy this tab
+  holds, so a change made by another tab is not lost; and a tab writes only to the key of the person it
+  believes is here, so a tab left open on another account cannot put its favorites into the list of whoever
+  is signed in now. This is the same read-then-write as the cart, and as there it is not a transaction.
+- **Other tabs.** A change another tab makes to the list that is shown is followed (the `storage` event);
+  a change to any other list is not. Signing in or out in one tab does not change what another tab shows
+  until that tab learns of it (the cross-tab sign-out is not handled: see below).
+- **Limits.** A list holds at most 100 products (the most that the API is asked about at once); when it is
+  full, the one added first is let go. A browser keeps the lists of the 10 accounts used last (the guest does
+  not count); the one in use is never let go. An empty list leaves no key.
+- **Bad data and no storage.** A list that is not what this code wrote (not JSON, another shape, another
+  version) is read as empty and removed. When storage cannot be read or written, the lists are kept by the
+  page, still apart for each person.
+- **What it does not do.** It keeps one person's list out of the application's view of another's. It is not
+  a defence against code that runs in the page: that code can read all of `localStorage`, every list in it
+  included. Favorites never leave the browser (they are not sent to the API), and a list stays in the
+  browser after its owner signs out, until newer lists push it out or the visitor clears the browser's data.
+
+Tested in `src/features/favorites/favoritesStore.test.ts`, `src/pages/favoritesIsolation.test.tsx` (the
+application, with the API ending a session) and `e2e/favorites-isolation.spec.ts` (two accounts in a real
+browser).
 
 ## Several tabs
 
@@ -244,8 +292,6 @@ Tested in `src/features/orders/checkoutDraft.test.ts`, `src/features/auth/sessio
   cart, and a change it makes is written to storage, so the cart of an account that signed out in another
   tab can be left in a browser that nobody is signed in to. Signing out and in across tabs belongs with
   the rest of the authentication and browser security, not with the cart.
-- **Favorites across tabs:** the favorites are not followed between tabs; a change shows in another tab
-  after a reload.
 - **Two orders started in the same instant in two tabs:** the key of an attempt is made by the first
   tab that asks and read by the second, but two tabs that ask within the same few milliseconds can each
   make one. Order idempotency was not changed here.
@@ -253,6 +299,5 @@ Tested in `src/features/orders/checkoutDraft.test.ts`, `src/features/auth/sessio
   load, not pushed.
 - **Unsent changes at sign-out:** a change made in the last moment before signing out (inside the
   400 ms wait) is not sent, because the request that ends the session is sent at the same instant.
-- **Per-user favorites:** favorites are per browser, whoever is signed in.
 - **Schema migrations:** `version: 1` is in place, but no `migrate` function exists until a
   second version does.

@@ -53,4 +53,7 @@ jobs:
           export SITE_URL="https://$(echo "$OWNER" | tr '[:upper:]' '[:lower:]').github.io/${REPOSITORY}/"
           node scripts/check-site.mjs
         env:
+          # The API the site was built for (the same variable as the deploy job's build): every page
+          # must carry the policy for it and allow no other site.
+          API_URL: ${{ vars.API_URL }}
           OWNER: ${{ github.repository_owner }}

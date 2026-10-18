@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { PageLoading } from '@/components/shared/StateMessages'
 import { useRestoreSession } from '@/features/auth/useRestoreSession'
 import { KeepCartSynced } from '@/features/cart/KeepCartSynced'
+import { startFavoritesOwner } from '@/features/favorites/favoritesStore'
 import { startCheckoutDraftGuard } from '@/features/orders/checkoutDraft'
 import { ToastProvider } from '@/features/notifications/ToastProvider'
 import { ShopStateReconciler } from '@/features/shop/ShopStateReconciler'
@@ -20,6 +21,8 @@ export function RootLayout() {
   // What a visitor typed on the checkout before their session ended is for that visitor only: it goes
   // as soon as another account is signed in.
   useEffect(() => startCheckoutDraftGuard(), [])
+  // The favorites shown are those of whoever is here: the guest, or the account that is signed in.
+  useEffect(() => startFavoritesOwner(), [])
 
   // BrowserRouter does not restore scroll or focus on navigation: see the hook.
   useFocusAtPageStart(mainRef, pathname)

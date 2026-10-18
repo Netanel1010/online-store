@@ -29,7 +29,9 @@ program of its own, with a database.
   reach the site first. [0011](0011-one-workflow-gates-both-deployments.md) and the
   [deployment guide](../deployment.md#how-a-change-reaches-production) say how that is handled.
 - Pages cannot rewrite unknown paths: the build writes a `404.html` fallback and a real HTML file per
-  indexable page ([SEO](../seo.md)). Pages cannot send response headers either, so the site has no CSP.
+  indexable page ([SEO](../seo.md)). Pages cannot send response headers either, so the site's
+  Content-Security-Policy is a `<meta>` tag in every page, which carries only part of what a header does
+  ([0013](0013-csp-in-a-tag-and-favorites-for-each-person.md)).
 - Moving the site to another address means changing `CORS_ORIGINS` and `SITE_URL`.
 
 ## In the code

@@ -47,8 +47,9 @@ curl -s https://online-store-api-9hz8.onrender.com/api/health/ready
    STRICT_HARDENING=1 API_URL=https://online-store-api-9hz8.onrender.com SITE_ORIGIN=https://netanel1010.github.io npm run check:api
    ```
 
-4. Run `SITE_URL=https://netanel1010.github.io/online-store/ npm run check:site`: the home page mounts
-   the app, a static product page and the sitemap are there, and an unknown address answers 404.
+4. Run `SITE_URL=https://netanel1010.github.io/online-store/ API_URL=https://online-store-api-9hz8.onrender.com npm run check:site`:
+   the home page mounts the app, a static product page and the sitemap are there, an unknown address
+   answers 404, and each page carries the Content-Security-Policy for that API and allows no other site.
 5. Open the site and look at the home page, a product, the cart and (signed in) "my orders".
 
 **Order matters when a change adds API behaviour that the site uses.** The site can go live minutes
@@ -106,7 +107,8 @@ The same table, by symptom, is [Troubleshooting](deployment.md#troubleshooting).
 
 `smoke.yml` runs every night (03:23 UTC) and on demand (_Actions → Smoke → Run workflow_). It runs the
 two checks above against production, **read-only**: `check-api.mjs` with `STRICT_HARDENING=1`, then
-`check-site.mjs`. It is skipped while the repository variable `API_URL` is not set. A failed run
+`check-site.mjs` (given the same `API_URL`, the API the site was built for). It is skipped while the
+repository variable `API_URL` is not set. A failed run
 sends GitHub's usual failure notice to the people who watch the repository; it changes nothing that is
 live.
 

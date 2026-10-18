@@ -67,3 +67,51 @@ describe('verifyPassword', () => {
     expect(await verifyPassword('wrong-password-1', null)).toBe(false)
   })
 })
+
+describe('the hashing is what it was, so that an account made before the rules for a new password changed can sign in', () => {
+  // Hashes that were made by `hashPassword` before those rules changed, which did not touch the hashing.
+  // If the hashing is ever changed, these must still be verified (a new format gets a new prefix).
+  const MADE_BEFORE = [
+    [
+      'Passw0rdOK',
+      'scrypt$32768$8$3$ErjudAfNC37Thk_7zd_P9Q$th8IrwgX9JKGyCoGPP9U8zG9yjpBaGQjpQogifW2F6fagMPbZf3B2ezbPxaTk131fCR58thhWC1DYzDmFX0-jQ',
+    ],
+    [
+      'סיסמה ארוכה 🔒',
+      'scrypt$32768$8$3$PiEYDsYG_QQXbEr_L88Rzw$c6FdseBOk1czAKNRW2gHwQTUPp4UKU6ERyJgnk6HHbdIlgLPOEGZeirYTh3vaY_Zg5kNTHuxL2xoPyae3eC_zQ',
+    ],
+  ] as const
+
+  it.each(MADE_BEFORE)('verifies the hash of %s that was made before', async (password, stored) => {
+    expect(await verifyPassword(password, stored)).toBe(true)
+    expect(await verifyPassword(`${password} `, stored)).toBe(false)
+  })
+
+  it('hashes a password as NFKC: a fullwidth copy of it is the same password', async () => {
+    const hash = await hashPassword('password1')
+    const fullwidth = [...'password1']
+      .map((c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0))
+      .join('')
+
+    expect(await verifyPassword(fullwidth, hash)).toBe(true)
+  })
+
+  it('does not lower-case or trim a password: a capital and a space make it another one', async () => {
+    const hash = await hashPassword('password1')
+
+    expect(await verifyPassword('Password1', hash)).toBe(false)
+    expect(await verifyPassword(' password1', hash)).toBe(false)
+    expect(await verifyPassword('password1 ', hash)).toBe(false)
+  })
+
+  it('hashes a lone surrogate as U+FFFD, so that different texts are one password (why a new password may not have one)', async () => {
+    const lone = `abcdefg${String.fromCharCode(0xd800)}`
+    const other = `abcdefg${String.fromCharCode(0xdc00)}`
+    const replacement = `abcdefg${String.fromCharCode(0xfffd)}`
+    const hash = await hashPassword(lone)
+
+    expect(await verifyPassword(other, hash)).toBe(true)
+    expect(await verifyPassword(replacement, hash)).toBe(true)
+    expect(await verifyPassword('abcdefg', hash)).toBe(false)
+  })
+})

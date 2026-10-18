@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { resolveBasePath } from './scripts/basePath.ts'
+import { apiOrigin, contentSecurityPolicyTag } from './scripts/csp.ts'
 
 /**
  * Tells the browser, from the first bytes of the HTML, about the API the page is going to call:
@@ -18,13 +19,31 @@ function apiHints(apiUrl: string | undefined): Plugin {
   return {
     name: 'api-hints',
     transformIndexHtml(html) {
-      const base = apiUrl?.replace(/\/+$/, '')
-      if (!base || !URL.canParse(base)) return html.replace(HINTS_MARKER + '\n    ', '')
-      const origin = new URL(base).origin
+      const origin = apiOrigin(apiUrl)
+      if (!origin) return html.replace(HINTS_MARKER + '\n    ', '')
       // "anonymous": the app's fetch sends no credentials, and a connection made with other
       // credentials settings would not be the one it uses.
       const tag = `<link rel="preconnect" href="${origin}" crossorigin="anonymous" />`
       return html.replace(HINTS_MARKER, tag)
+    },
+  }
+}
+
+/**
+ * Writes the Content-Security-Policy into the page as a `<meta>` tag (scripts/csp.ts says what it
+ * allows). The tag is in the template, so every page that is made from it has it: the home page, the
+ * static pages (scripts/static-routes.mjs) and 404.html. A production build only: the dev server needs
+ * inline code for hot reloading, which the policy would stop.
+ */
+const CSP_MARKER = '<!-- csp -->'
+
+function contentSecurityPolicy(apiUrl: string | undefined, enabled: boolean): Plugin {
+  return {
+    name: 'content-security-policy',
+    transformIndexHtml(html) {
+      return enabled
+        ? html.replace(CSP_MARKER, contentSecurityPolicyTag(apiUrl))
+        : html.replace(CSP_MARKER + '\n    ', '')
     },
   }
 }
@@ -41,10 +60,20 @@ export default defineConfig(({ command, mode }) => ({
     react(),
     tailwindcss(),
     apiHints(command === 'build' ? loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL : undefined),
+    contentSecurityPolicy(
+      command === 'build' ? loadEnv(mode, process.cwd(), 'VITE_').VITE_API_URL : undefined,
+      command === 'build',
+    ),
   ],
   build: {
     rollupOptions: {
       output: {
+        // Keep the comments that start with /*! or have @license in them: the list of common passwords
+        // (src/features/auth/commonPasswords.data.ts) is under a licence that asks for the author to be
+        // credited and for the licence to go with every copy, and its notice is such a comment, which the
+        // minifier drops otherwise. `npm run check:notices` checks that it is in the build. The libraries'
+        // own notices are kept with it (about 5 kB before gzip, 0.6 KiB gzipped on the first page).
+        comments: { legal: true },
         // Libraries change much less often than the app. Keeping them in their own files means a
         // returning visitor only downloads the app code again after a deployment. The form
         // libraries are left out on purpose: they belong to the lazily loaded pages.

@@ -63,16 +63,17 @@ listing that is still loading after four seconds explains that the server may be
 (`SlowLoadNotice`). Every product the API sends is validated with the same Zod schema the API stores
 it with.
 
-**State.** Three [Zustand](https://zustand.docs.pmnd.rs/) stores with the `persist` middleware, plus
-the sync marker, which is a plain `localStorage` entry. None holds product data
+**State.** Two [Zustand](https://zustand.docs.pmnd.rs/) stores with the `persist` middleware (the session
+and the cart), the favorites store, which keeps its own lists in `localStorage` (one for each person, see
+below), and the sync marker, which is a plain `localStorage` entry. None holds product data
 ([ADR 0006](adr/0006-browser-state-keeps-product-ids-only.md)):
 
-| Store            | `localStorage` key       | Holds                                                                                                                          |
-| ---------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| Session          | `online-store:session`   | the session token, its end date and the visitor; the state machine is `restoring`, `authenticated`, `anonymous`, `unavailable` |
-| Cart             | `online-store:cart`      | `{ productId, quantity }` lines                                                                                                |
-| Cart sync marker | `online-store:cart-sync` | `{ owner, dirty }`: whose cart the browser copy is, and whether it has unsent changes                                          |
-| Favorites        | `online-store:favorites` | product ids (browser only, never sent to the API)                                                                              |
+| Store            | `localStorage` key                                                           | Holds                                                                                                                                                               |
+| ---------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Session          | `online-store:session`                                                       | the session token, its end date and the visitor; the state machine is `restoring`, `authenticated`, `anonymous`, `unavailable`                                      |
+| Cart             | `online-store:cart`                                                          | `{ productId, quantity }` lines                                                                                                                                     |
+| Cart sync marker | `online-store:cart-sync`                                                     | `{ owner, dirty }`: whose cart the browser copy is, and whether it has unsent changes                                                                               |
+| Favorites        | `online-store:favorites:guest` and `online-store:favorites:account:<digest>` | product ids of the guest and of each account (browser only, never sent to the API); `online-store:favorites-signed-in-as` remembers which account is signed in here |
 
 A fifth key, `online-store:checkout-attempt`, keeps the `Idempotency-Key` of the order being
 placed. Everything read from `localStorage` is validated and treated as untrusted
@@ -158,8 +159,12 @@ every later request: Authorization: Bearer <token>
 - **Session:** opaque and server-side, 7 days, revocable. No JWT and no signing secret
   ([ADR 0003](adr/0003-opaque-sessions-and-scrypt.md)). An account keeps at most 10 sessions (the
   oldest ends at the next sign-in); `POST /api/auth/logout-all` ends all of them.
-- **Passwords:** 8 to 128 characters with a letter and a digit, hashed with scrypt from Node's
-  `crypto`; a decoy hash makes an unknown email cost as much as a wrong password.
+- **Passwords:** hashed with scrypt from Node's `crypto`; a decoy hash makes an unknown email cost as much as
+  a wrong password. A new password is 8 to 128 characters (as typed and as hashed, in Unicode NFKC) of anything,
+  with no rule about letters or digits, and is refused if it holds a lone surrogate, is the account's email or
+  is one of 2086 common passwords (exact match; the list is under CC BY-SA 3.0, see
+  [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)). Signing in applies none of this
+  ([ADR 0013](adr/0013-csp-in-a-tag-and-favorites-for-each-person.md)).
 - **Authorization:** one kind of account, no roles. A route is protected by putting `createRequireAuth`
   in front of it, and the cart and orders are always those of the session's account, never one named
   in the request.
@@ -210,7 +215,7 @@ emailed.
 | Who may call from a browser  | CORS allow-list (`CORS_ORIGINS`, required in production); methods `GET, HEAD, POST, PUT, DELETE`; no credentials mode                                                             | `app.ts`, `config.ts`                                        |
 | Guessing and hashing in bulk | per-address limits (sign-in 30 / 15 min, registration 10 / hour, order 20 / hour, cart change 300 / 15 min), 5 failed sign-ins per email, at most 2 hashes at once with 8 waiting | `middleware/rateLimit.ts`, `auth/`, `lib/concurrencyGate.ts` |
 | Which address is counted     | `TRUST_PROXY_HOPS` (2 in production), read from the right of `X-Forwarded-For`                                                                                                    | `config.ts`, `lib/clientKey.ts`                              |
-| Response headers             | `nosniff`, `Referrer-Policy: no-referrer`, a CSP that allows nothing, `X-Frame-Options: DENY`, HSTS only over HTTPS                                                               | `middleware/securityHeaders.ts`                              |
+| Response headers (API)       | `nosniff`, `Referrer-Policy: no-referrer`, a CSP that allows nothing, `X-Frame-Options: DENY`, HSTS only over HTTPS                                                               | `middleware/securityHeaders.ts`                              |
 | Slow or stuck requests       | 25 s answer timeout (`503 request_timeout`); keep-alive 65 s, headers 66 s, request 120 s                                                                                         | `middleware/requestTimeout.ts`, `lib/serverTimeouts.ts`      |
 | Input                        | Zod on every body and query; errors name the field, never the value; bodies capped at 100 kB                                                                                      | `*/schemas.ts`, `products/listQuery.ts`                      |
 | Secrets                      | `MONGODB_URI` only in the Render dashboard; logs scrub credentials, tokens, passwords; a repository test looks for credential-shaped text                                         | `lib/logger.ts`, `scripts/secretShapes.mjs`                  |
@@ -219,8 +224,12 @@ emailed.
 
 The rate limits are in the memory of one process: they restart with it, and a scaled-out API would
 count per instance ([ADR 0010](adr/0010-in-house-limits-and-headers.md)). The site on GitHub Pages
-cannot send response headers, so it has no CSP. The details of each measure, and the milestone that
-added it, are in [`server/README.md`](../server/README.md) and the
+cannot send response headers, so its Content-Security-Policy is a `<meta>` tag in every page (written by
+the build, checked in CI by `npm run check:csp`), and Netlify sends the same policy and the other headers
+from `netlify.toml`; what a tag cannot do is in
+[deployment](deployment.md#security-headers-and-what-github-pages-cannot-do) and
+[ADR 0013](adr/0013-csp-in-a-tag-and-favorites-for-each-person.md). The details of each measure of the
+API, and the milestone that added it, are in [`server/README.md`](../server/README.md) and the
 [M1–M8 progress record](production-roadmap-progress.md).
 
 ## Observability
@@ -264,7 +273,7 @@ the **real API code** over in-memory data instead of a hand-written mock
 
 ## Where the limits are
 
-Read-only catalog, no roles, no password reset or account page, favorites per browser, no payment,
+Read-only catalog, no roles, no password reset or account page, favorites kept in the browser for each person (not in the account), no payment,
 stock or shipping, rate limits per process, a free API host that sleeps. The complete list, with the
 reason for each, is in the README's [Scope & Limitations](../README.md#-scope--limitations) and in
 the "Not handled" parts of [state persistence](state-persistence.md#not-handled-yet) and

@@ -26,6 +26,7 @@ trust if a record and the code ever disagree.
 | [0010](0010-in-house-limits-and-headers.md)                            | Rate limits and security headers are written in-house, without extra libraries            |
 | [0011](0011-one-workflow-gates-both-deployments.md)                    | One workflow gates both deployments                                                       |
 | [0012](0012-tests-run-the-real-api-code.md)                            | Tests run the real API code over in-memory data; MongoDB is tested separately             |
+| [0013](0013-csp-in-a-tag-and-favorites-for-each-person.md)             | A CSP in every page's tag, headers where a host can send them, favorites for each person, the rules for a new password |
 
 ## Writing a new one
 

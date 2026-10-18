@@ -1,11 +1,19 @@
 import {
+  PASSWORDS_THAT_ARE_ACCEPTED,
+  PASSWORDS_THAT_ARE_NOT_THE_EMAIL,
+  PASSWORDS_THAT_ARE_REFUSED,
+  PASSWORDS_THAT_ARE_THE_EMAIL,
+} from '@/test/passwordCases'
+import {
   NAMES_THAT_ARE_KEPT,
   NAMES_THAT_ARE_TIDIED,
   NAME_WITH,
   NOT_TEXT_IN_A_NAME,
 } from '@/test/nameCases'
-import { loginSchema, registerSchema } from './schemas'
+import { registerSchema } from './registerSchema'
+import { loginSchema } from './schemas'
 
+const chr = (code: number) => String.fromCharCode(code)
 const messages = (result: { success: boolean; error?: { issues: { message: string }[] } }) =>
   result.error?.issues.map((issue) => issue.message) ?? []
 
@@ -63,8 +71,8 @@ describe('registerSchema', () => {
 
   it.each([
     ['too short', 'Ab1', 'הסיסמה חייבת להכיל לפחות 8 תווים'],
-    ['without a letter', '12345678', 'הסיסמה חייבת להכיל לפחות אות אחת'],
-    ['without a digit', 'abcdefgh', 'הסיסמה חייבת להכיל לפחות ספרה אחת'],
+    ['seven characters', 'abcdefg', 'הסיסמה חייבת להכיל לפחות 8 תווים'],
+    ['a common one', 'password1', 'הסיסמה הזו נפוצה מדי. בחרו סיסמה אחרת.'],
   ])('rejects a password that is %s', (_label, password, message) => {
     const result = registerSchema.safeParse({
       ...validRegistration,
@@ -75,7 +83,7 @@ describe('registerSchema', () => {
     expect(messages(result)).toContain(message)
   })
 
-  it('accepts Hebrew letters as the required letter', () => {
+  it('accepts Hebrew letters in a password', () => {
     const password = 'סיסמה1234'
 
     expect(
@@ -164,5 +172,74 @@ describe('the email in the forms: what it accepts is as it was', () => {
     expect(messages(registerSchema.safeParse({ ...validRegistration, email }))).toContain(
       'כתובת האימייל אינה תקינה',
     )
+  })
+})
+
+describe('the password in the registration form', () => {
+  const MESSAGES = {
+    'too-short': 'הסיסמה חייבת להכיל לפחות 8 תווים',
+    'too-long': 'הסיסמה ארוכה מדי (עד 128 תווים)',
+    malformed: 'הסיסמה מכילה תווים שאינם תקינים.',
+    common: 'הסיסמה הזו נפוצה מדי. בחרו סיסמה אחרת.',
+  } as const
+  const IS_THE_EMAIL = 'הסיסמה לא יכולה להיות זהה לכתובת האימייל.'
+  const parse = (password: string, email = validRegistration.email) =>
+    registerSchema.safeParse({ ...validRegistration, email, password, confirmPassword: password })
+
+  it.each(PASSWORDS_THAT_ARE_ACCEPTED)(
+    'accepts %s, and keeps it as it was typed',
+    (_what, password) => {
+      const result = parse(password)
+
+      expect(result.success).toBe(true)
+      expect(result.data?.password).toBe(password)
+    },
+  )
+
+  it.each(PASSWORDS_THAT_ARE_REFUSED)(
+    'refuses %s, with its message, on the password field',
+    (_what, password, problem) => {
+      const result = parse(password)
+
+      expect(result.success).toBe(false)
+      expect(messages(result)).toEqual([MESSAGES[problem]])
+      expect(result.error?.issues[0]?.path).toEqual(['password'])
+    },
+  )
+
+  it.each(PASSWORDS_THAT_ARE_THE_EMAIL)(
+    'refuses %s, with its message, on the password field',
+    (_what, password, email) => {
+      const result = parse(password, email)
+
+      expect(messages(result)).toEqual([IS_THE_EMAIL])
+      expect(result.error?.issues[0]?.path).toEqual(['password'])
+    },
+  )
+
+  it.each(PASSWORDS_THAT_ARE_NOT_THE_EMAIL)('accepts %s', (_what, password, email) => {
+    expect(parse(password, email).success).toBe(true)
+  })
+
+  it('asks for a password with the one message when there is none', () => {
+    const onThePassword = parse('').error?.issues.filter((issue) => issue.path[0] === 'password')
+
+    expect(onThePassword?.map((issue) => issue.message)).toEqual(['יש להזין סיסמה'])
+  })
+
+  it('shows the mismatch of the confirmation together with a password that is refused', () => {
+    const result = registerSchema.safeParse({
+      ...validRegistration,
+      password: 'password1',
+      confirmPassword: 'different',
+    })
+
+    expect(messages(result)).toEqual([MESSAGES.common, 'הסיסמאות אינן תואמות'])
+  })
+
+  it('does not tell the sign-in form what a new password has to be', () => {
+    for (const password of ['x', 'password1', 'abcdefgh', chr(0xd800)]) {
+      expect(loginSchema.safeParse({ email: 'a@b.co', password }).success).toBe(true)
+    }
   })
 })

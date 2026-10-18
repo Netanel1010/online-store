@@ -86,6 +86,63 @@ GitHub Pages deployment, which does not read it and is unchanged.
   orders are the same, because they live in the API.
 - The Netlify build does not wait for this repository's checks: that is a property of how Netlify
   is connected, not of this file.
+- **It sends the security headers** of the site: see the next section.
+
+### Security headers and what GitHub Pages cannot do
+
+The site has a Content-Security-Policy in a `<meta>` tag of **every** page, and the API sends its own
+headers ([architecture](architecture.md#security)). The policy is built by
+[`scripts/csp.ts`](../scripts/csp.ts) from `VITE_API_URL`, written into the template by `vite.config.ts`
+(so the home page, the static pages and `404.html` all have it), and is:
+
+```
+default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' <API origin>;
+base-uri 'none'; form-action 'self'
+```
+
+It has no `'unsafe-inline'`, no `'unsafe-eval'`, no `data:` and no wildcard, and a production build only
+(the dev server needs inline code). A change that needs more is a change to `scripts/csp.ts` and
+`netlify.toml`, with a reason ([ADR 0013](adr/0013-csp-in-a-tag-and-favorites-for-each-person.md)).
+
+|                                                       | GitHub Pages (primary)                                                     | Netlify                                                 |
+| ----------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Content-Security-Policy                               | `<meta>` tag: the directives a tag can carry                               | tag **and** header, with `frame-ancestors 'none'`       |
+| Stops a page from being put in a frame (clickjacking) | **no** (`frame-ancestors` and `X-Frame-Options` need a header)             | yes (`frame-ancestors 'none'`, `X-Frame-Options: DENY`) |
+| `X-Content-Type-Options: nosniff`                     | **cannot be sent**                                                         | sent                                                    |
+| `Referrer-Policy: no-referrer`                        | cannot be sent (a `<meta name="referrer">` could carry it; none was added) | sent                                                    |
+| `Permissions-Policy`                                  | **cannot be sent**                                                         | sent (camera, microphone, geolocation, USB off)         |
+| Violation reports, report-only mode                   | **no**                                                                     | not configured                                          |
+| `Strict-Transport-Security`                           | sent by GitHub (one year)                                                  | sent by Netlify (one year, with `preload`)              |
+
+A `<meta>` policy is enforced from the moment the browser has read the tag (it comes right after the charset
+declaration, before any script), and it ignores `frame-ancestors`, `report-uri` and `sandbox`: they are not
+in it, because a browser reports them in the console. So the tag protects against injected scripts, styles,
+images and requests, and **not** against the site being framed; that only the Netlify host does.
+
+The API address is in two places that must agree, and tests fail when they do not:
+
+- the tag is built from `VITE_API_URL` of the build (`API_URL` for Pages, `netlify.toml` for Netlify), and
+  `npm run check:csp` checks every page of `dist/` against it (CI runs it after the build);
+- the Netlify header is written out in `netlify.toml` (TOML cannot read the build's variables) next to the
+  `VITE_API_URL` of the same file, and `scripts/netlifyHeaders.test.ts` fails if the header is not the
+  policy of the build for that address plus `frame-ancestors 'none'`. Changing the API address means
+  changing both lines of `netlify.toml`.
+
+To look at a deployed site, from the outside:
+
+```bash
+curl -sI https://online-store-netanel.netlify.app/ | grep -i -E "content-security|x-frame|x-content-type|referrer-policy|permissions-policy"
+SITE_URL=https://netanel1010.github.io/online-store/ API_URL=https://online-store-api-9hz8.onrender.com npm run check:site
+```
+
+The first shows the headers (Netlify only: GitHub Pages sends none of them). `check:site` reads the home page,
+a product page and the page for an unknown address, and holds each to the policy of a build for `API_URL` (the
+API the site was built for): it fails for a page with no policy, with two, with the tag after something that
+loads or in the body, or with a policy that allows anything the site's policy does not: another site in
+`connect-src`, `img-src` or any other directive, a directive the site does not have (fonts, frames, workers),
+a directive twice, `unsafe-*`, a wildcard, `data:` or a whole scheme. Without `API_URL` it expects no API but
+the site itself, so leaving it out fails against production. A violation in a browser is a console error: if a
+feature stops working after a change, look there first.
 
 ## How a change reaches production
 
@@ -142,10 +199,11 @@ $env:API_URL="https://online-store-api-9hz8.onrender.com"; $env:SITE_ORIGIN="htt
 
 `npm run check:site` does the same for the deployed site, from outside (the home page mounts the app under
 `/online-store/`, a static product page has its canonical address and structured data, the sitemap lists it,
-and an unknown address answers 404 with `noindex`):
+an unknown address answers 404 with `noindex`, and every one of these pages carries the policy for `API_URL`
+and allows no other site):
 
 ```bash
-SITE_URL=https://netanel1010.github.io/online-store/ npm run check:site
+SITE_URL=https://netanel1010.github.io/online-store/ API_URL=https://online-store-api-9hz8.onrender.com npm run check:site
 ```
 
 Both run every night in `smoke.yml` ([runbook](runbook.md#the-nightly-smoke-test)).
@@ -217,7 +275,7 @@ To check it by hand against the deployed API (use a throwaway address; the accou
 
 ```bash
 curl -s -X POST "$API_URL/api/auth/register" -H 'Content-Type: application/json' \
-  -d '{"name":"Check","email":"check-1@example.com","password":"<a password with a letter and a digit>"}'
+  -d '{"name":"Check","email":"check-1@example.com","password":"<a password of 8 or more characters that is not a common one>"}'
 curl -s "$API_URL/api/auth/me" -H "Authorization: Bearer <the token of the answer>"
 ```
 

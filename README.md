@@ -305,8 +305,10 @@ The production API accepts requests only from the deployed sites (CORS), so a lo
 | `npm test` · `npm run test:server`         | Site tests · API tests                                                            |
 | `npm run test:e2e`                         | Build and run the Playwright tests (first run: `npx playwright install chromium`) |
 | `npm run seed:products`                    | Copy the product catalog to MongoDB                                               |
-| `npm run check:api` · `npm run check:site` | Check a deployed API · check a deployed site (`SITE_URL`)                         |
+| `npm run check:api` · `npm run check:site` | Check a deployed API · check a deployed site (`SITE_URL`, `API_URL`)             |
 | `npm run check:bundle`                     | Check the build against the weight budget of the first page                       |
+| `npm run check:csp` · `npm run check:notices` | Check every page of the build for its Content-Security-Policy · check that the build keeps the notice of the password list |
+| `npm run build:common-passwords`           | Make the list of common passwords again from its pinned source (by hand; CC BY-SA 3.0, see `THIRD_PARTY_NOTICES.md`) |
 
 More commands, the map of the repository and common tasks: [`docs/development.md`](docs/development.md).
 
@@ -362,7 +364,7 @@ The full index, by what you want to do, is [`docs/README.md`](docs/README.md).
 
 ## License
 
-Released under the [MIT License](LICENSE). The licence covers the source code and documentation of this repository. The product names, brands, logos and product images in the catalog are not covered by it: they belong to their owners and appear here only as the content of a demonstration store.
+Released under the [MIT License](LICENSE). The licence covers the source code and documentation of this repository, except one data file, the list of common passwords (`src/features/auth/commonPasswords.data.ts`), which is derived from a list by Mark Burnett and is under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/), not the MIT License: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The product names, brands, logos and product images in the catalog are not covered by it: they belong to their owners and appear here only as the content of a demonstration store.
 
 ---
 

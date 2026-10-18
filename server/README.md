@@ -241,7 +241,7 @@ No roles exist, because nothing in the store needs them yet.
 ```bash
 curl -X POST http://localhost:3001/api/auth/register \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Dana","email":"dana@example.com","password":"<a password with a letter and a digit>"}'
+  -d '{"name":"Dana","email":"dana@example.com","password":"<a password of 8 or more characters that is not a common one>"}'
 # {"user":{"id":"…","name":"Dana","email":"dana@example.com"},"token":"<43 characters>","expiresAt":"…"}
 
 curl http://localhost:3001/api/auth/me -H 'Authorization: Bearer <token>'
@@ -276,8 +276,12 @@ A session that was ended, has expired or whose account is gone is refused with t
 a token that never existed, and an expired one is removed on the spot. An index on `sessions`
 (`userId`, `createdAt` descending: `userId_createdAt`) serves both of these.
 
-**Passwords.** At least 8 and at most 128 characters, with a letter and a digit (the form checks the
-same rules, from `src/features/auth/rules.ts`, to help the visitor; the API checks them again).
+**Passwords.** A new password is at least 8 and at most 128 characters, counted as sent and as hashed (Unicode
+NFKC), of any kind: no rule about letters or digits, spaces and any script allowed, never trimmed. It is
+refused (`400 invalid_input` naming `password`, never why) if it has a lone surrogate, is the email of the
+account, or is one of 2086 common passwords (exact match after NFKC and lower case). The form checks the same
+rules, from `src/features/auth/passwordPolicy.ts` and `rules.ts`, to help the visitor; the API checks them
+again. Signing in only needs 1 to 128 characters: an account may be older than the rules.
 They are hashed with **scrypt**, which ships with Node (`N=2^15, r=8, p=3`, 32 MiB, a random salt per
 account, the parameters written into the hash so they can be raised later) and compared in constant
 time. A password is never stored, logged, returned or put in a URL, and neither is the hash.

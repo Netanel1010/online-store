@@ -125,6 +125,21 @@ describe('the privacy page', () => {
     // No promise of deletion at the minute the time is up.
     expect(notice).not.toHaveTextContent('נמחקים בדיוק')
   })
+
+  it('says that the favorites are kept for each guest and each account, in the browser only, stay after signing out, and are not protected from the code of the page', async () => {
+    renderApp(paths.info('privacy'))
+    await screen.findByRole('heading', { level: 1, name: 'מדיניות פרטיות' })
+
+    const paragraph = screen.getByText(/האתר שומר בדפדפן \(באחסון המקומי\)/)
+    expect(paragraph).toHaveTextContent(
+      'המועדפים נשמרים בנפרד לכל אורח ולכל חשבון, בדפדפן בלבד, ואינם נשלחים לשרת',
+    )
+    expect(paragraph).toHaveTextContent('אחרי התנתקות הרשימה של החשבון נשארת בדפדפן')
+    expect(paragraph).toHaveTextContent('האתר אינו מציג אותה למי שמתחבר לחשבון אחר או גולש כאורח')
+    expect(paragraph).toHaveTextContent('אפשר למחוק את כל אלה בהגדרות הדפדפן')
+    // It says what the site shows, not that the list is hidden or protected from other code in the page.
+    expect(paragraph).not.toHaveTextContent(/מוגנ|מוצפנ|מאובטח|לא ניתן לגשת|סודי/)
+  })
 })
 
 describe('the accessibility statement', () => {
