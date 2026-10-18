@@ -101,7 +101,7 @@ test.describe('the simulated payment of an order', () => {
     await expect(attempts(page)).toContainText('פג הזמן', { timeout: 8_000 })
 
     await panel(page).getByRole('button', { name: 'הספק לא עונה' }).click()
-    await panel(page).getByRole('button', { name: 'בטל' }).click()
+    await panel(page).getByRole('button', { name: 'ביטול הניסיון' }).click()
     await expect(attempts(page)).toContainText('ניסיון 2: הספק לא עונה · בוטל')
     await expect(state(page)).toHaveText('ממתין לתשלום')
     expect(
