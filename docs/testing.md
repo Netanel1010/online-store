@@ -308,6 +308,37 @@ they are tested:
   compared, and the form's test shows it), and a missing case (130 typed characters that NFKC shortens to 65),
   which was then added.
 
+## The simulated payment
+
+The cases are named as in [ADR 0014](adr/0014-demo-payment-state-machine.md) and its review.
+
+- `server/src/orders/payment.test.ts`: the rules alone. Each scenario, the deadlines at a millisecond
+  either side, the start window (`expiresAt` minus the timeout, exactly, and one millisecond later),
+  cancelling against the provider, refunds, a clock that went back, and 40 seeded sequences of requests
+  and clocks (also backwards) in which every view must stay consistent and never move back.
+- `src/features/orders/payment.test.ts`: the checks the page makes of an answer (W0 to W6) and the
+  comparison of two answers, with the cases T1 to T20 (a changed `settlesAt`, attempts out of order,
+  a cancellation by another side or at another time, a forgotten ignored confirmation).
+- `server/src/orders/service.payment.test.ts`: the service over the in-memory repository, which can do
+  what one real MongoDB cannot (a lagging majority, an unconfirmed write, a rollback, a database clock
+  that moves between a read and a write or goes back): the start guards (K2a to K2d), the timings kept
+  across a change of settings (K1 to K8), a read whose write fails in each way (G2 to G9), 50 requests at
+  once (C2 to C7), and the confirmations of P4.
+- `server/src/orders/payment.integration.test.ts` (needs `MONGODB_TEST_URI`): the same conditions on a
+  real MongoDB's `$$NOW`, a payment that comes back to the millisecond, 50 reads at once with one write
+  that matches (C1), a delayed start (K2e) and a delayed cancellation. On a single server this shows
+  atomicity and the clock, not durability across a failover, which is not tested anywhere.
+- `server/src/orders/routes.payment.test.ts`: strict bodies, the attempt in the address, the owner, the
+  shared limit, and a `HEAD` that stores a decision once.
+- `src/features/orders/useOrder.test.tsx` and `src/pages/orderPayment.test.tsx`: the page shows only the
+  server's answers, polls and stops, keeps an older answer back, stops on a contradiction, starts from
+  nothing for another order or session, sends a lost start again with the same key, keeps nothing in
+  storage, and says what it should in Hebrew. `orderSchemaCompat.test.ts` holds the site that is live
+  while the API is newer to the new answers, and `paymentOpenapiContract.test.ts` holds
+  `docs/openapi.yaml` to the code.
+- `e2e/demo-payment.spec.ts`: every scenario in a real browser (the end-to-end API decides in a second
+  and times out in three), a lost answer, and the axe scan of each state.
+
 ## Accessibility tests
 
 Automated checks (axe-core, WCAG 2.0 to 2.2 A and AA rules) find only part of the problems.

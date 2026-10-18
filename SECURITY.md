@@ -35,7 +35,9 @@ Not security problems, and so not for this channel:
 
 - Accessibility problems. The site's accessibility statement (the `/accessibility` page, described in
   [`docs/accessibility.md`](docs/accessibility.md)) says how to report them.
-- Payments and shipping. Orders are demo orders: nothing is charged, shipped or emailed.
+- Payments and shipping. Orders are demo orders: nothing is charged, shipped or emailed, and the
+  payment of an order is a simulation whose outcome the visitor chooses (ADR 0014). A way to change a
+  stored payment other than through its rules, or to see or change another account's, is in scope.
 - Limits that are already documented, such as the in-memory rate limits described in
   [ADR 0010](docs/adr/0010-in-house-limits-and-headers.md) and the
   [scope and limitations](README.md#features) of the README.

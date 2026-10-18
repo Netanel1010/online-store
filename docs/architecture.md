@@ -33,7 +33,7 @@ password rules straight from `src/`, so each rule is written once
 (`dist/server/src/server.js`) carries those files next to it in `dist/src/`; nothing is read from the
 repository at run time.
 
-What the product is, and what it deliberately is not (a demo checkout, no payment, no roles), is in
+What the product is, and what it deliberately is not (a demo checkout, a simulated payment, no roles), is in
 the [README](../README.md#-scope--limitations).
 
 ## The site (`src/`)
@@ -130,13 +130,13 @@ stale-while-revalidate=3600`; everything about an account (auth, cart, orders) a
 One database (`MONGODB_DB_NAME`, `online-store` in production). The API creates the indexes when it
 starts, so there are no migrations to run.
 
-| Collection | One document is           | Key fields and indexes                                                                                                                                                          |
-| ---------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `products` | a product                 | the fields of the Zod `productSchema` plus a `search` object (normalized text, never returned); unique `id`                                                                     |
-| `users`    | an account                | `id` (UUID), `email` (lower case), `passwordHash`; unique `id` and unique `email`                                                                                               |
-| `sessions` | a signed-in browser       | `tokenHash` (SHA-256), `userId`, `createdAt`, `expiresAt`; unique `tokenHash`, TTL on `expiresAt`, `{ userId, createdAt }`                                                      |
-| `carts`    | an account's cart         | `userId`, `items[{ productId, quantity }]`, `revision`, `updatedAt`; unique `userId`                                                                                            |
-| `orders`   | a placed order, immutable | `orderNumber`, `userId`, `idempotencyKey`, `requestHash`, `lines`, `total`, `delivery`; unique `orderNumber`, unique `{ userId, idempotencyKey }`, `{ userId, createdAt, _id }` |
+| Collection | One document is                                                              | Key fields and indexes                                                                                                                                                                                                                                                                                           |
+| ---------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `products` | a product                                                                    | the fields of the Zod `productSchema` plus a `search` object (normalized text, never returned); unique `id`                                                                                                                                                                                                      |
+| `users`    | an account                                                                   | `id` (UUID), `email` (lower case), `passwordHash`; unique `id` and unique `email`                                                                                                                                                                                                                                |
+| `sessions` | a signed-in browser                                                          | `tokenHash` (SHA-256), `userId`, `createdAt`, `expiresAt`; unique `tokenHash`, TTL on `expiresAt`, `{ userId, createdAt }`                                                                                                                                                                                       |
+| `carts`    | an account's cart                                                            | `userId`, `items[{ productId, quantity }]`, `revision`, `updatedAt`; unique `userId`                                                                                                                                                                                                                             |
+| `orders`   | a placed order: what was ordered never changes, its simulated `payment` does | `orderNumber`, `userId`, `idempotencyKey`, `requestHash`, `lines`, `total`, `delivery`, `payment` (version, state, attempts, timings; [ADR 0014](adr/0014-demo-payment-state-machine.md)); unique `orderNumber`, unique `{ userId, idempotencyKey }`, `{ userId, createdAt, _id }`; written with `w: 'majority'` |
 
 The catalog is **seeded** from [`public/data/products.json`](../public/data/products.json) with
 `npm run seed:products`: validated first, upserted by `id`, never deleting
@@ -273,7 +273,7 @@ the **real API code** over in-memory data instead of a hand-written mock
 
 ## Where the limits are
 
-Read-only catalog, no roles, no password reset or account page, favorites kept in the browser for each person (not in the account), no payment,
+Read-only catalog, no roles, no password reset or account page, favorites kept in the browser for each person (not in the account), a simulated payment only,
 stock or shipping, rate limits per process, a free API host that sleeps. The complete list, with the
 reason for each, is in the README's [Scope & Limitations](../README.md#-scope--limitations) and in
 the "Not handled" parts of [state persistence](state-persistence.md#not-handled-yet) and

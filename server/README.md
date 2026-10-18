@@ -403,6 +403,9 @@ name, a phone number and an address).
 | `POST /api/orders/lookup`        | Asks which order an attempt made. Body `{ "idempotencyKey": "…" }`. `200` with the account's order, or `404 order_not_found`. |
 | `GET /api/orders`                | The account's orders, newest first, paged like the products (`?page=&limit=`, 20 by default, 100 at most).      |
 | `GET /api/orders/:orderNumber`   | One of the account's orders. Anyone else's, and one that does not exist, are the same `404 order_not_found`.    |
+| `POST /api/orders/:orderNumber/payment/attempts` | Starts a simulated payment attempt. Body `{ "scenario": "…" }` only; needs an `Idempotency-Key`. `201`, or `200` for a repeat. |
+| `POST /api/orders/:orderNumber/payment/attempts/:attemptNumber/cancel` | Cancels an attempt that is still processing. |
+| `POST /api/orders/:orderNumber/payment/refund` | Refunds a paid order, once (simulated). |
 
 ```json
 {
@@ -445,15 +448,42 @@ value). Like the other reads it has no limit of its own.
 
 **Order numbers** look like `DEMO-7K2M9QX4`: eight characters from an alphabet without look-alike
 letters, drawn with `crypto.randomInt` (about 10^12 possibilities), unique by an index. The `DEMO-`
-prefix stays while there is no payment.
+prefix stays: the payment is a simulation.
+
+**What an answer may say.** Orders are written with a majority write concern (`w: 'majority'`,
+`wtimeoutMS: 10000`): an order that the database did not confirm in time is `503 write_not_confirmed`
+(it may exist; the same request with the same key finds out). An order that a plain read finds and a
+majority read does not yet have (a repeat, a lookup or a read right after such a write) is
+`503 order_not_confirmed`: never a success, and never `404`, which would let the checkout place a second
+order. Whether an order exists is still a plain read. On a single server (CI, development) the majority
+is that server, so this shows nothing there; it matters on the Atlas replica set.
+
+**The simulated payment** ([ADR 0014](../docs/adr/0014-demo-payment-state-machine.md)). Nothing is charged
+and there is no card field. A new order waits for payment (`payment.state` `awaiting`) for 30 minutes. The
+visitor starts an attempt with a `scenario` (`approve`, `decline`, `provider_cancel`, `no_answer`,
+`duplicate_approval`), which is stored and is all the client ever says: the payment bodies are strict, so
+a status, an outcome or an amount is `400 invalid_input`. The fictional provider decides an attempt 3
+seconds after it starts (`no_answer` times out after 20), from the stored scenario alone; the visitor may
+cancel it before then. At most three attempts, one processing at a time, and an attempt starts only if it
+can end before the order's time. A paid order can be refunded once. The order keeps the timings it was
+placed with, and every decision is made on the database's clock (`$$NOW`), checked again by MongoDB when
+it writes; a decision that has become due is stored by the next read of the order, in one write, before
+it is shown, so a result that was shown is never undone. The list of orders never writes (it says
+`pendingUpdate`). `status` stays `placed`, and an order placed before payments existed has
+`payment: null`.
 
 **Errors:** `400 invalid_input` (the field, never the value), `400 idempotency_key_required`, `401`,
 `404 order_not_found`, `409 product_unavailable` (`details.productIds`; nothing is dropped silently),
-`409 price_changed`, `409 idempotency_key_reuse` (`details.orderNumber`), `429 rate_limited`.
+`409 price_changed`, `409 idempotency_key_reuse` (`details.orderNumber`), `429 rate_limited`, and the
+`503`s above. The payment adds `404 payment_attempt_not_found`, `409 payment_not_open`
+(`details.reason`), `409 payment_attempt_active`, `409 payment_attempts_exhausted`,
+`409 payment_attempt_settled` (`details.status`), `409 refund_not_allowed` (`details.state`),
+`409 idempotency_key_reuse` (`details.attemptNumber`) and `503 database_unavailable`.
 
-**Limits.** Placing an order is limited per client address: 20 per hour (`ORDER_RATE_LIMITS` in
-`orders/routes.ts`), checked before the session is looked up and in the memory of the process. An order
-has one status, `placed`: there is no payment, shipping, email, cancelling or editing, and no stock.
+**Limits.** Placing an order is limited per client address: 20 per hour, and starting, cancelling and
+refunding payments 30 per hour together (`ORDER_RATE_LIMITS` in `orders/routes.ts`), checked before the
+session is looked up and in the memory of the process. What was ordered is never changed: there is no
+shipping, email, cancelling or editing of an order, and no stock; only its simulated payment moves.
 Orders are kept with the account; there is no route that deletes them yet. Three indexes keep the
 `orders` collection correct and fast: the unique order number, the unique `{ userId, idempotencyKey }`
 and `{ userId, createdAt, _id }` for the history.
