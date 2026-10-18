@@ -18,7 +18,9 @@ import { trackRequestFailures } from './requestFailures'
  *
  * Orders have answers of the same kind: 409 for a product that is not available or a total that is not
  * what was shown, 404 for an order that is not the account's, 401 for a session that has ended, and
- * 503 for the host being busy, which the page repeats (`/api/orders` and `/api/orders/<number>`).
+ * 503 for the host being busy, which the page repeats (`/api/orders` and `/api/orders/<number>`). The
+ * simulated payment answers the same way (`/api/orders/<number>/payment/...`): 409 for an attempt
+ * the provider already decided or an order that cannot be paid, which the page reads again.
  *
  * A request the page cancels on purpose (see requestFailures.ts) is not a failure either; one that
  * fails for any other reason, or is cut off without the page having cancelled it, still is.
@@ -54,7 +56,9 @@ export const test = base.extend<{ problems: string[] }>({
           [401, 409, 429].includes(response.status())
         const refusedOrder =
           type === 'fetch' &&
-          /^\/api\/orders(\/[^/]+)?$/.test(pathname) &&
+          /^\/api\/orders(\/[^/]+(\/payment\/(attempts(\/\d+\/cancel)?|refund))?)?$/.test(
+            pathname,
+          ) &&
           [401, 404, 409, 503].includes(response.status())
         if (
           ((type === 'document' || missingProduct) && response.status() === 404) ||
