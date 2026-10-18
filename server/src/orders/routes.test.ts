@@ -47,7 +47,7 @@ const body = (overrides: Record<string, unknown> = {}) => ({
 let clock = Date.parse('2026-01-01T10:00:00Z')
 let users = createMemoryUserRepository()
 let sessions = createMemorySessionRepository()
-let orders = createMemoryOrderRepository()
+let orders = createMemoryOrderRepository({ now: () => new Date(clock) })
 let catalog = createMemoryProductRepository([card, sale])
 
 // The real router, order service, authentication middleware and error handling over in-memory
@@ -87,7 +87,7 @@ beforeEach(() => {
   clock = Date.parse('2026-01-01T10:00:00Z')
   users = createMemoryUserRepository()
   sessions = createMemorySessionRepository()
-  orders = createMemoryOrderRepository()
+  orders = createMemoryOrderRepository({ now: () => new Date(clock) })
   catalog = createMemoryProductRepository([card, sale])
   logger.error.mockClear()
   logger.info.mockClear()
@@ -198,6 +198,15 @@ describe('POST /api/orders', () => {
       originalTotal: 3000,
       savings: 0,
       delivery: STORED,
+      // A new order waits 30 minutes to be paid, and closes for new attempts 20 seconds before.
+      payment: {
+        state: 'awaiting',
+        expiresAt: '2026-01-01T10:30:00.000Z',
+        attemptsOpenUntil: '2026-01-01T10:29:40.000Z',
+        attemptsLeft: 3,
+        pendingUpdate: false,
+        attempts: [],
+      },
     })
     expect(orders.stored).toHaveLength(1)
   })
@@ -621,7 +630,7 @@ describe('POST /api/orders/lookup', () => {
   })
 
   it('is not limited by the limit on placing orders', async () => {
-    build({ place: { max: 1, windowMs: 60_000 } })
+    build({ ...NO_ORDER_RATE_LIMITS, place: { max: 1, windowMs: 60_000 } })
     const { token } = await account('netanel')
     await place(token)
 
@@ -775,7 +784,7 @@ describe('GET /api/orders', () => {
 })
 
 describe('the limit on placing orders', () => {
-  const LIMITED = { place: { max: 2, windowMs: 60_000 } }
+  const LIMITED = { ...NO_ORDER_RATE_LIMITS, place: { max: 2, windowMs: 60_000 } }
 
   it('answers 429 rate_limited with Retry-After past the limit, and makes no order for it', async () => {
     build(LIMITED)

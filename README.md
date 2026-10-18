@@ -179,12 +179,12 @@ The catalog, the accounts, the cart and the orders have a real backend. The chec
 
 | Limitation               | Details                                                                                                                                       |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **No real payments**     | Nothing is charged, shipped or emailed. Every order is a demo order, and the checkout says so                                                 |
+| **No real payments**     | Nothing is charged, shipped or emailed. Every order is a demo order, and the checkout says so. The payment of an order is a simulation: the visitor picks what a fictional provider does, there is no card field, and a refund pays nothing back |
 | **Read-only catalog**    | The API cannot create, update or delete products. Changes go through [`products.json`](public/data/products.json) and `npm run seed:products` |
 | **One kind of account**  | No administrators, password reset, email confirmation or account page                                                                         |
 | **Favorites in browser** | They are not stored in the account                                                                                                            |
 | **Cart limits**          | At most 50 different products and 99 units of each. Changes from another device appear at the next sign-in or page load                       |
-| **Orders are final**     | An order can be placed and read, not cancelled or edited. There is no way yet to delete an account or its orders                              |
+| **Orders are final**     | What was ordered cannot be cancelled or edited; only its simulated payment changes. There is no way yet to delete an account or its orders      |
 | **No stock or shipping** | Inventory, shipping and tax are outside the project scope                                                                                     |
 | **Suggestions wait**     | Search suggestions come from the API a moment after typing pauses, so they are not instant                                                    |
 

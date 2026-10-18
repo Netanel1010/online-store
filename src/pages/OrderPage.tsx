@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { paths } from '@/app/paths'
 import { PageMeta } from '@/components/shared/PageMeta'
@@ -9,6 +10,7 @@ import { buttonStyles } from '@/components/ui/buttonStyles'
 import { OrderSummary } from '@/features/cart/OrderSummary'
 import type { Order } from '@/features/orders/orderSchema'
 import { OrderSnapshotLines } from '@/features/orders/OrderSnapshotLines'
+import { PaymentPanel } from '@/features/orders/PaymentPanel'
 import { useOrder } from '@/features/orders/useOrder'
 import { formatDateTime } from '@/lib/format'
 import { noindexMeta } from '@/lib/seo'
@@ -67,6 +69,16 @@ function DeliveryDetails({ delivery }: { delivery: Order['delivery'] }) {
   )
 }
 
+/** The visitor's clock, once a second: only to hide a payment start that the server would refuse. */
+function useNow(everyMs = 1000) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), everyMs)
+    return () => clearInterval(timer)
+  }, [everyMs])
+  return now
+}
+
 /**
  * One order of the signed-in account, read from the API by its order number: the confirmation after
  * checkout, and later the same page from the order history. Everything on it is the server's: the
@@ -78,7 +90,8 @@ export function OrderPage() {
   const { orderNumber = '' } = useParams()
   const location = useLocation()
   const justPlaced = (location.state as { justPlaced?: unknown } | null)?.justPlaced === true
-  const { view, retry } = useOrder(orderNumber)
+  const { view, retry, payment } = useOrder(orderNumber)
+  const now = useNow()
 
   if (view.status === 'loading') {
     return (
@@ -142,6 +155,10 @@ export function OrderPage() {
         <bdi dir="ltr">{order.delivery.email}</bdi>. הכתובת נבדקה רק לפי הפורמט, ולא נקבע מועד
         אספקה. ההזמנה ופרטי המשלוח שהזנתם נשמרו בחשבון שלכם.
       </DemoNotice>
+
+      <div className="mt-6">
+        <PaymentPanel order={order} payment={payment} now={now} />
+      </div>
 
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-6">

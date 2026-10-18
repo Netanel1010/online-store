@@ -62,6 +62,9 @@ app.use(
     createOrderService({
       orders: createMemoryOrderRepository().repository,
       products: repository,
+      // The provider decides a simulated payment in a second and times out in three, instead of 3
+      // and 20 seconds, so a test of every scenario stays short. An order still waits 30 minutes.
+      paymentTimings: { settleDelayMs: 1_000, attemptTimeoutMs: 3_000, expiryMs: 30 * 60 * 1000 },
     }),
     createRequireAuth(auth),
     NO_ORDER_RATE_LIMITS,

@@ -8,7 +8,12 @@ import { SlowLoadNotice } from '@/components/shared/SlowLoadNotice'
 import { EmptyState, ErrorState } from '@/components/shared/StateMessages'
 import { Button } from '@/components/ui/Button'
 import { buttonStyles } from '@/components/ui/buttonStyles'
-import type { Order } from '@/features/orders/orderSchema'
+import { readPayment, type Order } from '@/features/orders/orderSchema'
+import {
+  LEGACY_ORDER_LABEL,
+  OPEN_TO_UPDATE,
+  paymentStateLabel,
+} from '@/features/orders/paymentLabels'
 import { useOrders } from '@/features/orders/useOrders'
 import { formatDateTime, formatPrice } from '@/lib/format'
 import { noindexMeta } from '@/lib/seo'
@@ -29,6 +34,22 @@ function OrdersSkeleton() {
 
 /** What the order says about itself: its state, as the API reports it. */
 const STATUS_LABEL: Record<Order['status'], string> = { placed: 'נשמרה' }
+
+/**
+ * The payment of an order in the list, as it is stored: the list never stores a decision that is due,
+ * so it says to open the order, which does (and which also shows a payment that cannot be right).
+ */
+function PaymentLabel({ order }: { order: Order }) {
+  const read = readPayment(order)
+  if (read.kind === 'legacy') return <span>{LEGACY_ORDER_LABEL}</span>
+  if (read.kind === 'malformed') return <span>{OPEN_TO_UPDATE}</span>
+  return (
+    <>
+      <span className="font-semibold text-ink">{paymentStateLabel(read.payment)}</span>
+      {read.payment.pendingUpdate && <span>{OPEN_TO_UPDATE}</span>}
+    </>
+  )
+}
 
 function OrderCard({ order }: { order: Order }) {
   const units = order.lines.reduce((sum, line) => sum + line.quantity, 0)
@@ -57,6 +78,7 @@ function OrderCard({ order }: { order: Order }) {
         <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-semibold text-brand">
           {STATUS_LABEL[order.status]}
         </span>
+        <PaymentLabel order={order} />
         <span>{units === 1 ? 'פריט אחד' : `${units} פריטים`}</span>
         <span>כתובת הדגמה: {delivery.city}</span>
         <span>
