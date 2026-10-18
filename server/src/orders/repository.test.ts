@@ -1,9 +1,12 @@
+import { MongoWriteConcernError } from 'mongodb'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Database } from '../db/database.ts'
+import { initialPayment } from './payment.ts'
 import {
   createOrderRepository,
   DuplicateIdempotencyKeyError,
   DuplicateOrderNumberError,
+  WriteNotConfirmedError,
 } from './repository.ts'
 import type { Order } from './types.ts'
 
@@ -15,11 +18,13 @@ const fake = vi.hoisted(() => {
   const collection = {
     findOne: vi.fn(),
     find: vi.fn(),
+    aggregate: vi.fn(),
     countDocuments: vi.fn(),
     insertOne: vi.fn(),
     createIndex: vi.fn(),
-    // Never to be called: an order is written once and never changed or removed.
+    // Only ever with a filter on the payment it read, to change the payment (updatePayment).
     updateOne: vi.fn(),
+    // Never to be called: what was ordered is never changed, and nothing is removed.
     updateMany: vi.fn(),
     replaceOne: vi.fn(),
     findOneAndUpdate: vi.fn(),
@@ -30,7 +35,7 @@ const fake = vi.hoisted(() => {
   return {
     cursor,
     collection,
-    collectionOf: vi.fn<(name: string) => typeof collection>(() => collection),
+    collectionOf: vi.fn<(name: string, options?: unknown) => typeof collection>(() => collection),
   }
 })
 
@@ -72,6 +77,18 @@ const order: Order = {
 const duplicateOn = (field: string) =>
   Object.assign(new Error('E11000 duplicate key'), { code: 11000, keyPattern: { [field]: 1 } })
 
+/** The driver's answer to a write that a majority did not confirm within `wtimeoutMS`. */
+const replicationTimedOut = new MongoWriteConcernError({
+  writeConcernError: { code: 64, errmsg: 'waiting for replication timed out' },
+} as never)
+
+const NOW = new Date('2026-01-01T10:05:00.000Z')
+const PAYMENT = initialPayment(new Date('2026-01-01T10:00:00Z'), {
+  settleDelayMs: 3000,
+  attemptTimeoutMs: 20000,
+  expiryMs: 1_800_000,
+})
+
 beforeEach(() => {
   vi.clearAllMocks()
   fake.cursor.sort.mockReturnValue(fake.cursor)
@@ -79,6 +96,8 @@ beforeEach(() => {
   fake.cursor.limit.mockReturnValue(fake.cursor)
   fake.cursor.toArray.mockResolvedValue([])
   fake.collection.find.mockReturnValue(fake.cursor)
+  fake.collection.aggregate.mockReturnValue(fake.cursor)
+  fake.collection.updateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 1 })
   fake.collection.findOne.mockResolvedValue(null)
   fake.collection.countDocuments.mockResolvedValue(0)
   fake.collection.insertOne.mockResolvedValue({ acknowledged: true })
@@ -92,7 +111,23 @@ describe('the collection', () => {
 
     await repository.findByOrderNumber('user-1', order.orderNumber)
 
-    expect(fake.collectionOf).toHaveBeenCalledWith('orders')
+    expect(fake.collectionOf).toHaveBeenCalledWith('orders', {
+      writeConcern: { w: 'majority', wtimeoutMS: 10_000 },
+    })
+  })
+
+  it('reads from the majority only when asked, and writes for the majority always', async () => {
+    const repository = createOrderRepository(database)
+
+    await repository.findByOrderNumber('user-1', order.orderNumber, { majority: true })
+    expect(fake.collectionOf).toHaveBeenLastCalledWith('orders', {
+      writeConcern: { w: 'majority', wtimeoutMS: 10_000 },
+      readConcern: { level: 'majority' },
+    })
+    await repository.findByIdempotencyKey('user-1', order.idempotencyKey)
+    expect(fake.collectionOf).toHaveBeenLastCalledWith('orders', {
+      writeConcern: { w: 'majority', wtimeoutMS: 10_000 },
+    })
   })
 })
 
@@ -148,6 +183,14 @@ describe('create', () => {
     await expect(createOrderRepository(database).create(order)).rejects.toBeInstanceOf(
       DuplicateOrderNumberError,
     )
+  })
+
+  it('says the write was not confirmed when the majority did not confirm it in time', async () => {
+    fake.collection.insertOne.mockRejectedValue(replicationTimedOut)
+
+    const failure = createOrderRepository(database).create(order)
+    await expect(failure).rejects.toBeInstanceOf(WriteNotConfirmedError)
+    await expect(failure).rejects.toMatchObject({ cause: replicationTimedOut })
   })
 
   it.each([
@@ -240,8 +283,8 @@ describe('finding an order', () => {
 })
 
 describe('listForUser', () => {
-  it("asks for the account's orders only, the newest first, then the page, and counts them", async () => {
-    fake.cursor.toArray.mockResolvedValue([order])
+  it("asks for the account's orders only, the newest first, then the page, with the clock, and counts them", async () => {
+    fake.cursor.toArray.mockResolvedValue([{ ...order, __databaseNow: NOW }])
     fake.collection.countDocuments.mockResolvedValue(7)
 
     const result = await createOrderRepository(database).listForUser('user-1', {
@@ -249,29 +292,162 @@ describe('listForUser', () => {
       limit: 10,
     })
 
-    expect(fake.collection.find).toHaveBeenCalledWith(
-      { userId: 'user-1' },
-      { projection: { _id: 0 } },
-    )
-    expect(fake.cursor.sort).toHaveBeenCalledWith({ createdAt: -1, _id: -1 })
-    expect(fake.cursor.skip).toHaveBeenCalledWith(20)
-    expect(fake.cursor.limit).toHaveBeenCalledWith(10)
+    expect(fake.collection.aggregate).toHaveBeenCalledWith([
+      { $match: { userId: 'user-1' } },
+      { $sort: { createdAt: -1, _id: -1 } },
+      { $skip: 20 },
+      { $limit: 10 },
+      { $project: { _id: 0 } },
+      { $set: { __databaseNow: '$$NOW' } },
+    ])
     expect(fake.collection.countDocuments).toHaveBeenCalledWith({ userId: 'user-1' })
-    expect(result).toEqual({ items: [order], total: 7 })
+    expect(result).toEqual({ items: [order], total: 7, databaseNow: NOW })
+  })
+
+  it('has no clock for an empty page', async () => {
+    const result = await createOrderRepository(database).listForUser('user-1', {
+      skip: 0,
+      limit: 10,
+    })
+
+    expect(result).toEqual({ items: [], total: 0, databaseNow: null })
+  })
+})
+
+describe('readWithClock', () => {
+  it("reads the account's order with the database's clock, which is not part of the order", async () => {
+    fake.cursor.toArray.mockResolvedValue([{ ...order, __databaseNow: NOW }])
+
+    const read = await createOrderRepository(database).readWithClock('user-1', order.orderNumber, {
+      majority: true,
+    })
+
+    expect(fake.collection.aggregate).toHaveBeenCalledWith([
+      { $match: { userId: 'user-1', orderNumber: order.orderNumber } },
+      { $limit: 1 },
+      { $project: { _id: 0 } },
+      { $set: { __databaseNow: '$$NOW' } },
+    ])
+    expect(read).toEqual({ order, databaseNow: NOW })
+  })
+
+  it('is null when there is no such order', async () => {
+    expect(
+      await createOrderRepository(database).readWithClock('user-2', order.orderNumber),
+    ).toBeNull()
+  })
+})
+
+describe('a stored payment', () => {
+  it('is read back as it was stored, so a write made from the read does not lose it', async () => {
+    fake.collection.findOne.mockResolvedValue({ ...order, payment: PAYMENT })
+
+    expect(
+      await createOrderRepository(database).findByOrderNumber('user-1', order.orderNumber),
+    ).toEqual({ ...order, payment: PAYMENT })
+  })
+
+  it.each([
+    ['without its timeout', { ...PAYMENT, attemptTimeoutMs: undefined }],
+    ['without its settle delay', { ...PAYMENT, settleDelayMs: undefined }],
+    ['a settle delay that is not shorter than the timeout', { ...PAYMENT, settleDelayMs: 20000 }],
+    ['a state it does not know', { ...PAYMENT, state: 'charged' }],
+    ['four attempts', { ...PAYMENT, attempts: [1, 2, 3, 4].map(() => ({})) }],
+  ])('is refused as stored data when it has %s', async (_name, broken) => {
+    fake.collection.findOne.mockResolvedValue({ ...order, payment: broken })
+
+    await expect(
+      createOrderRepository(database).findByOrderNumber('user-1', order.orderNumber),
+    ).rejects.toThrow('A stored order does not match the order schema')
+  })
+})
+
+describe('updatePayment', () => {
+  const expected = {
+    version: 4,
+    state: 'awaiting' as const,
+    statuses: ['failed' as const, 'processing' as const],
+  }
+  const update = (
+    guards: Parameters<ReturnType<typeof createOrderRepository>['updatePayment']>[3],
+  ) =>
+    createOrderRepository(database).updatePayment(
+      'user-1',
+      order.orderNumber,
+      expected,
+      guards,
+      PAYMENT,
+    )
+
+  it('sets the payment only where it is still the one it read and every guard holds by the database clock', async () => {
+    const written = await update([
+      { kind: 'atOrAfter', attempt: 1, field: 'settlesAt' },
+      { kind: 'before', attempt: 1, field: 'timeoutAt' },
+      { kind: 'expired' },
+      { kind: 'startWindow' },
+    ])
+
+    expect(written).toBe(true)
+    expect(fake.collection.updateOne).toHaveBeenCalledWith(
+      {
+        userId: 'user-1',
+        orderNumber: order.orderNumber,
+        'payment.version': 4,
+        $expr: {
+          $and: [
+            { $eq: ['$payment.state', 'awaiting'] },
+            { $eq: ['$payment.attempts.status', ['failed', 'processing']] },
+            { $gte: ['$$NOW', { $arrayElemAt: ['$payment.attempts.settlesAt', 1] }] },
+            { $lt: ['$$NOW', { $arrayElemAt: ['$payment.attempts.timeoutAt', 1] }] },
+            { $gte: ['$$NOW', '$payment.expiresAt'] },
+            { $lte: [{ $add: ['$$NOW', '$payment.attemptTimeoutMs'] }, '$payment.expiresAt'] },
+          ],
+        },
+      },
+      { $set: { payment: PAYMENT } },
+    )
+  })
+
+  it('says it did not write when nothing matched', async () => {
+    fake.collection.updateOne.mockResolvedValue({ matchedCount: 0, modifiedCount: 0 })
+
+    expect(await update([])).toBe(false)
+  })
+
+  it('says a write was not confirmed when the majority did not confirm it, and passes on anything else', async () => {
+    fake.collection.updateOne.mockRejectedValueOnce(replicationTimedOut)
+    await expect(update([])).rejects.toBeInstanceOf(WriteNotConfirmedError)
+
+    const down = new Error('not primary')
+    fake.collection.updateOne.mockRejectedValueOnce(down)
+    await expect(update([])).rejects.toBe(down)
   })
 })
 
 describe('what the repository never does', () => {
-  it('does not update, replace or delete an order', async () => {
+  it('does not change what was ordered, replace or delete an order', async () => {
     const repository = createOrderRepository(database)
     await repository.ensureIndexes()
     await repository.create(order)
     await repository.findByOrderNumber('user-1', order.orderNumber)
     await repository.findByIdempotencyKey('user-1', order.idempotencyKey)
+    await repository.readWithClock('user-1', order.orderNumber)
     await repository.listForUser('user-1', { skip: 0, limit: 20 })
+    expect(fake.collection.updateOne).not.toHaveBeenCalled()
+
+    await repository.updatePayment(
+      'user-1',
+      order.orderNumber,
+      { version: 0, state: 'awaiting', statuses: [] },
+      [],
+      PAYMENT,
+    )
+    // The one update there is changes the payment, and nothing else.
+    for (const [, change] of fake.collection.updateOne.mock.calls) {
+      expect(change).toEqual({ $set: { payment: PAYMENT } })
+    }
 
     for (const name of [
-      'updateOne',
       'updateMany',
       'replaceOne',
       'findOneAndUpdate',

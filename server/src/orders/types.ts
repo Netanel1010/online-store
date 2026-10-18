@@ -1,4 +1,5 @@
 import type { DeliveryDetails } from '../../../src/features/checkout/delivery.ts'
+import type { StoredPayment } from './payment.ts'
 
 export type { DeliveryDetails }
 
@@ -17,8 +18,9 @@ export interface OrderLine {
 }
 
 /**
- * An order as it is stored. Orders are never changed after they are made, and they always belong
- * to one account. An order is identified outside by its order number.
+ * An order as it is stored. What was ordered is never changed after it is made; only its simulated
+ * `payment` changes, through the rules of `payment.ts`. An order always belongs to one account and is
+ * identified outside by its order number.
  */
 export interface Order {
   orderNumber: string
@@ -28,7 +30,10 @@ export interface Order {
   /** A digest of what the request asked for, to tell a retry from a different request. */
   requestHash: string
   createdAt: Date
-  /** There is only one state: payment, shipping and the rest of an order's life are not modelled. */
+  /**
+   * Always `placed`: shipping and the rest of an order's life are not modelled, and the simulated
+   * payment has a state of its own, so a client that knows only `placed` still reads every order.
+   */
   status: 'placed'
   lines: OrderLine[]
   /** All amounts are whole ILS, worked out by the server from the products it holds. */
@@ -36,6 +41,8 @@ export interface Order {
   originalTotal: number
   savings: number
   delivery: DeliveryDetails
+  /** The simulated payment. An order placed before payments existed has none. */
+  payment?: StoredPayment
 }
 
 /** What the API shows of an order: nothing that identifies the request or the account. */
