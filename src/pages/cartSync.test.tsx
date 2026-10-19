@@ -58,7 +58,7 @@ describe('the cart page of a signed-in visitor', () => {
     await screen.findByRole('link', { name: 'ספק כוח' })
     await waitFor(() => expect(savedCart()).toHaveLength(2))
 
-    await userEvent.click(screen.getByRole('button', { name: 'הסרת ספק כוח מהעגלה' }))
+    await userEvent.click(screen.getByRole('button', { name: 'הסרה מהעגלה: ספק כוח' }))
 
     await waitFor(() => expect(savedCart()).toEqual([{ productId: 'GPU-1', quantity: 1 }]))
   })

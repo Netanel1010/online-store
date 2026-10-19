@@ -43,7 +43,7 @@ describe('CartPage', () => {
     await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
     // Each cart line is the list item that holds a remove button.
     const lines = screen
-      .getAllByRole('button', { name: /הסרת/ })
+      .getAllByRole('button', { name: /הסרה מהעגלה/ })
       .map((button) => button.closest('li')!)
     expect(lines).toHaveLength(2)
     expect(within(lines[0]!).getByRole('link', { name: 'כרטיס מסך' })).toHaveAttribute(
@@ -57,7 +57,7 @@ describe('CartPage', () => {
   it('has one accessible link per line: the decorative image link is hidden from keyboards and screen readers', async () => {
     useCartStore.getState().addItem('PSU-1')
     renderApp('/cart', catalog)
-    const remove = await screen.findByRole('button', { name: 'הסרת ספק כוח מהעגלה' })
+    const remove = await screen.findByRole('button', { name: 'הסרה מהעגלה: ספק כוח' })
     const line = remove.closest('li')!
 
     expect(within(line).getAllByRole('link')).toHaveLength(1)
@@ -65,6 +65,17 @@ describe('CartPage', () => {
     expect(imageLink).not.toBeNull()
     expect(imageLink).toHaveAttribute('tabindex', '-1')
     expect(imageLink).toHaveAttribute('href', '/products/PSU-1')
+  })
+
+  it('names each remove button so that the word on the button is part of its accessible name', async () => {
+    useCartStore.getState().addItem('PSU-1')
+    renderApp('/cart', catalog)
+    // The button is found by the word it shows. A screen reader says its name, and a voice-control
+    // user says the word they read on it, so the name has to contain that word and the product.
+    const remove = (await screen.findByText('הסרה')).closest('button')!
+
+    expect(remove).toHaveAccessibleName(expect.stringContaining('הסרה'))
+    expect(remove).toHaveAccessibleName(expect.stringContaining('ספק כוח'))
   })
 
   it('calculates the order summary from the cart instead of showing a fixed total', async () => {
@@ -113,7 +124,7 @@ describe('CartPage', () => {
     renderApp('/cart', catalog)
     await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
 
-    await userEvent.click(screen.getByRole('button', { name: 'הסרת ספק כוח מהעגלה' }))
+    await userEvent.click(screen.getByRole('button', { name: 'הסרה מהעגלה: ספק כוח' }))
 
     expect(useCartStore.getState().items).toEqual([{ productId: 'GPU-1', quantity: 1 }])
     expect(screen.queryByRole('link', { name: 'ספק כוח' })).not.toBeInTheDocument()
@@ -126,7 +137,7 @@ describe('CartPage', () => {
     useCartStore.getState().addItem('PSU-1')
     renderApp('/cart', catalog)
 
-    await userEvent.click(await screen.findByRole('button', { name: 'הסרת ספק כוח מהעגלה' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'הסרה מהעגלה: ספק כוח' }))
 
     expect(screen.getByText('העגלה ריקה')).toBeInTheDocument()
   })
@@ -220,7 +231,7 @@ describe('cart page layout', () => {
     renderApp('/cart', catalog)
     await screen.findByRole('complementary', { name: 'סיכום הזמנה' })
 
-    const remove = screen.getByRole('button', { name: /הסרת/ })
+    const remove = screen.getByRole('button', { name: /הסרה מהעגלה/ })
     const controls = remove.parentElement!.parentElement!
     expect(within(controls).getByRole('group', { name: /כמות/ })).toBeInTheDocument()
     expect(within(controls).getByText(/סה"כ לשורה/).parentElement).toHaveTextContent(/1,500/)

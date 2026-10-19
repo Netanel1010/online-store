@@ -7,6 +7,7 @@ import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { MAX_QUANTITY, useCartStore } from '@/features/cart/cartStore'
 import { FavoriteButton } from '@/features/favorites/FavoriteButton'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
+import { HeaderShopLinks } from './HeaderShopLinks'
 
 const product = makeProduct({ id: 'GP-1', name: 'ספק כוח' })
 
@@ -61,6 +62,32 @@ describe('FavoriteButton', () => {
     renderWithProviders(<FavoriteButton product={product} showLabel />)
 
     expect(screen.getByRole('button', { name: 'מועדפים: ספק כוח' })).toHaveTextContent('מועדפים')
+  })
+})
+
+describe('HeaderShopLinks', () => {
+  it('names each link with what its badge shows, also past 99', () => {
+    useCartStore.getState().addItem('GP-1', 99)
+    useCartStore.getState().addItem('GP-2', 5)
+    useFavoritesStore.setState({ ids: Array.from({ length: 100 }, (_, index) => `F-${index}`) })
+    renderWithProviders(<HeaderShopLinks />)
+
+    // The badge is visible text of the link, so it has to be part of the link's accessible name.
+    const cart = screen.getByRole('link', { name: /^עגלת קניות/ })
+    expect(cart).toHaveTextContent('99+')
+    expect(cart).toHaveAccessibleName('עגלת קניות, 99+ פריטים')
+    const favorites = screen.getByRole('link', { name: /^מועדפים/ })
+    expect(favorites).toHaveTextContent('99+')
+    expect(favorites).toHaveAccessibleName('מועדפים, 99+ פריטים')
+  })
+
+  it('says the exact number up to 99', () => {
+    useCartStore.getState().addItem('GP-1', 99)
+    renderWithProviders(<HeaderShopLinks />)
+
+    expect(screen.getByRole('link', { name: /^עגלת קניות/ })).toHaveAccessibleName(
+      'עגלת קניות, 99 פריטים',
+    )
   })
 })
 
@@ -136,7 +163,7 @@ describe('toast feedback in the app', () => {
     await userEvent.click(within(region()).getByRole('link', { name: 'לעגלה' }))
 
     expect(await screen.findByRole('heading', { level: 1, name: 'עגלת קניות' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'הסרת ספק כוח מהעגלה' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'הסרה מהעגלה: ספק כוח' })).toBeInTheDocument()
   })
 
   it('announces adding and removing a favorite', async () => {

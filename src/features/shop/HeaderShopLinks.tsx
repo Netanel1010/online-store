@@ -5,6 +5,14 @@ import { CartIcon, HeartIcon } from '@/components/icons'
 import { selectCartCount, useCartStore } from '@/features/cart/cartStore'
 import { useFavoritesStore } from '@/features/favorites/favoritesStore'
 
+/**
+ * What a badge shows for a count. The link's accessible name uses the same text, because the badge is
+ * visible text of the link and the name has to contain it (WCAG 2.5.3): past 99 both say "99+".
+ */
+function badgeText(count: number) {
+  return count > 99 ? '99+' : String(count)
+}
+
 function CountBadge({ count }: { count: number }) {
   // Whenever the number changes the badge is replaced by a new element, which plays a short pop
   // (skipped with reduced motion). Nothing plays for the number the page loaded with.
@@ -24,7 +32,7 @@ function CountBadge({ count }: { count: number }) {
         changes > 0 ? 'motion-safe:animate-badge-pop' : ''
       }`}
     >
-      {count > 99 ? '99+' : count}
+      {badgeText(count)}
     </span>
   )
 }
@@ -56,14 +64,14 @@ export function HeaderShopLinks() {
     <div className="flex items-center gap-1">
       <IconLink
         to={paths.favorites}
-        label={favoritesCount > 0 ? `מועדפים, ${favoritesCount} פריטים` : 'מועדפים'}
+        label={favoritesCount > 0 ? `מועדפים, ${badgeText(favoritesCount)} פריטים` : 'מועדפים'}
       >
         <HeartIcon className="size-6" />
         <CountBadge count={favoritesCount} />
       </IconLink>
       <IconLink
         to={paths.cart}
-        label={cartCount > 0 ? `עגלת קניות, ${cartCount} פריטים` : 'עגלת קניות'}
+        label={cartCount > 0 ? `עגלת קניות, ${badgeText(cartCount)} פריטים` : 'עגלת קניות'}
       >
         <CartIcon className="size-6" />
         <CountBadge count={cartCount} />
