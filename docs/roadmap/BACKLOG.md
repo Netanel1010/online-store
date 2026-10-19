@@ -66,7 +66,7 @@ when each one runs.
 | Project books                             | Not updated during this program                                                                                                                                                                                    | Rule 8              |
 | Theme (decision 30)                       | Light is the default until the user explicitly chooses a theme. Users can switch to Dark, and the choice persists across visits. The system color setting (`prefers-color-scheme`) is never followed automatically | CX-07               |
 | Theme control (owner decision)            | Only Light and Dark, no third mode. A sun/moon toggle in the desktop header, and the same choice in the mobile menu                                                                                                | CX-07               |
-| Images and logos in Dark (owner decision) | Product pictures and logos stay on light tiles in both themes, and the hero banners stay as they are, unless a specific asset demonstrably needs another treatment                                                 | CX-07               |
+| Images and logos in Dark (owner decision) | Product pictures and logos stay on light tiles in both themes, unless an asset needs another treatment. The hero banners keep their current look in their current black frame; light tiles do not apply            | CX-07               |
 | Delivery of CX-07 (owner decision)        | Two pull requests: a mechanical migration from `bg-white` to a semantic surface token, with evidence that Light is unchanged, then the theme                                                                       | CX-07               |
 | Footer links (decision 31)                | No GitHub Issues link in the footer                                                                                                                                                                                | CX-09               |
 | About page links (decision 32)            | No link to the `docs-v2.1` release on the About page                                                                                                                                                               | CX-10               |
@@ -613,9 +613,11 @@ ships, also after B3 and B4).
   the desktop header and the same choice in the mobile menu; there is no third mode. Light stays the
   default until the user explicitly chooses a theme, and `prefers-color-scheme` is never followed
   automatically (see [Deferred](#deferred-and-not-proposed)). Product pictures and logos stay on light
-  tiles in both themes, and the hero banners stay as they are, unless a specific asset demonstrably needs
-  another treatment. The work is split into two pull requests: first a mechanical migration from
-  `bg-white` to a semantic surface token, with evidence that Light is visually unchanged, then the theme.
+  tiles in both themes, unless a specific asset demonstrably needs another treatment. The hero banners
+  keep their current appearance inside their current black frame: the decision about light tiles does
+  not apply to them and does not ask for a light frame. The work is split into two pull requests: first
+  a mechanical migration from `bg-white` to a semantic surface token, with evidence that Light is
+  visually unchanged, then the theme.
 
 **Current state.** **MISSING.** No code and no control: live, no control with this purpose among the
 buttons of the home page; a search of `src/` and `index.html` found no `color-scheme`,
@@ -655,9 +657,9 @@ of `main` at `4a45b38`, for this item:
   Netlify also a header; it does not change.
 
 **User problem and outcome.** Some visitors need a dark screen, larger text, stronger contrast or no
-motion, and do not want to configure the whole browser. The theme is one tap in the header; a small panel
-(if the owner confirms it, open question 1) offers a few more options that visibly work on every page. It
-supplements CX-06 and never replaces it.
+motion, and do not want to configure the whole browser. The theme is one tap in the header; a small
+panel (its options, its button and its delivery are open question 1) offers a few more options that
+visibly work on every page. It supplements CX-06 and never replaces it.
 
 **Approach to the theme and the other stored options: an early classic script file.**
 
@@ -690,9 +692,10 @@ A reading font and a line-spacing option are not proposed: they are larger, and 
   and the other ambiguous raw palette classes with semantic tokens whose values equal today's colors, and
   nothing else. It adds no dark style, no attribute, no control, no stored value and no text.
 - **(b) The theme.** Branch `cx/05-theme` (for example), opened after (a) has been merged. It adds the
-  early script, the dark values of the tokens, the store, the toggle in the header and in the mobile menu,
-  the tests below and, if the owner confirms its options before (b) starts, the panel. If the panel is not
-  confirmed in time it takes its own pull request after (b); the theme does not wait for it.
+  early script, the dark values of the tokens, the store, the toggle in the header and in the mobile
+  menu, and the tests below. Whether the panel ships in (b) or in a pull request of its own is not
+  decided (open question 1); the criteria of (b) below cover the theme only, and the theme does not wait
+  for the answer.
 - **Why two.** (a) touches about 29 files. Reviewed together with a new feature, a color that changed by
   mistake would be hidden among new code; alone, it can be accepted on proof that nothing changed. (a) can
   also be reverted by itself with no visible effect. (b) needs (a) first: the dark values attach to the
@@ -709,9 +712,12 @@ and of the other raw palette classes that mean a surface or a tile (`bg-ink` 3, 
 `text-slate-*` 1, `border-white` 1), each with the token it moves to and the reason. Three groups: a
 _surface_ (cards, panels, inputs, the header), which becomes dark in Dark; a _light tile_ for a product
 picture, a brand logo or a category image, which stays light in both themes; and the rest (such as the
-white arrows over the hero banners and the frame of the carousel), each decided on its own with the
-reason. Product pictures, logos and banners keep the treatment they have today unless a specific asset
-demonstrably needs another one, shown by a screenshot and approved by the owner in the pull request.
+white arrows over the hero banners), each decided on its own with the reason. The carousel's black frame
+(`bg-black` in `HeroCarousel.tsx`) and the banners inside it keep the appearance they have today: the
+light-tile decision does not apply to them, and nothing in this pull request makes the frame light (this
+is the permanent frame, not the black flash between slides that CX-08 removes). Product pictures and
+logos keep the treatment they have today unless a specific asset demonstrably needs another one, shown
+by a screenshot and approved by the owner in the pull request.
 
 S2. **Tokens.** The new tokens are in `@theme` with values equal to the colors they replace. They do not
 reuse the name `surface`. `text-white` and `--color-white` are not changed.
@@ -775,13 +781,15 @@ own blank page before the first byte, and paint holding between two navigations,
 What is shown is that the page's own loading path no longer causes it, in Chromium; Firefox and WebKit
 are covered only if they are run and recorded.
 
-T6. **Dark palette and pictures.** Every text and background pair in Dark has at least 4.5:1 contrast and
-every control boundary and focus ring at least 3:1, measured, with the table in the pull request; axe's
-contrast check passes on every page in both themes (the e2e axe helper takes the theme); `color-scheme:
-dark` is set in Dark so native controls and scrollbars match. Product pictures, brand logos, category
-images, the suggestion thumbnails and the gallery stay on their light tiles in both themes, and the hero
-banners stay as they are; a different treatment of one asset needs a screenshot that shows the problem and
-the owner's approval in the pull request. Text over the banners is checked in Dark.
+T6. **Dark palette and pictures.** Every text and background pair in Dark has at least 4.5:1 contrast
+and every control boundary and focus ring at least 3:1, measured, with the table in the pull request;
+axe's contrast check passes on every page in both themes (the e2e axe helper takes the theme);
+`color-scheme: dark` is set in Dark so native controls and scrollbars match. Product pictures, brand
+logos, category images, the suggestion thumbnails and the gallery stay on their light tiles in both
+themes; a different treatment of one of these assets needs a screenshot that shows the problem and the
+owner's approval in the pull request. The hero banners keep their current appearance inside the
+carousel's current black frame: they are not put on a light tile and the frame is not made light. The
+arrows and any other control over the banners are checked in Dark.
 
 T7. Switching the theme does not animate: no color transition runs while it changes, and none runs under
 reduced motion at all.
@@ -1301,17 +1309,24 @@ CX-07).
   7.9 KiB), with the reserve recomputed; the CX-06 current state and the list of unverified items
   mention PR #92 and the test counts seen while making it. Nothing else in the plan changed.
 - **2026-10-19, owner decisions 30 to 34.** Light is the default and Dark a user choice (decision 30),
-  so CX-07 became "Display preferences and theme": the loading path was inspected (the built pages that were
-  opened have an empty body until the app runs), a scratch prototype showed that an early classic script file
-  avoids a white page for a visitor who chose Dark and that applying the choice in the entry module
-  does not, and the approach is that file, within the unchanged CSP. The dark theme is no longer listed
-  as not proposed; following the system setting is. No GitHub Issues link in the footer (31) and no
-  `docs-v2.1` link on the About page (32); branches are `cx/NN-name` (33); per-item budgets are
-  checked against a fresh measurement and confirmed when each item starts (34). The questions these closed are
-  gone from the open questions; two about CX-07 were added.
+  so CX-07 became "Display preferences and theme": the loading path was inspected (the built pages that
+  were opened have an empty body until the app runs), a scratch prototype, read through computed styles
+  and paint entries in Chromium only (not a recording of frames; Firefox and WebKit were not run),
+  showed the chosen theme already applied while the app's script was held back with an early classic
+  script file, and not with the choice applied in the entry module; the approach is that file, within
+  the unchanged CSP. The dark theme is no longer listed as not proposed; following the system setting
+  is. No GitHub Issues link in the footer (31) and no `docs-v2.1` link on the About page (32); branches
+  are `cx/NN-name` (33); per-item budgets are checked against a fresh measurement and confirmed when
+  each item starts (34). The questions these closed are gone from the open questions; two about CX-07
+  were added.
 - **2026-10-19, owner decisions on CX-07.** CX-07 is delivered in two pull requests: the surface tokens
   first, with evidence that Light is unchanged, then the theme. Product pictures and logos stay on light
-  tiles and the banners stay as they are. The theme has two values, with a sun/moon toggle in the
-  desktop header and the same choice in the mobile menu; Light stays the default until the user
-  chooses, and the system setting is never followed. `NN` in `cx/NN-name` is the batch number. The
-  open questions these closed are gone; the one about the panel's options and button remains.
+  tiles; the banners keep their current look inside their current black frame. The theme has two values,
+  with a sun/moon toggle in the desktop header and the same choice in the mobile menu; Light stays the
+  default until the user chooses, and the system setting is never followed. `NN` in `cx/NN-name` is the
+  batch number. The open questions these closed are gone; the one about the panel's options and button
+  remains.
+- **2026-10-19, pre-push review.** Wording only, no decision changed or added. The banners and their black
+  frame are stated to be outside the light-tile decision (CX-07, decisions table, S1, T6); whether the
+  panel ships in the second pull request of CX-07 or alone is left to open question 1; the note on the
+  scratch prototype states its limits.
