@@ -41,3 +41,11 @@ documents above describe the system as it is now.
 | [`production-roadmap-progress.md`](production-roadmap-progress.md)               | M1–M8: hardening, observability, CI, sessions    |
 | [`production-roadmap-m1-m8-report.md`](production-roadmap-m1-m8-report.md)       | the final report of M1–M8                       |
 | [`m9-server-cart-and-orders.md`](m9-server-cart-and-orders.md)                   | M9: the server cart and orders                  |
+
+## What is planned
+
+A plan is not a description of the system: it changes as its items are approved and built.
+
+| Document                                         | Read it to…                                                                                                              |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| [`roadmap/BACKLOG.md`](roadmap/BACKLOG.md)       | see the planned customer-experience work item by item: the evidence, the acceptance criteria and the order of the batches |
