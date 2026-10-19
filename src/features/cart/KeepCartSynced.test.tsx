@@ -61,7 +61,7 @@ describe('on the cart page', () => {
     renderApp('/cart', catalog)
     await screen.findByText('ספק כוח')
 
-    await userEvent.click(screen.getByRole('button', { name: 'הסרת ספק כוח מהעגלה' }))
+    await userEvent.click(screen.getByRole('button', { name: 'הסרה מהעגלה: ספק כוח' }))
     act(() => useCartStore.getState().addItem('GPU-1'))
     act(() => useCartStore.getState().setQuantity('GPU-1', 3))
 

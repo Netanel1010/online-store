@@ -160,13 +160,13 @@ test.describe('cart', () => {
     await expect.poll(() => summaryTotal(page)).toBe(unitTotal)
 
     // Remove a line.
-    await page.getByRole('button', { name: `הסרת ${RAM.name} מהעגלה` }).click()
+    await page.getByRole('button', { name: `הסרה מהעגלה: ${RAM.name}` }).click()
     await expect(page.getByRole('link', { name: RAM.name, exact: true })).toHaveCount(0)
     await expect.poll(() => summaryTotal(page)).toBe(PSU.price.current)
     await expect(page.getByRole('heading', { level: 1, name: 'עגלת קניות' })).toBeFocused()
 
     // Remove the last line.
-    await page.getByRole('button', { name: `הסרת ${PSU.name} מהעגלה` }).click()
+    await page.getByRole('button', { name: `הסרה מהעגלה: ${PSU.name}` }).click()
     await expect(page.getByText('העגלה ריקה')).toBeVisible()
     await expect(cartLink(page)).toHaveAccessibleName('עגלת קניות')
   })
@@ -385,7 +385,7 @@ test.describe('cart layout', () => {
     await page.goto('cart')
     const minus = page.getByRole('button', { name: `הפחתת כמות: ${PSU.name}` })
     const plus = page.getByRole('button', { name: `הגדלת כמות: ${PSU.name}` })
-    const remove = page.getByRole('button', { name: `הסרת ${PSU.name} מהעגלה` })
+    const remove = page.getByRole('button', { name: `הסרה מהעגלה: ${PSU.name}` })
     const lineTotal = page.getByText('סה"כ לשורה:').locator('xpath=..')
 
     for (const target of [minus, plus, remove]) {

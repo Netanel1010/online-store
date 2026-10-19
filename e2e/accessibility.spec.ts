@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test'
 import { expectNoAxeViolations } from './support/a11y'
-import { catalog, PSU, SALE_GPU } from './support/catalog'
+import { catalog, PSU, RAM, SALE_GPU } from './support/catalog'
 import {
   accountButton,
   addToCartFromProductPage,
@@ -117,7 +117,7 @@ test.describe('automated WCAG A/AA scan (axe-core)', () => {
     await addToCartFromProductPage(page, PSU)
     await page.getByRole('button', { name: `מועדפים: ${PSU.name}` }).click()
     await page.goto('cart')
-    await expect(page.getByRole('button', { name: `הסרת ${PSU.name} מהעגלה` })).toBeVisible()
+    await expect(page.getByRole('button', { name: `הסרה מהעגלה: ${PSU.name}` })).toBeVisible()
     await expectNoAxeViolations(page)
 
     await page.goto('favorites')
@@ -189,6 +189,28 @@ test.describe('names of controls', () => {
     await expect(header(page).getByRole('link', { name: 'התחברות' })).toBeVisible()
     await expect(header(page).getByRole('button', { name: 'חיפוש' })).toBeVisible()
     await expect(header(page).getByRole('searchbox', { name: 'חיפוש מוצרים' })).toBeVisible()
+  })
+
+  test('the cart link names what its badge shows when the cart holds more than 99 units', async ({
+    page,
+  }) => {
+    // 99 + 5 units: the badge reads "99+", and as it is visible text of the link, the name has to
+    // contain it (WCAG 2.5.3, axe rule label-content-name-mismatch).
+    await page.addInitScript(
+      ([first, second]) => {
+        const items = [
+          { productId: first, quantity: 99 },
+          { productId: second, quantity: 5 },
+        ]
+        localStorage.setItem('online-store:cart', JSON.stringify({ state: { items }, version: 1 }))
+      },
+      [PSU.id, RAM.id],
+    )
+    await page.goto('')
+
+    await expect(cartLink(page)).toHaveText('99+')
+    await expect(cartLink(page)).toHaveAccessibleName('עגלת קניות, 99+ פריטים')
+    await expectNoAxeViolations(page)
   })
 
   test('every visible control on key pages has a non-empty accessible name', async ({ page }) => {

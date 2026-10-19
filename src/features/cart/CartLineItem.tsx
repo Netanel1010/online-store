@@ -68,7 +68,7 @@ export function CartLineItem({ line, onRemove }: CartLineItemProps) {
           />
           <button
             type="button"
-            aria-label={`הסרת ${product.name} מהעגלה`}
+            aria-label={`הסרה מהעגלה: ${product.name}`}
             onClick={() => onRemove(product.id)}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm text-muted transition-colors hover:bg-sale-soft hover:text-sale"
           >
