@@ -4,13 +4,13 @@
 source of truth for the customer-experience program: an item is changed here first, and a batch is
 started only after the owner approves it.
 
-|               |                                                                                                                                                                                                                                   |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Written       | 2026-10-19, from a read-only discovery; nothing in the application was changed                                                                                                                                                    |
-| Revised       | 2026-10-19, after a critical review and the owner's decisions (see [Revision notes](#revision-notes)). No new inspection of the site was made; the review re-read how `SORT_KEYS` is used and what `scripts/check-api.mjs` checks |
-| Baseline      | The discovery was done on `main` at `c8de10a` (merge of PR #89). `main` is now at `4a45b38`, after PR #92 (the accessible-name fix of the cart controls), PR #90 (npm updates) and PR #91 (CodeQL action updates)                 |
-| Inspected     | The source, the tests and the documents named in each item; the deployed GitHub Pages site on a 1440 px and a 375 px viewport of the in-app browser; the GitHub Actions and Releases pages                                        |
-| Not inspected | See [What remains unverified](#what-remains-unverified)                                                                                                                                                                           |
+|               |                                                                                                                                                                                                                                                                                                                                |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Written       | 2026-10-19, from a read-only discovery; nothing in the application was changed                                                                                                                                                                                                                                                 |
+| Revised       | 2026-10-19, after a critical review and the owner's decisions (see [Revision notes](#revision-notes)). No new inspection of the site was made; the review re-read how `SORT_KEYS` is used and what `scripts/check-api.mjs` checks; CX-07 was written after inspecting the build and the loading path, with a scratch prototype |
+| Baseline      | The discovery was done on `main` at `c8de10a` (merge of PR #89). `main` is now at `4a45b38`, after PR #92 (the accessible-name fix of the cart controls), PR #90 (npm updates) and PR #91 (CodeQL action updates)                                                                                                              |
+| Inspected     | The source, the tests and the documents named in each item; the deployed GitHub Pages site on a 1440 px and a 375 px viewport of the in-app browser; the GitHub Actions and Releases pages                                                                                                                                     |
+| Not inspected | See [What remains unverified](#what-remains-unverified)                                                                                                                                                                                                                                                                        |
 
 ## How to read it
 
@@ -46,25 +46,33 @@ when each one runs.
 
 ## Decisions already made
 
-| Area                | Decision                                                                                                                                                                        | Item                |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| Eilat pricing       | Keep it. Do not remove or replace it                                                                                                                                            | all                 |
-| Sorting             | Add sorting by the existing `isRecommended` field and nothing else: no biggest-discount sort, no popularity or "best selling"                                                   | CX-02               |
-| Contact page        | Human, welcoming, professional, with a short FAQ. No claim of real support, no real contact form                                                                                | CX-11               |
-| Search              | Desktop field 520 px wide (from 448 px), still responsive on smaller screens. The live suggestions already exist and are not rebuilt                                            | CX-03               |
-| Accessibility       | Improve it throughout, plus a small display-preferences panel whose options really work. Two stages: a baseline now and a deeper review after the sign-in and checkout changes  | CX-06, CX-14, CX-07 |
-| Screen readers      | Planned and run by a written protocol. If a tool is hard to use, practical alternatives are tried first. A check is never reported as passed without a record of it             | CX-06               |
-| Animations          | One restrained approach, feedback for add to cart, favorites and checkout, `prefers-reduced-motion` honored                                                                     | CX-05               |
-| Home hero           | Better layout, heading, text, call to action and responsive behavior. This program adds, replaces or removes no image asset                                                     | CX-08               |
-| Back to top         | A button after a meaningful scroll, reduced-motion aware                                                                                                                        | CX-04               |
-| Brand links         | The brands on the home page link to the catalog filtered by that brand                                                                                                          | CX-01               |
-| Footer              | Redesign with useful navigation and factual information. No invented guarantees or support                                                                                      | CX-09               |
-| Sign-up and sign-in | Especially welcoming, without weakening authentication, the password policy or any security control                                                                             | CX-12               |
-| Checkout            | Clear and reassuring. Duplicate demo notices are reduced, while a clear demo disclosure and everything a visitor needs to know before confirming stay. Copy tests are respected | CX-13               |
-| About page          | Rebuilt around the real story of the project. No invented customers, not presented as a business                                                                                | CX-10               |
-| README metrics      | Updated only at the end of the program, from fresh, verified measurements                                                                                                       | Rule 7              |
-| Project books       | Not updated during this program                                                                                                                                                 | Rule 8              |
-| Deferred            | PWA, PC Builder, product videos, promotions and discounts. See [Deferred](#deferred-and-not-proposed)                                                                           | none                |
+| Area                                      | Decision                                                                                                                                                                                                           | Item                |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| Eilat pricing                             | Keep it. Do not remove or replace it                                                                                                                                                                               | all                 |
+| Sorting                                   | Add sorting by the existing `isRecommended` field and nothing else: no biggest-discount sort, no popularity or "best selling"                                                                                      | CX-02               |
+| Contact page                              | Human, welcoming, professional, with a short FAQ. No claim of real support, no real contact form                                                                                                                   | CX-11               |
+| Search                                    | Desktop field 520 px wide (from 448 px), still responsive on smaller screens. The live suggestions already exist and are not rebuilt                                                                               | CX-03               |
+| Accessibility                             | Improve it throughout, plus a small display-preferences panel whose options really work. Two stages: a baseline now and a deeper review after the sign-in and checkout changes                                     | CX-06, CX-14, CX-07 |
+| Screen readers                            | Planned and run by a written protocol. If a tool is hard to use, practical alternatives are tried first. A check is never reported as passed without a record of it                                                | CX-06               |
+| Animations                                | One restrained approach, feedback for add to cart, favorites and checkout, `prefers-reduced-motion` honored                                                                                                        | CX-05               |
+| Home hero                                 | Better layout, heading, text, call to action and responsive behavior. This program adds, replaces or removes no image asset                                                                                        | CX-08               |
+| Back to top                               | A button after a meaningful scroll, reduced-motion aware                                                                                                                                                           | CX-04               |
+| Brand links                               | The brands on the home page link to the catalog filtered by that brand                                                                                                                                             | CX-01               |
+| Footer                                    | Redesign with useful navigation and factual information. No invented guarantees or support                                                                                                                         | CX-09               |
+| Sign-up and sign-in                       | Especially welcoming, without weakening authentication, the password policy or any security control                                                                                                                | CX-12               |
+| Checkout                                  | Clear and reassuring. Duplicate demo notices are reduced, while a clear demo disclosure and everything a visitor needs to know before confirming stay. Copy tests are respected                                    | CX-13               |
+| About page                                | Rebuilt around the real story of the project. No invented customers, not presented as a business                                                                                                                   | CX-10               |
+| README metrics                            | Updated only at the end of the program, from fresh, verified measurements                                                                                                                                          | Rule 7              |
+| Project books                             | Not updated during this program                                                                                                                                                                                    | Rule 8              |
+| Theme (decision 30)                       | Light is the default until the user explicitly chooses a theme. Users can switch to Dark, and the choice persists across visits. The system color setting (`prefers-color-scheme`) is never followed automatically | CX-07               |
+| Theme control (owner decision)            | Only Light and Dark, no third mode. A sun/moon toggle in the desktop header, and the same choice in the mobile menu                                                                                                | CX-07               |
+| Images and logos in Dark (owner decision) | Product pictures and logos stay on light tiles in both themes, and the hero banners stay as they are, unless a specific asset demonstrably needs another treatment                                                 | CX-07               |
+| Delivery of CX-07 (owner decision)        | Two pull requests: a mechanical migration from `bg-white` to a semantic surface token, with evidence that Light is unchanged, then the theme                                                                       | CX-07               |
+| Footer links (decision 31)                | No GitHub Issues link in the footer                                                                                                                                                                                | CX-09               |
+| About page links (decision 32)            | No link to the `docs-v2.1` release on the About page                                                                                                                                                               | CX-10               |
+| Branch names (decision 33)                | CX work branches are named `cx/NN-name`, where NN is the number of the CX batch, for example `cx/01-browsing-quick-wins`                                                                                           | Rule 8              |
+| Budgets (decision 34)                     | Measure the current bundle before assigning per-item budgets. The overall limits stay 160 KiB JavaScript and 16 KiB CSS                                                                                            | Budget ledger       |
+| Deferred                                  | PWA, PC Builder, product videos, promotions and discounts. See [Deferred](#deferred-and-not-proposed)                                                                                                              | none                |
 
 **Eilat price, what was checked.** A search of the non-test `.ts` and `.tsx` files of `src/` found it
 only in the product page (`ProductDetails.tsx:61`, "מחיר באילת") and in the product schema
@@ -86,7 +94,7 @@ An index only. The evidence for each row is in the item named in the last column
 | Back to top                   | **MISSING**          | [CX-04](#cx-04-back-to-top)                                                                               |
 | Motion and feedback           | **PARTIAL**          | [CX-05](#cx-05-a-restrained-motion-approach-with-feedback)                                                |
 | Accessibility                 | **PARTIAL**          | [CX-06](#cx-06-accessibility-baseline), [CX-14](#cx-14-accessibility-final-review-and-screen-reader-pass) |
-| Display preferences           | **MISSING**          | [CX-07](#cx-07-display-preferences-panel)                                                                 |
+| Display preferences and theme | **MISSING**          | [CX-07](#cx-07-display-preferences-and-theme)                                                             |
 | Hero                          | **PARTIAL**          | [CX-08](#cx-08-a-better-home-hero)                                                                        |
 | Footer                        | **PARTIAL**          | [CX-09](#cx-09-footer-redesign)                                                                           |
 | About page                    | **PARTIAL**          | [CX-10](#cx-10-about-page-rebuilt-around-the-real-story)                                                  |
@@ -109,8 +117,9 @@ These are not repeated in each item, and an item is not done while one of them i
    is not needed on the first screen loads on demand, as the form and information pages already do.
 3. **CSP.** Pages carry `script-src 'self'` and `style-src 'self'` (`dist/index.html`). No inline
    script, no `<style>` element and no inline `style` attribute. Setting a class or a `data-` attribute
-   from the app, and styling by the stylesheet, is allowed. `npm run check:csp` and `e2e/csp.spec.ts`
-   stay green.
+   from the app, and styling by the stylesheet, is allowed, and so is a classic script file of the
+   site's own origin (`script-src 'self'` covers it, and the policy does not change).
+   `npm run check:csp` and `e2e/csp.spec.ts` stay green.
 4. **RTL and phones.** Logical properties (`start`, `end`, `ps`, `me`). A new or changed control is
    checked in a right-to-left layout, at 320, 375 and 1440 px, and a value that is always left to right
    (an email, a price in digits) says so with `dir`.
@@ -126,10 +135,14 @@ These are not repeated in each item, and an item is not done while one of them i
    stored value, `docs/openapi.yaml` for an API change, `docs/testing.md` for new suites). The README
    metrics (test counts and the like) are changed only at the end of the program, in one pull request,
    from measurements taken then.
-8. **Delivery.** One batch is one branch and one pull request, in English, from the latest `main`
-   (item CX-02 is the one exception: two pull requests). The owner pushes, opens and merges. The first
-   of them adds this file to `docs/README.md`. The two project books are not touched by this program;
-   a summary document for GitHub Releases is prepared once, at the end.
+8. **Delivery.** One batch is one branch and one pull request, in English, from the latest `main`.
+   Two items are exceptions and take two pull requests each: CX-02 (the API first, then the site) and
+   CX-07 (the surface tokens first, then the theme). Branches are named `cx/NN-name`, where NN is the
+   number of the batch, for example `cx/01-browsing-quick-wins` (decision 33); the two pull requests of
+   one batch share its number and differ in the name. The owner pushes, opens and merges. This file and
+   its entry in `docs/README.md` come with the documentation pull request that precedes B1. The two
+   project books are not touched by this program; a summary document for GitHub Releases is prepared
+   once, at the end.
 9. **Evidence.** A pull request says what was run and what it returned, and lists a check that was not
    run as not run. A manual or assistive-technology check is claimed only if a record of it exists
    (see the [protocol in CX-06](#assistive-technology-protocol)).
@@ -149,43 +162,45 @@ checkout, orders, information pages) do not count (`scripts/bundleBudget.mjs`).
 | Measured by `npm run check:bundle` on a fresh local build of `main` at `4a45b38` | 138.9 KiB         | 7.9 KiB    |
 | Room left at that measurement                                                    | 21.1 KiB          | 8.1 KiB    |
 
-The starting point above is a local build on Windows; the `check:bundle` step of CI is the one that
-gates a pull request. These ceilings are proposed limits for each item's share of the room, not
-predictions or measurements. A
-pull request reports `check:bundle` before and after; one that needs more than its ceiling says so,
-with the numbers, before it is merged, and the owner decides. The unallocated room is a reserve for
-what nobody foresaw.
+The starting point above is a local build on Windows, measured on 2026-10-19 (the same figures came
+out twice, on the same commit); the `check:bundle` step of CI is the one that gates a pull request.
+The overall limits of 160 KiB JavaScript and 16 KiB CSS never change. The ceilings below are proposed
+shares of the room measured above, not predictions or measurements. They were first proposed before
+that measurement and have now been checked against it; as decision 34 asks, they are confirmed or
+revised when an item starts: the pull request measures the then-current `main` again with
+`npm run check:bundle`, reports it before and after, and says so, with the numbers, if it needs more
+than its ceiling; the owner decides. The unallocated room is a reserve for what nobody foresaw.
 
-| Item                                                              | JS ceiling   | CSS ceiling |
-| ----------------------------------------------------------------- | ------------ | ----------- |
-| CX-01 brand links                                                 | 0.3 KiB      | 0.1 KiB     |
-| CX-02 (b) the select option                                       | 0.1 KiB      | 0           |
-| CX-03 search field                                                | 0.1 KiB      | 0.1 KiB     |
-| CX-04 back to top                                                 | 1.0 KiB      | 0.3 KiB     |
-| CX-05 motion, feedback, busy state                                | 3.0 KiB      | 1.0 KiB     |
-| CX-07 preferences (button, store, early apply; the panel is lazy) | 2.0 KiB      | 1.5 KiB     |
-| CX-08 hero                                                        | 1.5 KiB      | 1.0 KiB     |
-| CX-09 footer (it is on every page, so it is in the first page)    | 1.5 KiB      | 0.8 KiB     |
-| **Allocated**                                                     | **9.5 KiB**  | **4.8 KiB** |
-| **Reserve**                                                       | **11.6 KiB** | **3.3 KiB** |
+| Item                                                                                                     | JS ceiling   | CSS ceiling |
+| -------------------------------------------------------------------------------------------------------- | ------------ | ----------- |
+| CX-01 brand links                                                                                        | 0.3 KiB      | 0.1 KiB     |
+| CX-02 (b) the select option                                                                              | 0.1 KiB      | 0           |
+| CX-03 search field                                                                                       | 0.1 KiB      | 0.1 KiB     |
+| CX-04 back to top                                                                                        | 1.0 KiB      | 0.3 KiB     |
+| CX-05 motion, feedback, busy state                                                                       | 3.0 KiB      | 1.0 KiB     |
+| CX-07 theme and preferences, both pull requests (toggle, store, early script, tokens; the panel is lazy) | 2.0 KiB      | 1.5 KiB     |
+| CX-08 hero                                                                                               | 1.5 KiB      | 1.0 KiB     |
+| CX-09 footer (it is on every page, so it is in the first page)                                           | 1.5 KiB      | 0.8 KiB     |
+| **Allocated**                                                                                            | **9.5 KiB**  | **4.8 KiB** |
+| **Reserve**                                                                                              | **11.6 KiB** | **3.3 KiB** |
 
 Progress is recorded in this table as each batch lands (an "actual" column added by the pull request
 that spends the room).
 
 ## Batches and order
 
-| Order | Batch                          | Items               | Why here                                                                                                                                                                     | Risk   |
-| ----- | ------------------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 1     | B1 Browsing quick wins         | CX-01, CX-03        | Small, visible, independent. CX-01 also gives the footer a helper to reuse                                                                                                   | Low    |
-| 2     | B2 Recommended sort            | CX-02               | The only API change, so it stands alone, in two pull requests. Its first pull request has no dependency and can be open beside B1: the two touch different files (see CX-01) | Medium |
-| 3     | B3 Motion and feedback         | CX-05, CX-04        | One approach and one reduced-motion hook before anything else animates; the busy-state pattern that sign-in and checkout need. Back to top is its first user                 | Low    |
-| 4     | B4 Accessibility baseline      | CX-06               | A bounded audit of the shell and of the pages the program does not rebuild, the fixes of the shared pieces, and the one form-error behavior that B8 and B9 apply             | Medium |
-| 5     | B6 Content pages               | CX-09, CX-11, CX-10 | The footer is on every page, so it is rebuilt before later checks. Text and layout only, no logic. It waits only for the owner's wording                                     | Low    |
-| 6     | B7 Home hero                   | CX-08               | Home page layout. Needs the motion hook of B3. Placed after the content pages so the home page is checked once, in its final form                                            | Medium |
-| 7     | B8 Sign-up and sign-in         | CX-12               | Authentication code, so it stands alone. It needs the busy state (B3) and the field fixes and form-error behavior (B4)                                                       | High   |
-| 8     | B9 Checkout                    | CX-13               | The riskiest page, last of the page rebuilds. It needs the same inputs as B8 and the field changes B8 makes. Presentation only                                               | High   |
-| 9     | B5 Display preferences         | CX-07               | A global effect, so it runs after the pages are final and each option is checked once on the finished pages. It needs B3 (the motion switch) and B4 (the zoom results)       | Medium |
-| 10    | B10 Accessibility final review | CX-14               | Deeper review and screen-reader pass of the finished flows, after B8, B9 and B5. It is also the evidence for the final summary document                                      | Low    |
+| Order | Batch                            | Items               | Why here                                                                                                                                                                                                                                                                                                                                                                                   | Risk   |
+| ----- | -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| 1     | B1 Browsing quick wins           | CX-01, CX-03        | Small, visible, independent. CX-01 also gives the footer a helper to reuse                                                                                                                                                                                                                                                                                                                 | Low    |
+| 2     | B2 Recommended sort              | CX-02               | The only API change, so it stands alone, in two pull requests. Its first pull request has no dependency and can be open beside B1: the two touch different files (see CX-01)                                                                                                                                                                                                               | Medium |
+| 3     | B3 Motion and feedback           | CX-05, CX-04        | One approach and one reduced-motion hook before anything else animates; the busy-state pattern that sign-in and checkout need. Back to top is its first user                                                                                                                                                                                                                               | Low    |
+| 4     | B4 Accessibility baseline        | CX-06               | A bounded audit of the shell and of the pages the program does not rebuild, the fixes of the shared pieces, and the one form-error behavior that B8 and B9 apply                                                                                                                                                                                                                           | Medium |
+| 5     | B6 Content pages                 | CX-09, CX-11, CX-10 | The footer is on every page, so it is rebuilt before later checks. Text and layout only, no logic. It waits only for the owner's wording                                                                                                                                                                                                                                                   | Low    |
+| 6     | B7 Home hero                     | CX-08               | Home page layout. Needs the motion hook of B3. Placed after the content pages so the home page is checked once, in its final form                                                                                                                                                                                                                                                          | Medium |
+| 7     | B8 Sign-up and sign-in           | CX-12               | Authentication code, so it stands alone. It needs the busy state (B3) and the field fixes and form-error behavior (B4)                                                                                                                                                                                                                                                                     | High   |
+| 8     | B9 Checkout                      | CX-13               | The riskiest page, last of the page rebuilds. It needs the same inputs as B8 and the field changes B8 makes. Presentation only                                                                                                                                                                                                                                                             | High   |
+| 9     | B5 Display preferences and theme | CX-07               | A global effect (the dark theme changes the color of every page), so it runs after the pages are final and both themes are checked once, on the finished pages. The theme needs only the finished pages; the panel, if it ships, also needs B3 (the motion switch) and B4 (the zoom results). Two pull requests: the surface tokens first, with no visible change in Light, then the theme | Medium |
+| 10    | B10 Accessibility final review   | CX-14               | Deeper review and screen-reader pass of the finished flows, after B8, B9 and B5. It is also the evidence for the final summary document                                                                                                                                                                                                                                                    | Low    |
 
 B8 and B9 each need a full review with the engineering gates (understand, pre-mortem, small steps,
 adversarial self-review, evidence only) and the browser and assistive-technology checks listed in the
@@ -377,8 +392,8 @@ anything.
 **Manual.** The widths above; a long product name in the list.
 
 **Depends on / affects.** `Header.tsx`, `SearchForm.tsx` (classes only). **Risks.** The header
-overflowing at 1024 px (the width test is the guard); the header button of CX-07 needs the room this
-takes, so CX-07 is measured against the result.
+overflowing at 1024 px (the width test is the guard); the theme toggle of CX-07 needs the room this
+takes (and the panel's button, if it stays in the header), so CX-07 is measured against the result.
 
 **Not proposed here.** A "no suggestions" line for an unmatched text: `e2e/search-suggestions.spec.ts`
 pins that nothing is offered, and Enter already searches.
@@ -512,7 +527,7 @@ rest, and settles the one behavior that the later form work follows.
   them today, for focus and error behavior only (those pages are rebuilt later, as the next bullet says).
 - _Not in this stage_ (rebuilt later, checked in the batch that rebuilds them and in CX-14): the footer,
   About and Contact (B6), the hero (B7), sign-in and registration (B8), checkout and the order pages
-  (B9), the preferences panel (B5), back to top (B3). A defect seen on one of them is recorded and
+  (B9), the preferences panel and the theme (B5), back to top (B3). A defect seen on one of them is recorded and
   handed to that batch as an acceptance criterion; it is not fixed twice.
 - _Checks (A to E):_ **A** zoom to 200% and 400% (reflow at 320 CSS px, no sideways scroll, nothing
   clipped or overlapping); **B** the text-spacing override of WCAG 1.4.12; **C** Windows forced colors
@@ -522,6 +537,8 @@ rest, and settles the one behavior that the later form work follows.
 - _Screen-reader tasks:_ find a product with the search suggestions and the arrow keys; filter and sort a
   listing; open a product; add it to the cart and hear the confirmation; open the cart; use the mobile
   menu (375 px).
+- _Theme:_ the baseline is run in the default (Light) theme. The dark theme arrives with CX-07 and is
+  checked there and in CX-14.
 
 **Severity and what is done with it**
 
@@ -583,80 +600,234 @@ accessibility documents. **Risks.** A fix to a shared piece (`fields.tsx`, focus
 (the form e2e tests are the guard); the effort is capped by the matrix and the severity rules above;
 a screen reader may not be available, in which case cell E stays "not run" with what was tried.
 
-### CX-07 Display preferences panel
+### CX-07 Display preferences and theme
 
-**Priority** P2: real value, but a new stored value, a header control and global styles. **Batch** B5,
-after B3 and B4, and after the pages are final.
+**Priority** P2: real value, but a new stored value, global styles (in the dark theme every page changes
+color) and new controls. **Batch** B5, as two pull requests (below), after the pages are final (the panel, if it
+ships, also after B3 and B4).
 
-**Current state.** **MISSING.** No code, and live no control with this purpose among the buttons of the
-home page. What would make it feasible: sizes and spacing are in Tailwind's `rem` utilities (a search of
-`src/` for pixel-valued utilities found only three, all breakpoints, in `Header.tsx` and
-`ProductGrid.tsx`), so scaling the root font size should scale the layout. That is **UNVERIFIED**; the
-zoom results of CX-06 are its first test.
+**Decisions.**
 
-**User problem and outcome.** Some visitors need larger text, stronger contrast or no motion, and do not
-want to configure the whole browser. A small panel offers a few options that visibly work on every page.
-It supplements CX-06 and never replaces it.
+- _Decision 30._ Light is the default. A user can switch to Dark, and the choice persists across visits.
+- _Owner decisions that follow it._ There are two themes only, Light and Dark, with a sun/moon toggle in
+  the desktop header and the same choice in the mobile menu; there is no third mode. Light stays the
+  default until the user explicitly chooses a theme, and `prefers-color-scheme` is never followed
+  automatically (see [Deferred](#deferred-and-not-proposed)). Product pictures and logos stay on light
+  tiles in both themes, and the hero banners stay as they are, unless a specific asset demonstrably needs
+  another treatment. The work is split into two pull requests: first a mechanical migration from
+  `bg-white` to a semantic surface token, with evidence that Light is visually unchanged, then the theme.
 
-**Proposed options (to be confirmed).** Each must work on every page, or it is not offered.
+**Current state.** **MISSING.** No code and no control: live, no control with this purpose among the
+buttons of the home page; a search of `src/` and `index.html` found no `color-scheme`,
+`prefers-color-scheme` or dark styles. What decides the design was read from the source and from a build
+of `main` at `4a45b38`, for this item:
 
-| Option            | What it does                                                                         |
-| ----------------- | ------------------------------------------------------------------------------------ |
-| Text size         | Three or four steps that scale the root font size (for example 100, 115, 130%)       |
-| Reduce motion     | Turns off the app's animations and the hero autoplay, even if the system allows them |
-| Stronger contrast | Switches the color tokens to a higher-contrast set (muted text, borders, focus ring) |
-| Underline links   | Underlines links inside text, so links do not depend on color                        |
+- _Colors._ The colors are tokens of `@theme` (`src/index.css`) and the utilities read them as CSS
+  variables (the built CSS has `.bg-brand{background-color:var(--color-brand)}`), so a rule keyed on an
+  attribute of `<html>` can redefine them. But `bg-white` (40 uses in 29 files) reads the palette
+  variable `--color-white`, and so does `text-white` (14 uses in 8 files: for example white text on the
+  brand color). Redefining `--color-white` would turn that text dark. Dark therefore needs semantic
+  tokens in place of `bg-white`, while `text-white` stays. The `surface` token already exists (a light
+  gray, `bg-surface`, 18 uses), so the new surface token needs another name. The other raw palette uses
+  are `bg-ink` (3), `bg-black` (2), `text-slate-*` (1) and `border-white` (1). No component writes a hex,
+  `rgb()` or `oklch()` value.
+- _What the browser paints before the app runs._ The built pages that were opened (the home page, the
+  About page, the listing, a product page and `404.html`) all have an empty `<div id="root"></div>` in
+  their body, and the others are written from the same template (`vite.config.ts`,
+  `scripts/static-routes.mjs`), so there is no visible content before JavaScript runs. The app's script is
+  a `<script type="module">`, which a browser runs only after the document is parsed, and the stylesheet
+  is a render-blocking `<link>` in `<head>`. The body background is white (`body { @apply bg-white … }`).
+  If only the app applied the theme, a visitor who chose Dark would see an empty white page until the
+  app's script had downloaded and run.
+- _Scratch experiment, not in the repository._ Two builds of `main` with a prototype: (A) a classic
+  script file in `<head>` that sets `data-theme="dark"` from storage, and (B) the same code in the entry
+  module only. Loaded in Chromium 1243 (headless shell) with the app's script held back for 3 seconds and
+  Dark stored: at 1.5 s A had `data-theme="dark"`, a dark computed body background and a `first-paint`
+  entry; B had no attribute and a white body, and became dark only after the script ran. With nothing
+  stored, both stayed white. This read computed styles and paint entries; it is not a recording of
+  frames, and it covers one browser.
+- _Build and policy._ In build A the tag was in the four pages that were opened (the home page, About,
+  the listing and `404.html`), in `<head>` after the policy tag and before the module script and the
+  stylesheet, with the base path (`/online-store/theme-init.js`), and the file was copied from `public/`.
+  `npm run check:csp`, which covers all 51 pages of that build, passed with no change, and
+  `npm run check:bundle` counted the file with the other first-page scripts (139.1 KiB JavaScript
+  against 138.9 KiB for the same commit). The policy is the same `<meta>` tag on GitHub Pages, and on
+  Netlify also a header; it does not change.
 
-A dark theme, a reading font and a line-spacing option are not proposed: they are larger, and none was
-asked for.
+**User problem and outcome.** Some visitors need a dark screen, larger text, stronger contrast or no
+motion, and do not want to configure the whole browser. The theme is one tap in the header; a small panel
+(if the owner confirms it, open question 1) offers a few more options that visibly work on every page. It
+supplements CX-06 and never replaces it.
 
-**Acceptance criteria**
+**Approach to the theme and the other stored options: an early classic script file.**
 
-1. A button named "העדפות תצוגה" opens a small panel (a disclosure or dialog with focus managed like the
-   account menu: Enter opens, Tab walks, Escape closes and returns focus, a click outside closes). Phones
-   reach it from the mobile menu, not as one more header icon, so the header fits at 320 px
-   (`e2e/responsive.spec.ts` checks this); the header tab-order test gets the new stop added on purpose.
-2. Each option changes the page at once and can be turned off; "reset" returns every option to its
-   default.
-3. Choices are kept in the browser under one new `online-store:` key, per device and not per account.
-   Reading the key never throws (private mode, blocked storage) and a bad value falls back to the
-   defaults.
-4. **Applying the stored choice, within the CSP.**
-   a. The entry module applies the stored choice before React renders, by setting `data-` attributes on
-   `<html>`; every visual effect is a rule of the stylesheet keyed on those attributes. There is no
-   inline script, no `<style>` element and no inline `style` attribute (Rule 3).
-   b. At the start of the item, check whether the built HTML of a page shows any content before the entry
-   module runs (inspect `dist/index.html` and a static route page). If it shows none, (a) is enough.
-   If it does, the fallback is a very small classic script file served from the site's own origin and
-   loaded from `<head>`, which `script-src 'self'` allows; its cost is first measured against the
-   budget ledger and Lighthouse's render-blocking audit, and if it is not acceptable the item stops
-   and asks the owner.
-   c. **Validation.** A Playwright test seeds the stored choices before the page loads and asserts, at the
-   first React commit and at first contentful paint (from a `PerformanceObserver`), that `<html>`
-   already carries the attributes and that the computed root font size is the chosen one. A trace
-   (screenshots of the first frames, with the CPU throttled) is attached to the pull request to show
-   that no frame is painted with the defaults when a choice is stored.
-5. "Reduce motion" is read by the same hook as the system setting (CX-05), including the carousel and
-   back to top; the system setting still applies when the option is off.
-6. Every option is checked at 320 and 1440 px on the home page, a listing, a product, the cart, sign-in
-   and checkout (all in their final form): no clipped text, no sideways scroll, no overlap, with each
-   option and with all together.
-7. The panel passes axe, is keyboard operable, and its controls state their state (`aria-pressed` or a
-   radio group). It is checked by the protocol in CX-06.
-8. The panel is a lazy chunk; the first page grows by no more than the ceiling in the budget ledger.
-9. `/privacy` and `docs/state-persistence.md` list the new stored value, and the accessibility
-   statement mentions the panel without presenting it as the way to be accessible.
+| Option                                                                                  | Verdict                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A classic script file in `public/`, in `<head>` before the stylesheet, via `%BASE_URL%` | **Chosen.** It runs while `<head>` is parsed, before the stylesheet applies and before the body is rendered, and the pages have nothing to show before the app, so the first frame can already be in the chosen theme (shown in Chromium by the experiment, not proven for every browser); `script-src 'self'` allows it as it is; both hosts serve the files of `dist/`; the pages are written from one template, so each should carry it (criterion T5a tests it) |
+| Apply the choice in the entry module only                                               | Rejected: the experiment showed a white page until the app's script has run                                                                                                                                                                                                                                                                                                                                                                                         |
+| An inline script                                                                        | Rejected: `script-src 'self'` has no `'unsafe-inline'`. Allowing one script by hash would change the policy in the tag, in Netlify's header and in what holds them together (`scripts/netlifyHeaders.test.ts`, `scripts/check-csp.mjs`), for no gain over a file                                                                                                                                                                                                    |
+| CSS `prefers-color-scheme` alone                                                        | Rejected: it cannot hold a persisted choice, and Light stays the default whatever the system says                                                                                                                                                                                                                                                                                                                                                                   |
+| A cookie read by a server                                                               | Rejected: both hosts serve static files                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
-**Tests.** Unit tests for the store (defaults, bad data, storage failure) and for applying the choices;
-e2e for each option on the pages above and across a reload; the validation of criterion 4c; axe with
-the panel open; `npm run check:csp` and `e2e/csp.spec.ts` unchanged and green. **Manual.** Each option
-at both widths; the panel with a screen reader.
+The script reads one storage key inside `try`/`catch` and sets `data-` attributes on `<html>` for the
+valid values it finds (the theme, and the options of the panel if it ships, so that none of them shifts the
+layout after the first paint); it does nothing else. Its cost is one small same-origin request on the
+critical path of every page. The file is not content-hashed, so after a change a browser may keep using a
+cached copy until it expires; how long GitHub Pages lets that be was not checked.
 
-**Depends on / affects.** CX-05 (the hook), CX-06 (zoom results); `Header.tsx`, `MobileNav.tsx`,
-`index.css`, the entry module, a new feature folder, `PrivacyPage.tsx`, `docs/state-persistence.md`,
-`docs/accessibility.md`. **Risks.** Text at the larger sizes breaking fixed-height or truncated elements
-(`line-clamp`, the header height); a flash of default styles; the header overflowing; a stored value that
-outlives a change of the options.
+**Controls.**
+
+| Control                                          | Where                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Theme: Light or Dark, nothing else               | A sun/moon toggle in the desktop header, and the same choice in the mobile menu. The two always agree                                                                                                                                                                                                                                                            |
+| Panel options (to be confirmed, open question 1) | Text size (three or four steps that scale the root font size, for example 100, 115, 130%), reduce motion (the app's animations and the hero autoplay off even if the system allows them), stronger contrast (a higher-contrast set of the tokens, in either theme) and underline links (so links do not depend on color). The panel's own button: placement open |
+
+A reading font and a line-spacing option are not proposed: they are larger, and none was asked for.
+
+**Two pull requests.**
+
+- **(a) Surface tokens, mechanical.** Branch `cx/05-surface-tokens` (for example). It replaces `bg-white`
+  and the other ambiguous raw palette classes with semantic tokens whose values equal today's colors, and
+  nothing else. It adds no dark style, no attribute, no control, no stored value and no text.
+- **(b) The theme.** Branch `cx/05-theme` (for example), opened after (a) has been merged. It adds the
+  early script, the dark values of the tokens, the store, the toggle in the header and in the mobile menu,
+  the tests below and, if the owner confirms its options before (b) starts, the panel. If the panel is not
+  confirmed in time it takes its own pull request after (b); the theme does not wait for it.
+- **Why two.** (a) touches about 29 files. Reviewed together with a new feature, a color that changed by
+  mistake would be hidden among new code; alone, it can be accepted on proof that nothing changed. (a) can
+  also be reverted by itself with no visible effect. (b) needs (a) first: the dark values attach to the
+  tokens that (a) creates, and a dark color cannot be reviewed against a `bg-white` that means a surface in
+  one place and a picture tile in another. (b) is then only additions.
+- **Hebrew copy.** (a) adds no text a visitor can see. The Hebrew text of (b) (the names of the toggle and
+  of its entry in the mobile menu, and the panel's labels if it ships) is drafted for the owner's review
+  before (b) starts, as Rule 5 says; no final copy is written here.
+
+**Acceptance criteria, pull request (a)**
+
+S1. **Inventory.** The pull request lists every use of `bg-white` (40 in 29 files when this was written)
+and of the other raw palette classes that mean a surface or a tile (`bg-ink` 3, `bg-black` 2,
+`text-slate-*` 1, `border-white` 1), each with the token it moves to and the reason. Three groups: a
+_surface_ (cards, panels, inputs, the header), which becomes dark in Dark; a _light tile_ for a product
+picture, a brand logo or a category image, which stays light in both themes; and the rest (such as the
+white arrows over the hero banners and the frame of the carousel), each decided on its own with the
+reason. Product pictures, logos and banners keep the treatment they have today unless a specific asset
+demonstrably needs another one, shown by a screenshot and approved by the owner in the pull request.
+
+S2. **Tokens.** The new tokens are in `@theme` with values equal to the colors they replace. They do not
+reuse the name `surface`. `text-white` and `--color-white` are not changed.
+
+S3. **Light is visually unchanged, with evidence** (a one-off check, not a new suite in the repository):
+
+1. The existing tests pass unchanged: no assertion is edited and none is removed.
+2. A throwaway script loads the build from `main` and the build of the branch against the e2e stub API
+   (so the data is the same) and compares, for every element of the pages and states below, the computed
+   `background-color`, `color`, `border-color` and `outline-color`. There are no differences, or each
+   one is explained in the pull request.
+3. The same pages and states are compared as screenshots at 375 and 1440 px, with reduced motion on so
+   that the carousel stands still: no differing pixel, or each difference explained.
+4. _Pages:_ home, listing with a filter, search results, a product page, the cart with a product,
+   favorites, sign-in and registration (with validation errors), checkout (with errors), an order page,
+   "my orders", an information page and the not-found page. _States:_ the mobile menu open, the account
+   menu open, a toast, the search suggestions open, and one focused control per kind.
+
+S4. **Nothing else.** No `data-theme`, no dark value, no control, no text, no stored value. The CSS size
+before and after is reported, and stays within the ceiling of the budget ledger.
+
+S5. The rules for every item hold, and the existing CSP checks pass unchanged.
+
+**Acceptance criteria, pull request (b)**
+
+T1. **The toggle in the desktop header.** A sun/moon icon button of at least 44 by 44 px, reachable by
+keyboard, with a visible focus ring. It states its state (`aria-pressed`) under a name that does not
+change, and its icon is decorative. It offers Light and Dark only. The header does not overflow, signed
+in and signed out, at 768, 1024, 1279, 1280, 1366 and 1920 px (the widths of
+`e2e/responsive.spec.ts`), with the 520 px search of CX-03 and every other header control; the header
+tab-order test gets the new stop added on purpose.
+
+T2. **The mobile menu.** The same choice is in the menu below the `md` width, in the same state as the
+header toggle, and the mobile header at 320 px is not changed by it.
+
+T3. **Default and persistence.** With nothing stored the page is Light, also when the browser asks for a
+dark color scheme (an e2e test with Playwright's `colorScheme: 'dark'` shows the light page), and
+`prefers-color-scheme` is not followed at any time. Choosing Dark changes the page at once and survives a
+reload and a later visit in the same browser; choosing Light brings it back and is kept as an explicit
+choice. The two controls always agree.
+
+T4. **Storage.** One new `online-store:` key holds the choices, per device and not per account. Reading it
+never throws (private mode, blocked storage), and a bad or unknown value means Light and the defaults.
+
+T5. **Applying the stored choice, within the CSP.**
+a. The early script of the approach above is in `public/`, is referenced with `%BASE_URL%` from the
+template so that every page, `404.html` included, carries it before the module script and the
+stylesheet, and is covered by the policy as it is. The policy, `npm run check:csp` and `e2e/csp.spec.ts`
+do not change and stay green. There is no inline script, no `<style>` element and no inline `style`
+attribute (Rule 3). A test asserts that every built page has the tag in that place.
+b. Every visual effect is a stylesheet rule keyed on the attributes; the store in the app reads the same
+attributes on start, so the script and the app cannot disagree. A test runs the script file against a
+table of stored values (valid, partial, malformed, an unknown theme, storage that throws) and checks that
+it sets the same attributes as the store does for each.
+c. **Validation of the first paint.** A Playwright test stores each choice, holds the app's script back,
+and asserts that `<html>` already has the attributes, that the computed body background is the chosen
+one, that `#root` is still empty and, for Dark, that a `first-paint` entry exists. The pull request adds
+screenshots of the first frames with the CPU throttled.
+d. **What is not claimed.** That no frame is ever painted with the defaults is not claimed. The browser's
+own blank page before the first byte, and paint holding between two navigations, are outside the page.
+What is shown is that the page's own loading path no longer causes it, in Chromium; Firefox and WebKit
+are covered only if they are run and recorded.
+
+T6. **Dark palette and pictures.** Every text and background pair in Dark has at least 4.5:1 contrast and
+every control boundary and focus ring at least 3:1, measured, with the table in the pull request; axe's
+contrast check passes on every page in both themes (the e2e axe helper takes the theme); `color-scheme:
+dark` is set in Dark so native controls and scrollbars match. Product pictures, brand logos, category
+images, the suggestion thumbnails and the gallery stay on their light tiles in both themes, and the hero
+banners stay as they are; a different treatment of one asset needs a screenshot that shows the problem and
+the owner's approval in the pull request. Text over the banners is checked in Dark.
+
+T7. Switching the theme does not animate: no color transition runs while it changes, and none runs under
+reduced motion at all.
+
+T8. Every page of S3 is checked at 320 and 1440 px in both themes: no clipped text, no sideways scroll, no
+overlap.
+
+T9. The toggle and the menu entry pass axe in both themes and are checked by the protocol in CX-06.
+
+T10. **Budget.** The early script was measured in the prototype at about 0.2 KiB; the dark values, the
+store and the toggle are measured and reported with the numbers; the first page stays within this item's
+ceiling in the budget ledger.
+
+T11. **Performance.** The early script is one more request on the critical path. Record the home page's
+Lighthouse medians (three runs of LCP, layout shift and performance score) before and after, in the same
+environment, as in CX-08 criterion 6, and report both. Lighthouse in CI runs the default (Light) theme
+only; Dark is covered by T6 and T8.
+
+T12. `/privacy` and `docs/state-persistence.md` list the new stored value, and the accessibility
+statement mentions the theme without presenting it as the way to be accessible.
+
+**The panel, only if the owner confirms its options** (open question 1; in (b) or in its own pull request):
+a button named "העדפות תצוגה" opens a small panel (a disclosure or dialog with focus managed like the
+account menu: Enter opens, Tab walks, Escape closes and returns focus, a click outside closes); each
+option changes the page at once and can be turned off; the panel's "reset" returns its own options to
+their defaults and does not change the theme, which has its own toggle; "Reduce motion" is read by the same
+hook as the system setting (CX-05), including the carousel and back to top, and the system setting still
+applies when the option is off; every option is checked at 320 and 1440 px on the pages of S3 in both
+themes, alone and together; the panel passes axe and is keyboard operable; it is a lazy chunk; and the
+Hebrew text of its labels is reviewed before it is built.
+
+**Tests.** For (a): the existing tests unchanged, and the one-off comparisons of S3. For (b): the contract
+test and the first-paint test of T5; the default-light test of T3 with `colorScheme: 'dark'`; unit tests for
+the store (defaults, bad data, storage failure) and for applying the choices; e2e for the toggle in the
+header and in the menu and for persistence across a reload; axe on every page in both themes;
+`npm run check:csp` and `e2e/csp.spec.ts` unchanged and green. **Manual.** The toggle at both widths; the
+menu entry with a screen reader; Dark on a real screen in a dim room, for what contrast numbers do not say.
+
+**Depends on / affects.** CX-05 (the reduced-motion hook, for the panel), CX-06 (zoom results, for the panel's text size), CX-03 (the
+header room), and (b) on (a). `public/` (the script), `index.html`, `Header.tsx`, `MobileNav.tsx`,
+`index.css` and about 29 component files for the surface tokens, the entry module, a new feature folder,
+`PrivacyPage.tsx`, `docs/state-persistence.md`, `docs/accessibility.md`, the e2e axe helper. **Risks.** A
+token mapped to the wrong group in (a) (the evidence of S3 is the guard); the header overflowing at 768 px
+with a new button (T1); the early script and the store drifting apart (T5b); a cached old copy of the
+script after a change; a stored value that outlives a change of the options; dark colors that pass a number
+and still look wrong next to the light tiles.
 
 ### CX-08 A better home hero
 
@@ -729,8 +900,8 @@ a curious one finds the real facts about the project, not filler.
 
 1. Columns for: the store (name, one honest sentence, the demo notice kept as it is), shopping
    (products, categories, brands as links using the CX-01 helper), information (the five pages) and
-   the project (the repository, its documentation, the architecture and accessibility documents, the
-   issue tracker if it is enabled).
+   the project (the repository, its documentation, the architecture and accessibility documents). The
+   footer has no link to GitHub Issues (decision 31).
 2. Every statement and link is factual and checkable: the stack as the README names it, links that
    exist. No guarantee, warranty, secure-payment claim, support hours or contact beyond
    `src/lib/links.ts`.
@@ -762,7 +933,7 @@ lists the sort orders and becomes incomplete when CX-02 lands (it stays true). T
 `infoPages.ts`, which `scripts/static-routes.mjs` copies into the static HTML. Material for a story
 exists in the repository: `docs/project/05-project-history.md` (Hebrew), `docs/project/07-engineering-process.md`,
 `docs/testing.md`, the 14 decision records, and the QA remediation report on the GitHub release
-`docs-v2.1` (listed on the Releases page, checked live). The documents under `docs/project/` and the two
+`docs-v2.1` (listed on the Releases page, checked live; it is not linked from the page, decision 32). The documents under `docs/project/` and the two
 project books were written before the QA program; their release notes date the books to 2026-10-08. They
 may be out of date.
 
@@ -785,14 +956,15 @@ developed and how it is tested, and that it is a demonstration, in a form that i
 4. No number (tests, pull requests, records) is typed into the page; a number is left out or linked to
    the document that holds it, so the page cannot go stale. This is checked in review.
 5. The sentence about sorting is correct for the orders that exist when the page is written, and the page
-   links to the project's documents and, if the owner wants, to the release with the QA report.
+   links to the project's documents in the repository. It does not link to the `docs-v2.1` release
+   (decision 32).
 6. Short paragraphs and clear headings, with one `h1`; the page description is updated through
    `infoPages.ts`.
 
 **Tests.** `src/pages/infoPages.test.tsx` and `e2e/info-pages.spec.ts` are updated (headings, links that
 exist, no `mailto`); axe. **Manual.** Read at 375 and 1440 px; every link opened.
 
-**Depends on / affects.** Wording approval, the owner's choice of what to link. `AboutPage.tsx`,
+**Depends on / affects.** Wording approval. `AboutPage.tsx`,
 `infoPages.ts`, `docs/seo.md` if the description rule changes. **Risks.** Overclaiming; text that goes
 stale; a long page that is not read.
 
@@ -823,9 +995,11 @@ and finds the common answers without leaving the page.
    visitor can read.
 4. Nothing implies real support: no response time, no "we will reply", no hours, no phone, no email, no
    chat, no form. The two GitHub links remain the only external contact links.
-5. The constraints pinned today (two external links, no form or input, no `mailto` or `tel`) keep
+5. The answer about reporting a bug or an accessibility problem points to the two GitHub links of the
+   page and not to GitHub Issues (decision 31).
+6. The constraints pinned today (two external links, no form or input, no `mailto` or `tel`) keep
    holding; those tests are extended, not weakened. A `<details>` element is not a form control.
-6. No wording is repeated from the About page; the two pages link to each other.
+7. No wording is repeated from the About page; the two pages link to each other.
 
 **Tests.** The contact test of `e2e/info-pages.spec.ts` stays as it is and gains FAQ assertions (count,
 keyboard open and close, each answer's link); a unit test of the FAQ; axe. **Manual.** Keyboard and a
@@ -1040,12 +1214,12 @@ end to end, with the same protocol, and the statement of what was and was not ch
 | F3   | Register and sign in, including the toggle, errors and success                                                                                   |
 | F4   | Checkout with an error and then success, the order page                                                                                          |
 | F5   | The account menu, "my orders", sign out                                                                                                          |
-| F6   | The preferences panel: each option, persistence across a reload, reduced motion                                                                  |
+| F6   | The theme toggle in the header and in the mobile menu, persistence across a reload, and the panel's options if they shipped; reduced motion      |
 | F7   | The footer, About and Contact (the FAQ), and the hero with its controls                                                                          |
 
 **Acceptance criteria**
 
-1. Checks A to D of CX-06 are repeated on every page the program changed since the baseline, and check E
+1. Checks A to D of CX-06 are repeated, in both themes, on every page the program changed since the baseline, and check E
    (the protocol) is run on F1 to F7. Every cell is recorded in `docs/accessibility.md` as pass, fail or
    not run, with date, tool and evidence.
 2. Open S1 findings: none. Each S2 is fixed or accepted by the owner in the pull request, in writing.
@@ -1063,54 +1237,53 @@ the review cannot grow without limit.
 
 ## Deferred and not proposed
 
-| Subject                    | Status       | Reason, and what would reopen it                                                                             |
-| -------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------ |
-| PWA                        | **Deferred** | Owner decision. Offline caching would also interact with the cart sync and the session; needs its own design |
-| PC Builder                 | **Deferred** | Needs reliable component specifications and a credible compatibility model; the catalog has 31 products      |
-| Product videos             | **Deferred** | Owner decision, until suitable assets and a performance-conscious approach exist                             |
-| Promotions and discounts   | **Deferred** | Owner decision. The Eilat price stays exactly as it is                                                       |
-| Biggest-discount sort      | Not proposed | Excluded by the owner                                                                                        |
-| Popularity or best sellers | Not proposed | Excluded by the owner; there is no sales data                                                                |
-| Contact form               | Not proposed | Excluded by the owner: there is nobody to answer it                                                          |
-| Dark theme                 | Not proposed | Not asked for; a larger change than the preferences panel. Can be added to CX-07 later                       |
-| Password strength meter    | Not proposed | The policy has no composition rules; a meter would imply some                                                |
-| Brand pages with content   | Not proposed | Brand links use the existing filtered listing; two brands have one product each                              |
-| ARIA combobox for search   | Not proposed | CX-06 records the decision; a move would be its own item                                                     |
+| Subject                                                  | Status       | Reason, and what would reopen it                                                                                                                                    |
+| -------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PWA                                                      | **Deferred** | Owner decision. Offline caching would also interact with the cart sync and the session; needs its own design                                                        |
+| PC Builder                                               | **Deferred** | Needs reliable component specifications and a credible compatibility model; the catalog has 31 products                                                             |
+| Product videos                                           | **Deferred** | Owner decision, until suitable assets and a performance-conscious approach exist                                                                                    |
+| Promotions and discounts                                 | **Deferred** | Owner decision. The Eilat price stays exactly as it is                                                                                                              |
+| Biggest-discount sort                                    | Not proposed | Excluded by the owner                                                                                                                                               |
+| Popularity or best sellers                               | Not proposed | Excluded by the owner; there is no sales data                                                                                                                       |
+| Contact form                                             | Not proposed | Excluded by the owner: there is nobody to answer it                                                                                                                 |
+| Following the system color scheme, or a third theme mode | Not proposed | Light is the default until the user explicitly chooses, and there are two themes only (decision 30 and the owner decisions after it); reopen only by a new decision |
+| Password strength meter                                  | Not proposed | The policy has no composition rules; a meter would imply some                                                                                                       |
+| Brand pages with content                                 | Not proposed | Brand links use the existing filtered listing; two brands have one product each                                                                                     |
+| ARIA combobox for search                                 | Not proposed | CX-06 records the decision; a move would be its own item                                                                                                            |
 
 ## Open questions
 
-These need the owner's answer before the batch that depends on them. None blocks B1 or B2.
+These need the owner's answer before the batch that depends on them. None blocks B1 or B2. The earlier
+questions about the footer, the About page link, branch names, the budget ceilings, the delivery of
+CX-07 and the treatment of images in Dark are closed (decisions 31 to 34 and the owner decisions on
+CX-07).
 
-1. **Display options (CX-07).** Are the four options (text size, reduce motion, stronger contrast,
-   underline links) the right set, and should the button sit in the header on desktop and in the menu on
-   phones?
-2. **Footer (CX-09).** Is linking to the repository's issue tracker as the way to report a problem
-   acceptable? It is a public channel, and the contact page already points to the profile and the
-   repository for reports.
-3. **Release link (CX-10).** Should the About page link to the `docs-v2.1` release (the QA report)?
-4. **Branch names.** The earlier program used `phase/NN-name`. For this one the proposal is `cx/NN-name`
-   (for example `cx/01-browsing-quick-wins`).
-5. **Budget ceilings.** Are the per-item ceilings of the [Budget ledger](#budget-ledger) acceptable as the
-   starting allocation?
+1. **The panel of display options (CX-07).** The theme is decided: a toggle in the header and in the
+   mobile menu. Still open: are text size, reduce motion, stronger contrast and underline links the
+   right options for a panel; where does the panel's own button sit, now that the header has the
+   toggle; and does the panel ship in the second pull request of CX-07 or in one of its own? The theme
+   does not wait for the answer.
 
 ## What remains unverified
 
-| Subject                                                                                | Why it was not checked                                                                                                                                                                                                                                                       |
-| -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The signed-in checkout, the order page and "my orders" live                            | They need an account on production; creating one on the live site was not done. Covered by source and by tests only                                                                                                                                                          |
-| Live validation and submit of the sign-in and sign-up forms                            | A submit creates a real account or a real rate-limit count in production                                                                                                                                                                                                     |
-| Any screen reader, zoom to 200% and 400%, text spacing, forced colors, Firefox, Safari | Not run yet. They are planned: CX-06 (baseline), CX-12, CX-13 and CX-14 (final), by the protocol in CX-06                                                                                                                                                                    |
-| A real phone                                                                           | Only a 375 by 812 px viewport of the in-app browser was used                                                                                                                                                                                                                 |
-| Lighthouse scores of the deployed site                                                 | Not run here. The Lighthouse, Security and CI workflows of `c8de10a` show as passed on GitHub Actions; scores were not read                                                                                                                                                  |
-| Test results                                                                           | No suite was run during the discovery. Later, for PR #92, a local run gave 2,814 site, 1,615 API (116 skipped), 116 integration and 375 end-to-end tests (4,920 with the integration ones); the README still says 4,916, and is refreshed at the end of the program (Rule 7) |
-| Bundle size of the current `main`                                                      | Measured on a fresh local build of `4a45b38` (see the Budget ledger); CI's `check:bundle` was not read for that commit                                                                                                                                                       |
-| The second site on Netlify                                                             | Not opened                                                                                                                                                                                                                                                                   |
-| Cold-start timing of the API                                                           | The "the server is waking up" notice and a first suggestion answer of a few seconds were seen once; not measured                                                                                                                                                             |
-| Focus hidden by the sticky header                                                      | A gap in the source only (no `scroll-padding`); not tested with a keyboard                                                                                                                                                                                                   |
-| Scaling the root font size                                                             | The `rem` basis is read in the source; no page was tried at a larger size                                                                                                                                                                                                    |
-| What the listing shows when the API answers `400`                                      | Not inspected; the rollout of CX-02 is designed so that the case does not arise                                                                                                                                                                                              |
-| Whether the built HTML shows content before the entry module runs                      | Not inspected; it decides the method of CX-07 criterion 4 and is checked at the start of that item                                                                                                                                                                           |
-| Eilat in `scripts/`, in the static pages and in any search-engine output               | Only the source of `src/` and `server/src` was searched                                                                                                                                                                                                                      |
+| Subject                                                                                                                    | Why it was not checked                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The signed-in checkout, the order page and "my orders" live                                                                | They need an account on production; creating one on the live site was not done. Covered by source and by tests only                                                                                                                                                          |
+| Live validation and submit of the sign-in and sign-up forms                                                                | A submit creates a real account or a real rate-limit count in production                                                                                                                                                                                                     |
+| Any screen reader, zoom to 200% and 400%, text spacing, forced colors, Firefox, Safari                                     | Not run yet. They are planned: CX-06 (baseline), CX-12, CX-13 and CX-14 (final), by the protocol in CX-06                                                                                                                                                                    |
+| A real phone                                                                                                               | Only a 375 by 812 px viewport of the in-app browser was used                                                                                                                                                                                                                 |
+| Lighthouse scores of the deployed site                                                                                     | Not run here. The Lighthouse, Security and CI workflows of `c8de10a` show as passed on GitHub Actions; scores were not read                                                                                                                                                  |
+| Test results                                                                                                               | No suite was run during the discovery. Later, for PR #92, a local run gave 2,814 site, 1,615 API (116 skipped), 116 integration and 375 end-to-end tests (4,920 with the integration ones); the README still says 4,916, and is refreshed at the end of the program (Rule 7) |
+| Bundle size of the current `main`                                                                                          | Measured on a fresh local build of `4a45b38` (see the Budget ledger); CI's `check:bundle` was not read for that commit                                                                                                                                                       |
+| The second site on Netlify                                                                                                 | Not opened                                                                                                                                                                                                                                                                   |
+| Cold-start timing of the API                                                                                               | The "the server is waking up" notice and a first suggestion answer of a few seconds were seen once; not measured                                                                                                                                                             |
+| Focus hidden by the sticky header                                                                                          | A gap in the source only (no `scroll-padding`); not tested with a keyboard                                                                                                                                                                                                   |
+| Scaling the root font size                                                                                                 | The `rem` basis is read in the source; no page was tried at a larger size                                                                                                                                                                                                    |
+| Frame-by-frame paint with the early theme script, and other browsers                                                       | The scratch experiment read computed styles and paint entries in Chromium 1243 only; it is not a recording, and Firefox and WebKit were not run                                                                                                                              |
+| How long GitHub Pages caches an unhashed file such as the early script                                                     | Not checked                                                                                                                                                                                                                                                                  |
+| The dark palette: its contrast, and how the light tiles of pictures and logos, and the banners, look next to dark surfaces | No design exists yet                                                                                                                                                                                                                                                         |
+| What the listing shows when the API answers `400`                                                                          | Not inspected; the rollout of CX-02 is designed so that the case does not arise                                                                                                                                                                                              |
+| Eilat in `scripts/`, in the static pages and in any search-engine output                                                   | Only the source of `src/` and `server/src` was searched                                                                                                                                                                                                                      |
 
 ## Revision notes
 
@@ -1127,3 +1300,18 @@ These need the owner's answer before the batch that depends on them. None blocks
   PRs #90 to #92; the bundle ledger starts from a fresh build of that commit (JavaScript 138.9 KiB, CSS
   7.9 KiB), with the reserve recomputed; the CX-06 current state and the list of unverified items
   mention PR #92 and the test counts seen while making it. Nothing else in the plan changed.
+- **2026-10-19, owner decisions 30 to 34.** Light is the default and Dark a user choice (decision 30),
+  so CX-07 became "Display preferences and theme": the loading path was inspected (the built pages that were
+  opened have an empty body until the app runs), a scratch prototype showed that an early classic script file
+  avoids a white page for a visitor who chose Dark and that applying the choice in the entry module
+  does not, and the approach is that file, within the unchanged CSP. The dark theme is no longer listed
+  as not proposed; following the system setting is. No GitHub Issues link in the footer (31) and no
+  `docs-v2.1` link on the About page (32); branches are `cx/NN-name` (33); per-item budgets are
+  checked against a fresh measurement and confirmed when each item starts (34). The questions these closed are
+  gone from the open questions; two about CX-07 were added.
+- **2026-10-19, owner decisions on CX-07.** CX-07 is delivered in two pull requests: the surface tokens
+  first, with evidence that Light is unchanged, then the theme. Product pictures and logos stay on light
+  tiles and the banners stay as they are. The theme has two values, with a sun/moon toggle in the
+  desktop header and the same choice in the mobile menu; Light stays the default until the user
+  chooses, and the system setting is never followed. `NN` in `cx/NN-name` is the batch number. The
+  open questions these closed are gone; the one about the panel's options and button remains.
