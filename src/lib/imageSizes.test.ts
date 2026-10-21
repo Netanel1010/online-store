@@ -29,7 +29,7 @@ const ratio = ({ width, height }: { width: number; height: number }) => width / 
 describe('image sizes used to reserve space for lazy images', () => {
   it('reads the size of a file correctly (the reader is checked against known files)', () => {
     expect(fileSize('images/brands/amd.webp')).toEqual({ width: 90, height: 40 })
-    expect(fileSize('images/hero/slide-1.avif')).toEqual({ width: 1154, height: 368 })
+    expect(fileSize('images/hero/slide-2.avif')).toEqual({ width: 1834, height: 788 })
   })
 
   it('gives every brand logo the size of its file', () => {
