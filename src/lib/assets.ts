@@ -1,5 +1,5 @@
 /**
- * Resolves a path relative to `public/` (e.g. "images/hero/slide-1.avif") against the
+ * Resolves a path relative to `public/` (e.g. "images/hero/slide-2.avif") against the
  * deployed base URL, so it works both in dev ("/") and on GitHub Pages ("/online-store/").
  */
 export function assetUrl(path: string): string {

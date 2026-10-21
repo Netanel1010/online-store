@@ -18,13 +18,11 @@ export const HERO_AUTOPLAY_DELAY_MS = 4000
 
 export const HERO_SLIDES: readonly HeroSlide[] = [
   {
-    // 1154x368, a much wider shape than the other banners: cropped to the frame it loses the
-    // AORUS logo and the Intel badges at its edges and is enlarged past its resolution.
-    image: 'images/hero/slide-1.avif',
-    width: 1154,
-    height: 368,
-    alt: 'לוחות אם Gigabyte AORUS מסדרת Z890',
-    fit: 'contain',
+    // The first banner is the first thing a visitor sees, so it is the Corsair pair.
+    image: 'images/hero/slide-5.avif',
+    width: 1834,
+    height: 788,
+    alt: 'מארזי Corsair עם תאורת RGB',
   },
   {
     image: 'images/hero/slide-2.avif',
@@ -45,12 +43,6 @@ export const HERO_SLIDES: readonly HeroSlide[] = [
     alt: 'יצירת תוכן עם כרטיסי מסך GeForce RTX',
   },
   {
-    image: 'images/hero/slide-5.avif',
-    width: 1834,
-    height: 788,
-    alt: 'מארזי Corsair עם תאורת RGB',
-  },
-  {
     image: 'images/hero/slide-6.avif',
     width: 1834,
     height: 788,
@@ -67,5 +59,23 @@ export const HERO_SLIDES: readonly HeroSlide[] = [
     width: 1834,
     height: 788,
     alt: 'מחשב במארז שקוף עם קירור נוזלי בין עלי סתיו ודלעות',
+  },
+  {
+    image: 'images/hero/slide-9.avif',
+    width: 1834,
+    height: 788,
+    alt: 'מחשב גיימינג במארז לבן עם חזית גיאומטרית בגוון נחושת ותאורה סגולה, מסדרת Kinetic',
+  },
+  {
+    image: 'images/hero/slide-10.avif',
+    width: 1834,
+    height: 788,
+    alt: 'אריזת מעבד AMD Ryzen 9 מסדרת 9000 לצד פרח שקוף וזוהר',
+  },
+  {
+    image: 'images/hero/slide-11.avif',
+    width: 1834,
+    height: 788,
+    alt: 'מחשב במארז לבן בנוף ירוק עם פרחים ופרפר, לצד אריזות מעבדי Intel Core Ultra',
   },
 ]

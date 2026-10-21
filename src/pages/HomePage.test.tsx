@@ -132,10 +132,10 @@ describe('HeroCarousel', () => {
     expect(dot).toHaveAttribute('aria-current', 'true')
   })
 
-  it('has a dot for each of the eight slides', async () => {
+  it('has a dot for each of the ten slides', async () => {
     const { carousel } = await renderCarousel()
 
-    expect(total).toBe(8)
-    expect(within(carousel).getAllByRole('button', { name: /^באנר \d+ מתוך 8$/ })).toHaveLength(8)
+    expect(total).toBe(10)
+    expect(within(carousel).getAllByRole('button', { name: /^באנר \d+ מתוך 10$/ })).toHaveLength(10)
   })
 })

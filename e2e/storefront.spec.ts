@@ -40,7 +40,7 @@ test.describe('home page', () => {
     const carousel = page.getByRole('region', { name: 'באנרים' })
     const firstAlt = await carousel.getByRole('img').first().getAttribute('alt')
 
-    await expect(carousel.getByRole('button', { name: /^באנר \d+ מתוך 8$/ })).toHaveCount(8)
+    await expect(carousel.getByRole('button', { name: /^באנר \d+ מתוך 10$/ })).toHaveCount(10)
     await carousel.getByRole('button', { name: 'הבא' }).click()
     await expect(carousel.getByRole('img').first()).not.toHaveAttribute('alt', firstAlt ?? '')
     await carousel.getByRole('button', { name: 'הקודם' }).click()
@@ -125,14 +125,14 @@ test.describe('hero banners fit the frame', () => {
     }
   })
 
-  test('the first banner is shown whole, like a picture, with the same frame, arrows and dots', async ({
+  test('the first banner fills the frame like the others, with the same frame, arrows and dots', async ({
     page,
   }) => {
     await page.goto('')
     const carousel = page.getByRole('region', { name: 'באנרים' })
     const first = carousel.getByRole('img').first()
 
-    await expect(first).toHaveCSS('object-fit', 'contain')
+    await expect(first).toHaveCSS('object-fit', 'cover')
     const frame = (await first.boundingBox())!
     await carousel.getByRole('button', { name: 'הבא' }).click()
     const second = (await carousel.getByRole('img').first().boundingBox())!

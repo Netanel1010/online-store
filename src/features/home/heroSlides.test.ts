@@ -6,8 +6,16 @@ const heroFiles = Object.keys(import.meta.glob('/public/images/hero/*.avif')).ma
 )
 
 describe('HERO_SLIDES', () => {
-  it('has the eight banners of the original store', () => {
-    expect(HERO_SLIDES).toHaveLength(8)
+  it('has the ten banners of the carousel', () => {
+    expect(HERO_SLIDES).toHaveLength(10)
+  })
+
+  it('starts with the Corsair banner, and no longer has the AORUS motherboards banner', () => {
+    const images = HERO_SLIDES.map((slide) => slide.image)
+
+    expect(images[0]).toBe('images/hero/slide-5.avif')
+    expect(images).not.toContain('images/hero/slide-1.avif')
+    expect(heroFiles).not.toContain('images/hero/slide-1.avif')
   })
 
   it('points every slide at an image that exists in public/', () => {
@@ -42,12 +50,28 @@ describe('HERO_SLIDES', () => {
       ]),
     )
   })
+
+  it('includes the three banners added after them', () => {
+    const images = HERO_SLIDES.map((slide) => slide.image)
+
+    expect(images).toEqual(
+      expect.arrayContaining([
+        'images/hero/slide-9.avif',
+        'images/hero/slide-10.avif',
+        'images/hero/slide-11.avif',
+      ]),
+    )
+  })
 })
 
 describe('HERO_SLIDES fit', () => {
-  it('shows only the first banner whole: it is the one that is not 1834x788', () => {
-    expect(HERO_SLIDES[0]?.image).toBe('images/hero/slide-1.avif')
-    expect(HERO_SLIDES[0]?.fit).toBe('contain')
-    expect(HERO_SLIDES.slice(1).filter((slide) => slide.fit !== undefined)).toEqual([])
+  it('has only banners of the frame own shape, 1834x788, so every one fills the frame', () => {
+    for (const slide of HERO_SLIDES) {
+      expect({ width: slide.width, height: slide.height }, slide.image).toEqual({
+        width: 1834,
+        height: 788,
+      })
+      expect(slide.fit, slide.image).toBeUndefined()
+    }
   })
 })
