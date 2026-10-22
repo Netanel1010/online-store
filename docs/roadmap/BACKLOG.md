@@ -4,13 +4,13 @@
 source of truth for the customer-experience program: an item is changed here first, and a batch is
 started only after the owner approves it.
 
-|               |                                                                                                                                                                                                                                                                                                                                |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Written       | 2026-10-19, from a read-only discovery; nothing in the application was changed                                                                                                                                                                                                                                                 |
-| Revised       | 2026-10-19, after a critical review and the owner's decisions (see [Revision notes](#revision-notes)). No new inspection of the site was made; the review re-read how `SORT_KEYS` is used and what `scripts/check-api.mjs` checks; CX-07 was written after inspecting the build and the loading path, with a scratch prototype |
-| Baseline      | The discovery was done on `main` at `c8de10a` (merge of PR #89). `main` is now at `4a45b38`, after PR #92 (the accessible-name fix of the cart controls), PR #90 (npm updates) and PR #91 (CodeQL action updates)                                                                                                              |
-| Inspected     | The source, the tests and the documents named in each item; the deployed GitHub Pages site on a 1440 px and a 375 px viewport of the in-app browser; the GitHub Actions and Releases pages                                                                                                                                     |
-| Not inspected | See [What remains unverified](#what-remains-unverified)                                                                                                                                                                                                                                                                        |
+|               |                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Written       | 2026-10-19, from a read-only discovery; nothing in the application was changed                                                                                                                                                                                                                                                                                                                               |
+| Revised       | 2026-10-19, after a critical review and the owner's decisions (see [Revision notes](#revision-notes)). No new inspection of the site was made; the review re-read how `SORT_KEYS` is used and what `scripts/check-api.mjs` checks; CX-07 was written after inspecting the build and the loading path, with a scratch prototype; revised again on 2026-10-22 after the owner's decisions on the first reading |
+| Baseline      | The discovery was done on `main` at `c8de10a` (merge of PR #89). `main` is now at `78b0fd5`, after PR #92 (the accessible-name fix of the cart controls), PR #90 (npm updates), PR #91 (CodeQL action updates), PR #93 (this file) and PR #94 (the new hero banners)                                                                                                                                         |
+| Inspected     | The source, the tests and the documents named in each item; the deployed GitHub Pages site on a 1440 px and a 375 px viewport of the in-app browser; the GitHub Actions and Releases pages                                                                                                                                                                                                                   |
+| Not inspected | See [What remains unverified](#what-remains-unverified)                                                                                                                                                                                                                                                                                                                                                      |
 
 ## How to read it
 
@@ -41,7 +41,7 @@ is, how likely it is to break something that works, and what it depends on.
 | **P3**   | Worth doing once the rest is done                                       |
 
 Priority is not the order of work. The order follows dependencies and risk, and is in
-[Batches and order](#batches-and-order). Batch numbers (B1 to B10) are names; the **Order** column says
+[Batches and order](#batches-and-order). Batch numbers (B1 to B10, with no B2 since the sort was withdrawn) are names; the **Order** column says
 when each one runs.
 
 ## Decisions already made
@@ -49,13 +49,13 @@ when each one runs.
 | Area                                      | Decision                                                                                                                                                                                                           | Item                |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
 | Eilat pricing                             | Keep it. Do not remove or replace it                                                                                                                                                                               | all                 |
-| Sorting                                   | Add sorting by the existing `isRecommended` field and nothing else: no biggest-discount sort, no popularity or "best selling"                                                                                      | CX-02               |
+| Sorting                                   | Withdrawn by the owner (2026-10-22): no sort by `isRecommended` and no new sort at all, and nothing in this program changes the API                                                                                | none                |
 | Contact page                              | Human, welcoming, professional, with a short FAQ. No claim of real support, no real contact form                                                                                                                   | CX-11               |
 | Search                                    | Desktop field 520 px wide (from 448 px), still responsive on smaller screens. The live suggestions already exist and are not rebuilt                                                                               | CX-03               |
-| Accessibility                             | Improve it throughout, plus a small display-preferences panel whose options really work. Two stages: a baseline now and a deeper review after the sign-in and checkout changes                                     | CX-06, CX-14, CX-07 |
+| Accessibility                             | Improve it throughout, plus an accessibility panel (a floating button at the side) whose options really work. Two stages: a baseline now and a deeper review after the sign-in and checkout changes                | CX-06, CX-14, CX-07 |
 | Screen readers                            | Planned and run by a written protocol. If a tool is hard to use, practical alternatives are tried first. A check is never reported as passed without a record of it                                                | CX-06               |
 | Animations                                | One restrained approach, feedback for add to cart, favorites and checkout, `prefers-reduced-motion` honored                                                                                                        | CX-05               |
-| Home hero                                 | Better layout, heading, text, call to action and responsive behavior. This program adds, replaces or removes no image asset                                                                                        | CX-08               |
+| Home hero                                 | Better layout, heading, text, call to action and responsive behavior. The owner chooses and supplies the banner images (PR #94 already replaced the first banner and added three)                                  | CX-08               |
 | Back to top                               | A button after a meaningful scroll, reduced-motion aware                                                                                                                                                           | CX-04               |
 | Brand links                               | The brands on the home page link to the catalog filtered by that brand                                                                                                                                             | CX-01               |
 | Footer                                    | Redesign with useful navigation and factual information. No invented guarantees or support                                                                                                                         | CX-09               |
@@ -67,12 +67,15 @@ when each one runs.
 | Theme (decision 30)                       | Light is the default until the user explicitly chooses a theme. Users can switch to Dark, and the choice persists across visits. The system color setting (`prefers-color-scheme`) is never followed automatically | CX-07               |
 | Theme control (owner decision)            | Only Light and Dark, no third mode. A sun/moon toggle in the desktop header, and the same choice in the mobile menu                                                                                                | CX-07               |
 | Images and logos in Dark (owner decision) | Product pictures and logos stay on light tiles in both themes, unless an asset needs another treatment. The hero banners keep their current look in their current black frame; light tiles do not apply            | CX-07               |
-| Delivery of CX-07 (owner decision)        | Two pull requests: a mechanical migration from `bg-white` to a semantic surface token, with evidence that Light is unchanged, then the theme                                                                       | CX-07               |
+| Delivery of CX-07 (owner decision)        | Three pull requests: a mechanical migration from `bg-white` to a semantic surface token, with evidence that Light is unchanged, then the theme, then the accessibility panel                                       | CX-07               |
+| Accessibility panel (owner decision)      | A floating button at the left edge of the screen opens a side panel of options, in its own pull request after the theme. The options are proposed in CX-07 and wait for the owner                                  | CX-07               |
+| Social sign-in                            | To be discussed later; not part of this program                                                                                                                                                                    | Deferred            |
+| Hosting of the API                        | A later move from Render to Vercel Serverless is intended; nothing is started and it is not part of this program                                                                                                   | Deferred            |
 | Footer links (decision 31)                | No GitHub Issues link in the footer                                                                                                                                                                                | CX-09               |
 | About page links (decision 32)            | No link to the `docs-v2.1` release on the About page                                                                                                                                                               | CX-10               |
 | Branch names (decision 33)                | CX work branches are named `cx/NN-name`, where NN is the number of the CX batch, for example `cx/01-browsing-quick-wins`                                                                                           | Rule 8              |
 | Budgets (decision 34)                     | Measure the current bundle before assigning per-item budgets. The overall limits stay 160 KiB JavaScript and 16 KiB CSS                                                                                            | Budget ledger       |
-| Deferred                                  | PWA, PC Builder, product videos, promotions and discounts. See [Deferred](#deferred-and-not-proposed)                                                                                                              | none                |
+| Deferred                                  | PWA, PC Builder, product videos, promotions and discounts, social sign-in and a move of the API host. See [Deferred](#deferred-and-not-proposed)                                                                   | none                |
 
 **Eilat price, what was checked.** A search of the non-test `.ts` and `.tsx` files of `src/` found it
 only in the product page (`ProductDetails.tsx:61`, "מחיר באילת") and in the product schema
@@ -89,7 +92,6 @@ An index only. The evidence for each row is in the item named in the last column
 | ----------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- |
 | Live search suggestions       | **VERIFIED PRESENT** | [CX-03](#cx-03-a-larger-desktop-search-field)                                                             |
 | Listing filters and URL state | **VERIFIED PRESENT** | [CX-01](#cx-01-brand-links-on-the-home-page)                                                              |
-| Sorting                       | **PARTIAL**          | [CX-02](#cx-02-sort-by-recommended)                                                                       |
 | Brand strip on the home page  | **PARTIAL**          | CX-01                                                                                                     |
 | Back to top                   | **MISSING**          | [CX-04](#cx-04-back-to-top)                                                                               |
 | Motion and feedback           | **PARTIAL**          | [CX-05](#cx-05-a-restrained-motion-approach-with-feedback)                                                |
@@ -135,14 +137,13 @@ These are not repeated in each item, and an item is not done while one of them i
    stored value, `docs/openapi.yaml` for an API change, `docs/testing.md` for new suites). The README
    metrics (test counts and the like) are changed only at the end of the program, in one pull request,
    from measurements taken then.
-8. **Delivery.** One batch is one branch and one pull request, in English, from the latest `main`.
-   Two items are exceptions and take two pull requests each: CX-02 (the API first, then the site) and
-   CX-07 (the surface tokens first, then the theme). Branches are named `cx/NN-name`, where NN is the
-   number of the batch, for example `cx/01-browsing-quick-wins` (decision 33); the two pull requests of
-   one batch share its number and differ in the name. The owner pushes, opens and merges. This file and
-   its entry in `docs/README.md` come with the documentation pull request that precedes B1. The two
-   project books are not touched by this program; a summary document for GitHub Releases is prepared
-   once, at the end.
+8. **Delivery.** One batch is one branch and one pull request, in English, from the latest `main`. One
+   item is an exception and takes three pull requests: CX-07 (the surface tokens first, then the theme,
+   then the accessibility panel). Branches are named `cx/NN-name`, where NN is the number of the batch,
+   for example `cx/01-browsing-quick-wins` (decision 33); the pull requests of CX-07 share its batch
+   number and differ in the name. The owner pushes, opens and merges. This file and its entry in
+   `docs/README.md` come with the documentation pull request that precedes B1. The two project books are
+   not touched by this program; a summary document for GitHub Releases is prepared once, at the end.
 9. **Evidence.** A pull request says what was run and what it returned, and lists a check that was not
    run as not run. A manual or assistive-technology check is claimed only if a record of it exists
    (see the [protocol in CX-06](#assistive-technology-protocol)).
@@ -159,54 +160,56 @@ checkout, orders, information pages) do not count (`scripts/bundleBudget.mjs`).
 |                                                                                  | JavaScript (gzip) | CSS (gzip) |
 | -------------------------------------------------------------------------------- | ----------------- | ---------- |
 | Limit (never changes)                                                            | 160 KiB           | 16 KiB     |
-| Measured by `npm run check:bundle` on a fresh local build of `main` at `4a45b38` | 138.9 KiB         | 7.9 KiB    |
-| Room left at that measurement                                                    | 21.1 KiB          | 8.1 KiB    |
+| Measured by `npm run check:bundle` on a fresh local build of `main` at `78b0fd5` | 139.0 KiB         | 7.9 KiB    |
+| Room left at that measurement                                                    | 21.0 KiB          | 8.1 KiB    |
 
-The starting point above is a local build on Windows, measured on 2026-10-19 (the same figures came
-out twice, on the same commit); the `check:bundle` step of CI is the one that gates a pull request.
-The overall limits of 160 KiB JavaScript and 16 KiB CSS never change. The ceilings below are proposed
-shares of the room measured above, not predictions or measurements. They were first proposed before
-that measurement and have now been checked against it; as decision 34 asks, they are confirmed or
-revised when an item starts: the pull request measures the then-current `main` again with
-`npm run check:bundle`, reports it before and after, and says so, with the numbers, if it needs more
-than its ceiling; the owner decides. The unallocated room is a reserve for what nobody foresaw.
+The starting point above is a local build on Windows, measured on 2026-10-22 on `main` at `78b0fd5` (an
+earlier measurement, at `4a45b38`, gave 138.9 KiB JavaScript and 7.9 KiB CSS); the `check:bundle` step
+of CI is the one that gates a pull request. The overall limits of 160 KiB JavaScript and 16 KiB CSS
+never change. The ceilings below are proposed shares of the room measured above, not predictions or
+measurements. They were first proposed before that measurement and have now been checked against it; as
+decision 34 asks, they are confirmed or revised when an item starts: the pull request measures the
+then-current `main` again with `npm run check:bundle`, reports it before and after, and says so, with
+the numbers, if it needs more than its ceiling; the owner decides. The unallocated room is a reserve for
+what nobody foresaw.
 
-| Item                                                                                                     | JS ceiling   | CSS ceiling |
-| -------------------------------------------------------------------------------------------------------- | ------------ | ----------- |
-| CX-01 brand links                                                                                        | 0.3 KiB      | 0.1 KiB     |
-| CX-02 (b) the select option                                                                              | 0.1 KiB      | 0           |
-| CX-03 search field                                                                                       | 0.1 KiB      | 0.1 KiB     |
-| CX-04 back to top                                                                                        | 1.0 KiB      | 0.3 KiB     |
-| CX-05 motion, feedback, busy state                                                                       | 3.0 KiB      | 1.0 KiB     |
-| CX-07 theme and preferences, both pull requests (toggle, store, early script, tokens; the panel is lazy) | 2.0 KiB      | 1.5 KiB     |
-| CX-08 hero                                                                                               | 1.5 KiB      | 1.0 KiB     |
-| CX-09 footer (it is on every page, so it is in the first page)                                           | 1.5 KiB      | 0.8 KiB     |
-| **Allocated**                                                                                            | **9.5 KiB**  | **4.8 KiB** |
-| **Reserve**                                                                                              | **11.6 KiB** | **3.3 KiB** |
+| Item                                                                                                                               | JS ceiling   | CSS ceiling |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------- |
+| CX-01 brand links                                                                                                                  | 0.3 KiB      | 0.1 KiB     |
+| CX-03 search field                                                                                                                 | 0.1 KiB      | 0.1 KiB     |
+| CX-04 back to top                                                                                                                  | 1.0 KiB      | 0.3 KiB     |
+| CX-05 motion, feedback, busy state                                                                                                 | 3.0 KiB      | 1.0 KiB     |
+| CX-07 theme and panel, all three pull requests (toggle, store, early script, tokens, the panel's button; the panel itself is lazy) | 2.0 KiB      | 1.5 KiB     |
+| CX-08 hero                                                                                                                         | 1.5 KiB      | 1.0 KiB     |
+| CX-09 footer (it is on every page, so it is in the first page)                                                                     | 1.5 KiB      | 0.8 KiB     |
+| **Allocated**                                                                                                                      | **9.4 KiB**  | **4.8 KiB** |
+| **Reserve**                                                                                                                        | **11.6 KiB** | **3.3 KiB** |
 
 Progress is recorded in this table as each batch lands (an "actual" column added by the pull request
 that spends the room).
 
 ## Batches and order
 
-| Order | Batch                            | Items               | Why here                                                                                                                                                                                                                                                                                                                                                                                   | Risk   |
-| ----- | -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| 1     | B1 Browsing quick wins           | CX-01, CX-03        | Small, visible, independent. CX-01 also gives the footer a helper to reuse                                                                                                                                                                                                                                                                                                                 | Low    |
-| 2     | B2 Recommended sort              | CX-02               | The only API change, so it stands alone, in two pull requests. Its first pull request has no dependency and can be open beside B1: the two touch different files (see CX-01)                                                                                                                                                                                                               | Medium |
-| 3     | B3 Motion and feedback           | CX-05, CX-04        | One approach and one reduced-motion hook before anything else animates; the busy-state pattern that sign-in and checkout need. Back to top is its first user                                                                                                                                                                                                                               | Low    |
-| 4     | B4 Accessibility baseline        | CX-06               | A bounded audit of the shell and of the pages the program does not rebuild, the fixes of the shared pieces, and the one form-error behavior that B8 and B9 apply                                                                                                                                                                                                                           | Medium |
-| 5     | B6 Content pages                 | CX-09, CX-11, CX-10 | The footer is on every page, so it is rebuilt before later checks. Text and layout only, no logic. It waits only for the owner's wording                                                                                                                                                                                                                                                   | Low    |
-| 6     | B7 Home hero                     | CX-08               | Home page layout. Needs the motion hook of B3. Placed after the content pages so the home page is checked once, in its final form                                                                                                                                                                                                                                                          | Medium |
-| 7     | B8 Sign-up and sign-in           | CX-12               | Authentication code, so it stands alone. It needs the busy state (B3) and the field fixes and form-error behavior (B4)                                                                                                                                                                                                                                                                     | High   |
-| 8     | B9 Checkout                      | CX-13               | The riskiest page, last of the page rebuilds. It needs the same inputs as B8 and the field changes B8 makes. Presentation only                                                                                                                                                                                                                                                             | High   |
-| 9     | B5 Display preferences and theme | CX-07               | A global effect (the dark theme changes the color of every page), so it runs after the pages are final and both themes are checked once, on the finished pages. The theme needs only the finished pages; the panel, if it ships, also needs B3 (the motion switch) and B4 (the zoom results). Two pull requests: the surface tokens first, with no visible change in Light, then the theme | Medium |
-| 10    | B10 Accessibility final review   | CX-14               | Deeper review and screen-reader pass of the finished flows, after B8, B9 and B5. It is also the evidence for the final summary document                                                                                                                                                                                                                                                    | Low    |
+| Order | Batch                            | Items               | Why here                                                                                                                                                                                                                                                                                                                                                                                                     | Risk   |
+| ----- | -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| 1     | B1 Browsing quick wins           | CX-01, CX-03        | Small, visible, independent. CX-01 also gives the footer a helper to reuse                                                                                                                                                                                                                                                                                                                                   | Low    |
+| 2     | B3 Motion and feedback           | CX-05, CX-04        | One approach and one reduced-motion hook before anything else animates; the busy-state pattern that sign-in and checkout need. Back to top is its first user                                                                                                                                                                                                                                                 | Low    |
+| 3     | B4 Accessibility baseline        | CX-06               | A bounded audit of the shell and of the pages the program does not rebuild, the fixes of the shared pieces, and the one form-error behavior that B8 and B9 apply                                                                                                                                                                                                                                             | Medium |
+| 4     | B6 Content pages                 | CX-09, CX-11, CX-10 | The footer is on every page, so it is rebuilt before later checks. Text and layout only, no logic. It waits only for the owner's wording                                                                                                                                                                                                                                                                     | Low    |
+| 5     | B7 Home hero                     | CX-08               | Home page layout. Needs the motion hook of B3. Placed after the content pages so the home page is checked once, in its final form                                                                                                                                                                                                                                                                            | Medium |
+| 6     | B8 Sign-up and sign-in           | CX-12               | Authentication code, so it stands alone. It needs the busy state (B3) and the field fixes and form-error behavior (B4)                                                                                                                                                                                                                                                                                       | High   |
+| 7     | B9 Checkout                      | CX-13               | The riskiest page, last of the page rebuilds. It needs the same inputs as B8 and the field changes B8 makes. Presentation only                                                                                                                                                                                                                                                                               | High   |
+| 8     | B5 Display preferences and theme | CX-07               | A global effect (the dark theme changes the color of every page), so it runs after the pages are final and both themes are checked once, on the finished pages. Three pull requests: the surface tokens first, with no visible change in Light, then the theme, then the accessibility panel. The theme needs only the finished pages; the panel also needs B3 (the motion switch) and B4 (the zoom results) | Medium |
+| 9     | B10 Accessibility final review   | CX-14               | Deeper review and screen-reader pass of the finished flows, after B8, B9 and B5. It is also the evidence for the final summary document                                                                                                                                                                                                                                                                      | Low    |
 
 B8 and B9 each need a full review with the engineering gates (understand, pre-mortem, small steps,
 adversarial self-review, evidence only) and the browser and assistive-technology checks listed in the
 item. B6 only needs the owner's wording, so it can run beside B4.
 
 ## Items
+
+CX-02 (a sort by recommended) was withdrawn by the owner on 2026-10-22; the other numbers are kept so
+that every reference stays valid.
 
 ### CX-01 Brand links on the home page
 
@@ -241,118 +244,10 @@ home and axe tests stay. **Manual.** Keyboard walk through the strip (the Tab or
 order in RTL); 375 and 1440 px.
 
 **Depends on / affects.** Nothing. `BrandStrip.tsx`, and a shared helper for a brand's listing path (in
-a new file rather than in `query.ts` or `brands.ts`, which avoids a circular import and a clash with CX-02),
+a new file rather than in `query.ts` or `brands.ts`, which avoids a circular import),
 reused by CX-09. **Risks.** A new link must not change how focus moves on navigation
 (`useFocusAtPageStart` already handles links). Two brands have one product: that is the catalog, not a
 defect, and is not hidden.
-
-### CX-02 Sort by recommended
-
-**Priority** P1: cheap for the value, but the only API change in the program. **Batch** B2, as two pull
-requests.
-
-**Current state.** **MISSING** as a sort, **VERIFIED PRESENT** as data. `SORT_KEYS`
-(`src/features/products/listing/query.ts:20`) is the single list of sort keys for the site and the API.
-Three places depend on it, which is why the rollout needs care:
-
-- the API validates with `z.enum(SORT_KEYS)` (`server/src/products/listQuery.ts:71`) and maps a key to
-  a MongoDB order in `toMongoSort` (`productFilter.ts:49`), which falls back to the order by `id` for a
-  key it has no case for; the in-memory repository used by the API tests and the e2e stub has its own
-  copy of the comparison (`server/src/testing/memoryProductRepository.ts:29`);
-- the site reads the sort from the URL with `isSortKey`, built on `SORT_KEYS` (`query.ts:46`);
-- `SortSelect.tsx` renders one option per `SORT_KEYS` entry, with `LABELS: Record<SortKey, string>`.
-
-So adding a key to `SORT_KEYS` makes the API accept it and the site offer it at the same moment. The
-documented enum is in `docs/openapi.yaml:168`. `isRecommended` is an editorial flag in
-`schema.ts:37`, set on 7 of the 31 products in `public/data/products.json`.
-
-**User problem and outcome.** There is no way to see the store's own picks first. A new order,
-"מומלצים קודם" (working label, needs approval), lists the products with `isRecommended` first. It is
-called what it is: a recommendation by the store, not popularity, not sales and not discount.
-
-**Design: accepted keys and visible options are two lists.**
-
-- `SORT_KEYS` stays the list of keys the API accepts, and gains `recommended`.
-- A new `VISIBLE_SORT_KEYS`, written out as an explicit list (not computed by subtraction), is the list
-  of keys the site offers and reads from the URL. In pull request (a) it lacks `recommended`.
-- `SortSelect.tsx` renders `VISIBLE_SORT_KEYS`; its `LABELS` is keyed by the visible type, so adding a
-  key to the visible list without a label does not type-check.
-- `parseListingState` validates the URL against `VISIBLE_SORT_KEYS`. In (a) a URL with
-  `?sort=recommended` is treated like any unknown value (the default order), so neither the select nor
-  the address bar can make the site send the key.
-- `toMongoSort` and the in-memory comparison get an explicit `recommended` case: `isRecommended`
-  descending, then name, then `id` (the shape of the price sorts, with the same name collation), so
-  paging never repeats or skips a product.
-
-**Pull requests**
-
-- **(a) The API accepts it; the site does not offer it.** The shared lists, `toMongoSort` and the
-  in-memory comparison, `docs/openapi.yaml` and `server/README.md`, and their tests. The site does not
-  change: no new option and no new URL behavior. It type-checks because `LABELS` is keyed by the visible
-  type and the `toMongoSort` switch handles the new key.
-- **(b) The site offers it.** `recommended` joins `VISIBLE_SORT_KEYS` with its label; the e2e test; the
-  `check:api` extension below; a short note in `docs/runbook.md` on the order of rollout and rollback.
-  Opened only after (a) is live and verified.
-
-**Acceptance criteria**
-
-1. After (a): `GET /api/products?sort=recommended&limit=100` answers 200; every product with
-   `isRecommended: true` comes before every product with `false`; each of the two blocks is in the same
-   order as the same products under `sort=name-asc` (the existing, tested order, with its tie-break by
-   `id`); no product is lost or repeated; `sort=default` and every existing order are unchanged; an
-   unknown value is still rejected.
-2. It works together with search, category, brand and specification filters and with paging.
-3. After (a) the site is observably unchanged: the select lists the same five options and
-   `?sort=recommended` shows the default order.
-4. After (b): the select offers the new option; choosing it writes `sort=recommended` to the URL, and
-   reload, sharing and back and forward reproduce it; the default stays clean (no parameter). Search
-   keeps its own default label "התאמה לחיפוש".
-5. No label, text or document calls it popular, best selling or best value.
-6. `docs/openapi.yaml` lists the value, and the OpenAPI contract test compares the document with
-   `SORT_KEYS` (the accepted list), while a new test asserts that every visible key is accepted and that
-   the select renders exactly the visible keys.
-
-**`check:api`: extended in (b), and why.** The deploy job runs `scripts/check-api.mjs` against the
-production API before it publishes the site to GitHub Pages (README, "CI/CD"). Today the script does not
-request any sort (it lists products and checks CORS and paging). Adding one request to it in (b) turns a
-risk into a gate: if (b) is merged before the API accepts the key, the check fails and Pages is not
-published. The check is `GET /api/products?sort=recommended&limit=100`: status 200, the products
-partitioned by `isRecommended` as in criterion 1, and the same set of ids as the default order. It does
-not check names or counts, so it does not depend on which products are recommended. It is not added in
-(a), because (a)'s own deploy would run it against the API before Render has deployed (a). The gate
-covers GitHub Pages only: Netlify builds from `main` by itself and does not wait for the workflow, and
-the API deploys separately. The sequence therefore stays the primary control: (b) is opened only after
-the manual check below.
-
-**Verification before (b) is opened.** Request the production endpoint and apply the partition and
-`name-asc` comparison of criterion 1; confirm the recommended block holds exactly the products flagged
-in `public/data/products.json` (the count is read from the file); confirm an unknown `sort` value is
-still refused. The integration test (below) proves the same relation against a real MongoDB.
-
-**Rollout and rollback.** The site and the API deploy independently, on separate hosts.
-
-- Before (b): the site never sends the key, so (a) can be rolled back or left as it is without effect.
-- After (b): the API must not be rolled back to a version without the key while the site offers it, or a
-  visitor who picks the option (or opens a shared URL with it) is refused by the API. Roll back in this
-  order: revert (b) on both site hosts (a one-line change to `VISIBLE_SORT_KEYS`), then the API if
-  needed. Reverting (b) alone is safe at any time.
-- A tab that still runs an older site never sends the key, so existing visitors are not affected at any
-  step. What the listing shows on a `400` from the API was not inspected; the sequence is designed so
-  that the answer is never asked for.
-
-**Tests.** `toMongoSort` and the in-memory comparison agree, including a test that every key of
-`SORT_KEYS` other than `default` has its own order (so a missing case cannot silently fall back to the
-order by `id`); a route test with filters and paging; the OpenAPI contract test; an integration test
-against a real MongoDB for the order and for stable paging; the unit test of the select and of the URL
-parsing (in (a) the new value is ignored, in (b) it is read); an e2e test in (b) that the recommended
-products come first, the URL carries the choice and a reload keeps it; the `check:api` script test if
-the script has one. **Manual.** The production request above; keyboard use of the select.
-
-**Depends on / affects.** `query.ts`, `productFilter.ts`, `memoryProductRepository.ts`, `listQuery`
-tests, `openapi.yaml`, `server/README.md` (sort list), `SortSelect.tsx`, `scripts/check-api.mjs`,
-`docs/runbook.md`. **Risks.** The in-memory comparison drifting from MongoDB (the integration test
-covers it); the name tie-break and its collation (reused from the price sorts); the deployment window,
-closed by the sequence above.
 
 ### CX-03 A larger desktop search field
 
@@ -393,7 +288,8 @@ anything.
 
 **Depends on / affects.** `Header.tsx`, `SearchForm.tsx` (classes only). **Risks.** The header
 overflowing at 1024 px (the width test is the guard); the theme toggle of CX-07 needs the room this
-takes (and the panel's button, if it stays in the header), so CX-07 is measured against the result.
+takes (the accessibility panel's button floats at the side and takes none), so CX-07 is measured against
+the result.
 
 **Not proposed here.** A "no suggestions" line for an unmatched text: `e2e/search-suggestions.spec.ts`
 pins that nothing is offered, and Enter already searches.
@@ -418,8 +314,8 @@ the header. A button takes them there.
    44 by 44 px target. While hidden it is not in the accessibility tree and not focusable.
 3. Activating it scrolls to the top and moves focus to the start of the page, the place
    `useFocusAtPageStart` uses, so a keyboard user is not left at the bottom.
-4. It scrolls smoothly only when the system setting (and, after CX-07, the site option) does not ask for
-   reduced motion; otherwise it jumps.
+4. It scrolls smoothly only when the system setting (and, after CX-07, the panel's option) does not ask
+   for reduced motion; otherwise it jumps.
 5. **Placement, measured.** At 320, 375 and 1440 px:
    a. it sits at the inline-end corner, and its bounding box does not intersect a visible toast (the
    toast region is `fixed` at the bottom and, at phone widths, as wide as the screen);
@@ -428,8 +324,11 @@ the header. A button takes them there.
    account in the e2e stub), after the control receives keyboard focus, its bounding box does not
    intersect the button's. Where the layout cannot keep them apart at some width, the button hides
    itself while that control is near, and the test asserts the hiding;
-   c. no control that receives keyboard focus is covered by it (the element at the control's center is
-   the control).
+   c. no control that receives keyboard focus is covered by it (the element at the control's center is the
+   control);
+   d. once the accessibility panel of CX-07 exists, its button, which also floats at the left edge,
+   never intersects this one (back to top is in the bottom corner, the panel's button in the upper
+   part).
 6. The scroll listener is passive and throttled, with no layout reads in a loop.
 
 **Tests.** A unit test for the threshold and the focus move; e2e tests with and without reduced motion
@@ -457,6 +356,14 @@ button.
 
 **User problem and outcome.** The actions that matter give a small, clear sign that they worked, in one
 consistent style, and nothing moves for a visitor who asked for less motion.
+
+**What "less motion" means.** It is a setting of the visitor's operating system ("reduce motion" on
+Windows, macOS, Android and iOS), which the browser passes to the site as `prefers-reduced-motion:
+reduce`. It is for people to whom movement on the screen causes dizziness or nausea, who are sensitive
+to sliding or flashing, or who are easily distracted. For them the site does not slide, zoom, pop, fade
+or rotate by itself (the hero stops rotating), and nothing is lost: the confirmation of an action (the
+toast, the check on the button, the filled heart) still appears, as a still change of icon, text or
+color.
 
 **Acceptance criteria**
 
@@ -496,8 +403,9 @@ shift from the toast.
 
 ### CX-06 Accessibility baseline
 
-**Priority** P1: benefits everyone, and the preferences panel cannot stand in for it. **Batch** B4.
-The deeper review after the sign-in and checkout changes is [CX-14](#cx-14-accessibility-final-review-and-screen-reader-pass).
+**Priority** P1: benefits everyone, and the accessibility panel cannot stand in for it. **Batch** B4.
+The deeper review after the sign-in and checkout changes is
+[CX-14](#cx-14-accessibility-final-review-and-screen-reader-pass).
 
 **Current state.** **PARTIAL.** Tested (not re-run here): axe-core (WCAG 2.0 to 2.2 A and AA) on the
 home page, listing, category, product, search, cart, favorites, sign-in, registration, checkout with
@@ -527,8 +435,8 @@ rest, and settles the one behavior that the later form work follows.
   them today, for focus and error behavior only (those pages are rebuilt later, as the next bullet says).
 - _Not in this stage_ (rebuilt later, checked in the batch that rebuilds them and in CX-14): the footer,
   About and Contact (B6), the hero (B7), sign-in and registration (B8), checkout and the order pages
-  (B9), the preferences panel and the theme (B5), back to top (B3). A defect seen on one of them is recorded and
-  handed to that batch as an acceptance criterion; it is not fixed twice.
+  (B9), the accessibility panel and the theme (B5), back to top (B3). A defect seen on one of them is
+  recorded and handed to that batch as an acceptance criterion; it is not fixed twice.
 - _Checks (A to E):_ **A** zoom to 200% and 400% (reflow at 320 CSS px, no sideways scroll, nothing
   clipped or overlapping); **B** the text-spacing override of WCAG 1.4.12; **C** Windows forced colors
   (focus and state remain visible); **D** a keyboard walk of every page: order, visible focus, no trap,
@@ -603,8 +511,8 @@ a screen reader may not be available, in which case cell E stays "not run" with 
 ### CX-07 Display preferences and theme
 
 **Priority** P2: real value, but a new stored value, global styles (in the dark theme every page changes
-color) and new controls. **Batch** B5, as two pull requests (below), after the pages are final (the panel, if it
-ships, also after B3 and B4).
+color) and new controls. **Batch** B5, as three pull requests (below), after the pages are final (the
+panel also after B3 and B4).
 
 **Decisions.**
 
@@ -615,9 +523,10 @@ ships, also after B3 and B4).
   automatically (see [Deferred](#deferred-and-not-proposed)). Product pictures and logos stay on light
   tiles in both themes, unless a specific asset demonstrably needs another treatment. The hero banners
   keep their current appearance inside their current black frame: the decision about light tiles does
-  not apply to them and does not ask for a light frame. The work is split into two pull requests: first
-  a mechanical migration from `bg-white` to a semantic surface token, with evidence that Light is
-  visually unchanged, then the theme.
+  not apply to them and does not ask for a light frame. The work is split into three pull requests:
+  first a mechanical migration from `bg-white` to a semantic surface token, with evidence that Light is
+  visually unchanged, then the theme, and third, on its own, the accessibility panel: a floating button
+  at the left edge of the screen that opens a side panel.
 
 **Current state.** **MISSING.** No code and no control: live, no control with this purpose among the
 buttons of the home page; a search of `src/` and `index.html` found no `color-scheme`,
@@ -657,9 +566,9 @@ of `main` at `4a45b38`, for this item:
   Netlify also a header; it does not change.
 
 **User problem and outcome.** Some visitors need a dark screen, larger text, stronger contrast or no
-motion, and do not want to configure the whole browser. The theme is one tap in the header; a small
-panel (its options, its button and its delivery are open question 1) offers a few more options that
-visibly work on every page. It supplements CX-06 and never replaces it.
+motion, and do not want to configure the whole browser. The theme is one tap in the header; the
+accessibility panel (a floating button at the side; its options are open question 1) offers more options
+that visibly work on every page. It supplements CX-06 and never replaces it.
 
 **Approach to the theme and the other stored options: an early classic script file.**
 
@@ -672,38 +581,45 @@ visibly work on every page. It supplements CX-06 and never replaces it.
 | A cookie read by a server                                                               | Rejected: both hosts serve static files                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 The script reads one storage key inside `try`/`catch` and sets `data-` attributes on `<html>` for the
-valid values it finds (the theme, and the options of the panel if it ships, so that none of them shifts the
-layout after the first paint); it does nothing else. Its cost is one small same-origin request on the
-critical path of every page. The file is not content-hashed, so after a change a browser may keep using a
-cached copy until it expires; how long GitHub Pages lets that be was not checked.
+valid values it finds (the theme, and the options of the panel, so that none of them shifts the layout
+after the first paint); it does nothing else. Its cost is one small same-origin request on the critical
+path of every page. The file is not content-hashed, so after a change a browser may keep using a cached
+copy until it expires; how long GitHub Pages lets that be was not checked.
 
 **Controls.**
 
-| Control                                          | Where                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Theme: Light or Dark, nothing else               | A sun/moon toggle in the desktop header, and the same choice in the mobile menu. The two always agree                                                                                                                                                                                                                                                            |
-| Panel options (to be confirmed, open question 1) | Text size (three or four steps that scale the root font size, for example 100, 115, 130%), reduce motion (the app's animations and the hero autoplay off even if the system allows them), stronger contrast (a higher-contrast set of the tokens, in either theme) and underline links (so links do not depend on color). The panel's own button: placement open |
+| Control                                                        | Where                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Theme: Light or Dark, nothing else                             | A sun/moon toggle in the desktop header, and the same choice in the mobile menu. The two always agree                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Accessibility panel (options to be confirmed, open question 1) | A floating button at the left edge of the screen, in the upper part of the viewport, opens a side panel. Proposed options, each of which must really work on every page: text size (three or four steps that scale the root font size); spacing of letters, words and lines; stronger contrast (a higher-contrast set of the tokens, in either theme); grayscale; underline and highlight links; stop animations (the app's animations and the hero autoplay off even if the system allows them); a large cursor; a stronger focus outline; reset; a link to the accessibility statement |
 
-A reading font and a line-spacing option are not proposed: they are larger, and none was asked for.
+A reading font is not proposed: it is larger, and none was asked for. Not proposed either: voice
+commands, a screen-reader mode and "smart navigation" of the kind some commercial widgets offer. A real
+screen reader does that job, and a mode of this kind can get in its way. Reading text aloud may come
+later, if the browser's Hebrew voices prove good enough.
 
-**Two pull requests.**
+**Three pull requests.**
 
 - **(a) Surface tokens, mechanical.** Branch `cx/05-surface-tokens` (for example). It replaces `bg-white`
   and the other ambiguous raw palette classes with semantic tokens whose values equal today's colors, and
   nothing else. It adds no dark style, no attribute, no control, no stored value and no text.
 - **(b) The theme.** Branch `cx/05-theme` (for example), opened after (a) has been merged. It adds the
   early script, the dark values of the tokens, the store, the toggle in the header and in the mobile
-  menu, and the tests below. Whether the panel ships in (b) or in a pull request of its own is not
-  decided (open question 1); the criteria of (b) below cover the theme only, and the theme does not wait
-  for the answer.
-- **Why two.** (a) touches about 29 files. Reviewed together with a new feature, a color that changed by
-  mistake would be hidden among new code; alone, it can be accepted on proof that nothing changed. (a) can
-  also be reverted by itself with no visible effect. (b) needs (a) first: the dark values attach to the
-  tokens that (a) creates, and a dark color cannot be reviewed against a `bg-white` that means a surface in
-  one place and a picture tile in another. (b) is then only additions.
-- **Hebrew copy.** (a) adds no text a visitor can see. The Hebrew text of (b) (the names of the toggle and
-  of its entry in the mobile menu, and the panel's labels if it ships) is drafted for the owner's review
-  before (b) starts, as Rule 5 says; no final copy is written here.
+  menu, and the tests below. The panel is not part of (b): the criteria of (b) below cover the theme
+  only.
+- **(c) The accessibility panel.** Branch `cx/05-a11y-panel` (for example), opened after (b) has been
+  merged and after the owner has confirmed the panel's options (open question 1). It adds the floating
+  button, the side panel, its options and their tests. The theme does not wait for it.
+- **Why three.** (a) touches about 29 files. Reviewed together with a new feature, a color that changed
+  by mistake would be hidden among new code; alone, it can be accepted on proof that nothing changed.
+  (a) can also be reverted by itself with no visible effect. (b) needs (a) first: the dark values attach
+  to the tokens that (a) creates, and a dark color cannot be reviewed against a `bg-white` that means a
+  surface in one place and a picture tile in another. (b) is then only additions. (c) is separate
+  because the panel's options are still to be confirmed, and the theme must not wait for them.
+- **Hebrew copy.** (a) adds no text a visitor can see. The Hebrew text of (b) (the names of the toggle
+  and of its entry in the mobile menu) is drafted for the owner's review before (b) starts, as Rule 5
+  says, and so is that of (c) (the button and the panel's labels) before (c) starts; no final copy is
+  written here.
 
 **Acceptance criteria, pull request (a)**
 
@@ -811,48 +727,60 @@ only; Dark is covered by T6 and T8.
 T12. `/privacy` and `docs/state-persistence.md` list the new stored value, and the accessibility
 statement mentions the theme without presenting it as the way to be accessible.
 
-**The panel, only if the owner confirms its options** (open question 1; in (b) or in its own pull request):
-a button named "העדפות תצוגה" opens a small panel (a disclosure or dialog with focus managed like the
-account menu: Enter opens, Tab walks, Escape closes and returns focus, a click outside closes); each
-option changes the page at once and can be turned off; the panel's "reset" returns its own options to
-their defaults and does not change the theme, which has its own toggle; "Reduce motion" is read by the same
-hook as the system setting (CX-05), including the carousel and back to top, and the system setting still
-applies when the option is off; every option is checked at 320 and 1440 px on the pages of S3 in both
-themes, alone and together; the panel passes axe and is keyboard operable; it is a lazy chunk; and the
-Hebrew text of its labels is reviewed before it is built.
+**Pull request (c), the accessibility panel** (its options are open question 1, and (c) starts only
+after the owner confirms them): a floating button at the left edge of the screen, in the upper part of
+the viewport, of at least 44 by 44 px, with a visible focus ring and a name drafted for the owner's
+review, opens a side panel (a dialog with focus managed like the account menu: Enter opens, Tab walks,
+Escape closes and returns focus, a click outside closes). Each option changes the page at once and can
+be turned off. The panel's "reset" returns its own options to their defaults and does not change the
+theme, which has its own toggle, and the panel links to the accessibility statement. "Stop animations"
+is read by the same hook as the system setting (CX-05), including the carousel and back to top, and the
+system setting still applies when the option is off. The button never intersects back to top or a
+visible toast, and on a phone it does not cover a form field or the critical controls of CX-04 criterion
+5b (measured the same way, at 320, 375 and 1440 px). Every option is checked at 320 and 1440 px on the
+pages of S3 in both themes, alone and together. The panel passes axe and is keyboard operable, the
+button is in the first page and the panel is a lazy chunk, the protocol of CX-06 is run on it, and the
+Hebrew text of the button and the labels is reviewed before it is built.
 
-**Tests.** For (a): the existing tests unchanged, and the one-off comparisons of S3. For (b): the contract
-test and the first-paint test of T5; the default-light test of T3 with `colorScheme: 'dark'`; unit tests for
-the store (defaults, bad data, storage failure) and for applying the choices; e2e for the toggle in the
-header and in the menu and for persistence across a reload; axe on every page in both themes;
-`npm run check:csp` and `e2e/csp.spec.ts` unchanged and green. **Manual.** The toggle at both widths; the
-menu entry with a screen reader; Dark on a real screen in a dim room, for what contrast numbers do not say.
+**Tests.** For (a): the existing tests unchanged, and the one-off comparisons of S3. For (b): the
+contract test and the first-paint test of T5; the default-light test of T3 with `colorScheme: 'dark'`;
+unit tests for the store (defaults, bad data, storage failure) and for applying the choices; e2e for the
+toggle in the header and in the menu and for persistence across a reload; axe on every page in both
+themes; `npm run check:csp` and `e2e/csp.spec.ts` unchanged and green. **Manual.** The toggle at both
+widths; the menu entry with a screen reader; Dark on a real screen in a dim room, for what contrast
+numbers do not say. For (c): unit tests for each option and for reset, e2e for each option and for
+persistence across a reload, the overlap assertions above, axe in both themes with the panel open, and
+the screen-reader record.
 
-**Depends on / affects.** CX-05 (the reduced-motion hook, for the panel), CX-06 (zoom results, for the panel's text size), CX-03 (the
-header room), and (b) on (a). `public/` (the script), `index.html`, `Header.tsx`, `MobileNav.tsx`,
-`index.css` and about 29 component files for the surface tokens, the entry module, a new feature folder,
-`PrivacyPage.tsx`, `docs/state-persistence.md`, `docs/accessibility.md`, the e2e axe helper. **Risks.** A
-token mapped to the wrong group in (a) (the evidence of S3 is the guard); the header overflowing at 768 px
-with a new button (T1); the early script and the store drifting apart (T5b); a cached old copy of the
-script after a change; a stored value that outlives a change of the options; dark colors that pass a number
-and still look wrong next to the light tiles.
+**Depends on / affects.** CX-05 (the reduced-motion hook, for the panel), CX-06 (zoom results, for the
+panel's text size), CX-03 (the header room), CX-04 (back to top shares the left edge of the screen with
+the panel's button), and (b) on (a) and (c) on (b). `public/` (the script), `index.html`, `Header.tsx`,
+`MobileNav.tsx`, `index.css` and about 29 component files for the surface tokens, the entry module, a
+new feature folder, `PrivacyPage.tsx`, `docs/state-persistence.md`, `docs/accessibility.md`, the e2e axe
+helper. **Risks.** A token mapped to the wrong group in (a) (the evidence of S3 is the guard); the
+header overflowing at 768 px with a new button (T1); the early script and the store drifting apart
+(T5b); a cached old copy of the script after a change; a stored value that outlives a change of the
+options; dark colors that pass a number and still look wrong next to the light tiles; the panel's button
+covering content or back to top on a phone.
 
 ### CX-08 A better home hero
 
 **Priority** P2: high visibility. **Batch** B7.
 
 **Current state.** **PARTIAL.** The home page puts the heading "חנות רכיבי מחשב", one sentence and a
-"לכל המוצרים" button in a row above the carousel (`HomePage.tsx`), and the carousel is eight image-only
-banners with no text of their own (`heroSlides.ts`). Live at 1440 px the carousel is 1,377 by 636 px and
+"לכל המוצרים" button in a row above the carousel (`HomePage.tsx`), and the carousel is ten image-only
+banners with no text of their own (`heroSlides.ts`; since PR #94 the Corsair banner is first, the AORUS
+banner is gone and three banners were added). Live at 1440 px the carousel is 1,377 by 636 px and
 carries the first screen. Live at 375 px it is **147 px high**, a thin strip under the heading and the
-button. A black frame was seen in screenshots during autoplay, once at 1440 px and
-once at 375 px. At 375 px only, the loading state was read: slides 5 to 8 had `complete: false` while
-hidden. The black frame is **VERIFIED**; the cause (a hidden slide's lazy image is not fetched until it
-is shown) is **UNVERIFIED**, a reading of the markup (`hidden` plus `loading="lazy"` in
-`HeroCarousel.tsx`).
+button. A black frame was seen in screenshots during autoplay, once at 1440 px and once at 375 px. At
+375 px only, before PR #94, the loading state was read: slides 5 to 8 (in the order of that time) had
+`complete: false` while hidden. The black frame is **VERIFIED**; the cause (a hidden slide's lazy image
+is not fetched until it is shown) is **UNVERIFIED**, a reading of the markup (`hidden` plus
+`loading="lazy"` in `HeroCarousel.tsx`).
 
 **User problem and outcome.** The first screen should say what the store is and give one clear next
-step, on a phone as well as on a desktop, and the carousel should not flash black.
+step, on a phone as well as on a desktop, the carousel should not flash black, and the slider should
+look professional and engaging.
 
 **Acceptance criteria**
 
@@ -864,11 +792,16 @@ step, on a phone as well as on a desktop, and the carousel should not flash blac
    and at 200% zoom.
 3. The heading stays the page's one `h1`, in the same honest voice (a demo store, no claim of deals,
    delivery or support). New Hebrew text is approved first.
-4. This item adds, replaces or removes no image asset.
+4. **Images.** The banner images are chosen and supplied by the owner (PR #94 replaced the first banner
+   and added three). This item does not create or choose images. It makes the slider look more
+   professional and engaging with the images it is given: for example a smooth transition between
+   banners (a plain change under reduced motion), a clear indicator of the current banner, comfortable
+   controls on a phone and no black flash between banners. Any change of the banner files is the
+   owner's.
 5. **If the redesign keeps a carousel** (removing it is a behavior change that needs the owner's explicit
    approval in the batch plan, and its tests are then replaced by tests of what replaces it):
    a. the next slide's image is fetched before it is shown, so no black frame appears, without loading
-   all eight eagerly; the first slide stays `eager` with high fetch priority;
+   all ten eagerly; the first slide stays `eager` with high fetch priority;
    b. autoplay, the pause button, pause on hover and on focus, reduced motion and the accessible names
    keep working as the existing tests require, using the hook of CX-05.
 6. **Baseline and comparison.** Before the first change, record the home page's Lighthouse results from
@@ -937,13 +870,14 @@ that is long on a phone.
 **Current state.** **PARTIAL.** `AboutPage.tsx` is accurate and honest: what the site is, a feature
 list, the stack and hosting, the cold-start note, the catalog notice. It is organized as a manual, not a
 story, and says nothing about how the project was built or tested. Its sentence "למיין לפי מחיר או שם"
-lists the sort orders and becomes incomplete when CX-02 lands (it stays true). The page description is in
+lists the sort orders that exist, and the program adds none (it stays true). The page description is in
 `infoPages.ts`, which `scripts/static-routes.mjs` copies into the static HTML. Material for a story
-exists in the repository: `docs/project/05-project-history.md` (Hebrew), `docs/project/07-engineering-process.md`,
-`docs/testing.md`, the 14 decision records, and the QA remediation report on the GitHub release
-`docs-v2.1` (listed on the Releases page, checked live; it is not linked from the page, decision 32). The documents under `docs/project/` and the two
-project books were written before the QA program; their release notes date the books to 2026-10-08. They
-may be out of date.
+exists in the repository: `docs/project/05-project-history.md` (Hebrew),
+`docs/project/07-engineering-process.md`, `docs/testing.md`, the 14 decision records, and the QA
+remediation report on the GitHub release `docs-v2.1` (listed on the Releases page, checked live; it is
+not linked from the page, decision 32). The documents under `docs/project/` and the two project books
+were written before the QA program; their release notes date the books to 2026-10-08. They may be out of
+date.
 
 **User problem and outcome.** The page tells a visitor who built this, why, with what, how it was
 developed and how it is tested, and that it is a demonstration, in a form that is pleasant to read.
@@ -1041,7 +975,7 @@ account is kept on the server") pins it.
 
 **User problem and outcome.** Signing up should feel friendly and low effort: see what you type, get
 clear help when something is wrong, never lose what you typed, and understand the demo without a wall of
-text.
+text, on a page that looks inviting.
 
 **Acceptance criteria**
 
@@ -1074,12 +1008,20 @@ text.
    rate limit. The vague sign-in error and the generic registration error stay as they are.
 10. The `h1`, landmarks, labels and the redirect behavior (`getRedirectTarget`, state kept through the
     link between the two pages) work as before; both pages stay lazy-loaded.
-11. **Screen reader.** The protocol of CX-06 is run on sign-in and on registration (labels, hints, an error
-    on each kind of field, the toggle's state, a server error, success) and recorded.
+11. **Screen reader.** The protocol of CX-06 is run on sign-in and on registration (labels, hints, an
+    error on each kind of field, the toggle's state, a server error, success) and recorded.
+12. **A livelier look** (owner request). The two pages become more inviting and impressive: a friendlier
+    composition, color and a small illustration (drawn in code, or supplied by the owner) within the
+    site's palette, in Light and Dark and on a phone. The look never reduces contrast (4.5:1 for text),
+    the size of the controls, the visibility of the demo notice or the clarity of the security cues, and
+    any new Hebrew text or image is approved by the owner first.
 
 **Out of scope on purpose.** A password strength meter (the policy has no composition rules and a meter
 would suggest one), "forgot password", email confirmation, social sign-in and account deletion (the
-earlier remediation program excluded them and the README lists them as limits).
+earlier remediation program excluded them and the README lists them as limits). Sign-in with Google,
+Facebook or the like is to be discussed with the owner later (see Deferred): it needs accounts with
+those providers, a server change, a privacy notice and its own security review, so it would be a
+separate item.
 
 **Tests.** Unit tests for the toggle (default hidden, reset after submit, state, no effect on the value),
 for focus on the first invalid field, for kept values and for the busy state; the existing
@@ -1215,15 +1157,15 @@ end to end, with the same protocol, and the statement of what was and was not ch
 
 **Scope: fixed flows, not an open audit.**
 
-| Flow | What it covers                                                                                                                                   |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| F1   | Browse and search: header search and suggestions, a brand link from the home page, the listing with a filter and the recommended sort, a product |
-| F2   | Cart: add (with the feedback of CX-05), change a quantity, favorites, back to top                                                                |
-| F3   | Register and sign in, including the toggle, errors and success                                                                                   |
-| F4   | Checkout with an error and then success, the order page                                                                                          |
-| F5   | The account menu, "my orders", sign out                                                                                                          |
-| F6   | The theme toggle in the header and in the mobile menu, persistence across a reload, and the panel's options if they shipped; reduced motion      |
-| F7   | The footer, About and Contact (the FAQ), and the hero with its controls                                                                          |
+| Flow | What it covers                                                                                                                                      |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1   | Browse and search: header search and suggestions, a brand link from the home page, the listing with a filter, a product                             |
+| F2   | Cart: add (with the feedback of CX-05), change a quantity, favorites, back to top                                                                   |
+| F3   | Register and sign in, including the toggle, errors and success                                                                                      |
+| F4   | Checkout with an error and then success, the order page                                                                                             |
+| F5   | The account menu, "my orders", sign out                                                                                                             |
+| F6   | The theme toggle in the header and in the mobile menu, persistence across a reload, the accessibility panel and each of its options; reduced motion |
+| F7   | The footer, About and Contact (the FAQ), and the hero with its controls                                                                             |
 
 **Acceptance criteria**
 
@@ -1245,32 +1187,36 @@ the review cannot grow without limit.
 
 ## Deferred and not proposed
 
-| Subject                                                  | Status       | Reason, and what would reopen it                                                                                                                                    |
-| -------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PWA                                                      | **Deferred** | Owner decision. Offline caching would also interact with the cart sync and the session; needs its own design                                                        |
-| PC Builder                                               | **Deferred** | Needs reliable component specifications and a credible compatibility model; the catalog has 31 products                                                             |
-| Product videos                                           | **Deferred** | Owner decision, until suitable assets and a performance-conscious approach exist                                                                                    |
-| Promotions and discounts                                 | **Deferred** | Owner decision. The Eilat price stays exactly as it is                                                                                                              |
-| Biggest-discount sort                                    | Not proposed | Excluded by the owner                                                                                                                                               |
-| Popularity or best sellers                               | Not proposed | Excluded by the owner; there is no sales data                                                                                                                       |
-| Contact form                                             | Not proposed | Excluded by the owner: there is nobody to answer it                                                                                                                 |
-| Following the system color scheme, or a third theme mode | Not proposed | Light is the default until the user explicitly chooses, and there are two themes only (decision 30 and the owner decisions after it); reopen only by a new decision |
-| Password strength meter                                  | Not proposed | The policy has no composition rules; a meter would imply some                                                                                                       |
-| Brand pages with content                                 | Not proposed | Brand links use the existing filtered listing; two brands have one product each                                                                                     |
-| ARIA combobox for search                                 | Not proposed | CX-06 records the decision; a move would be its own item                                                                                                            |
+| Subject                                                  | Status       | Reason, and what would reopen it                                                                                                                                                                                                                                                        |
+| -------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PWA                                                      | **Deferred** | Owner decision. Offline caching would also interact with the cart sync and the session; needs its own design                                                                                                                                                                            |
+| PC Builder                                               | **Deferred** | Needs reliable component specifications and a credible compatibility model; the catalog has 31 products                                                                                                                                                                                 |
+| Product videos                                           | **Deferred** | Owner decision, until suitable assets and a performance-conscious approach exist                                                                                                                                                                                                        |
+| Promotions and discounts                                 | **Deferred** | Owner decision. The Eilat price stays exactly as it is                                                                                                                                                                                                                                  |
+| Sort by recommended                                      | Withdrawn    | The owner withdrew it (2026-10-22). The API stays untouched, and `isRecommended` stays as data. Reopen only by a new decision                                                                                                                                                           |
+| Sign-in with Google, Facebook or similar                 | **Deferred** | To be discussed later. It needs accounts with the providers, a server change, a privacy notice and its own security review, so it would be a separate item                                                                                                                              |
+| Moving the API from Render to Vercel Serverless          | **Deferred** | The owner's intention for later; nothing is started. It needs its own design: how the Express app runs as functions, connections to MongoDB, what is kept in the server's memory (for example rate limits), the CORS and CSP address of the API, and the `check:api` step of the deploy |
+| Biggest-discount sort                                    | Not proposed | Excluded by the owner                                                                                                                                                                                                                                                                   |
+| Popularity or best sellers                               | Not proposed | Excluded by the owner; there is no sales data                                                                                                                                                                                                                                           |
+| Contact form                                             | Not proposed | Excluded by the owner: there is nobody to answer it                                                                                                                                                                                                                                     |
+| Following the system color scheme, or a third theme mode | Not proposed | Light is the default until the user explicitly chooses, and there are two themes only (decision 30 and the owner decisions after it); reopen only by a new decision                                                                                                                     |
+| Password strength meter                                  | Not proposed | The policy has no composition rules; a meter would imply some                                                                                                                                                                                                                           |
+| Brand pages with content                                 | Not proposed | Brand links use the existing filtered listing; two brands have one product each                                                                                                                                                                                                         |
+| ARIA combobox for search                                 | Not proposed | CX-06 records the decision; a move would be its own item                                                                                                                                                                                                                                |
 
 ## Open questions
 
-These need the owner's answer before the batch that depends on them. None blocks B1 or B2. The earlier
+These need the owner's answer before the batch that depends on them. None blocks B1 or B3. The earlier
 questions about the footer, the About page link, branch names, the budget ceilings, the delivery of
-CX-07 and the treatment of images in Dark are closed (decisions 31 to 34 and the owner decisions on
-CX-07).
+CX-07, the treatment of images in Dark, and the button and delivery of the accessibility panel are
+closed (decisions 31 to 34 and the owner decisions on CX-07).
 
-1. **The panel of display options (CX-07).** The theme is decided: a toggle in the header and in the
-   mobile menu. Still open: are text size, reduce motion, stronger contrast and underline links the
-   right options for a panel; where does the panel's own button sit, now that the header has the
-   toggle; and does the panel ship in the second pull request of CX-07 or in one of its own? The theme
-   does not wait for the answer.
+1. **The options of the accessibility panel (CX-07).** The button (floating, at the left edge) and the
+   delivery (a third pull request after the theme) are decided. Still open: are the options proposed in
+   the Controls table of CX-07 the right ones (text size, spacing, stronger contrast, grayscale, links,
+   stop animations, a large cursor, a stronger focus outline), and is it right to leave out voice
+   commands, a screen-reader mode and "smart navigation"? The panel waits for the answer; the theme does
+   not.
 
 ## What remains unverified
 
@@ -1290,7 +1236,7 @@ CX-07).
 | Frame-by-frame paint with the early theme script, and other browsers                                                       | The scratch experiment read computed styles and paint entries in Chromium 1243 only; it is not a recording, and Firefox and WebKit were not run                                                                                                                              |
 | How long GitHub Pages caches an unhashed file such as the early script                                                     | Not checked                                                                                                                                                                                                                                                                  |
 | The dark palette: its contrast, and how the light tiles of pictures and logos, and the banners, look next to dark surfaces | No design exists yet                                                                                                                                                                                                                                                         |
-| What the listing shows when the API answers `400`                                                                          | Not inspected; the rollout of CX-02 is designed so that the case does not arise                                                                                                                                                                                              |
+| How the accessibility panel's floating button sits on a phone, next to back to top, the toast and the form buttons         | No design exists yet                                                                                                                                                                                                                                                         |
 | Eilat in `scripts/`, in the static pages and in any search-engine output                                                   | Only the source of `src/` and `server/src` was searched                                                                                                                                                                                                                      |
 
 ## Revision notes
@@ -1330,3 +1276,13 @@ CX-07).
   frame are stated to be outside the light-tile decision (CX-07, decisions table, S1, T6); whether the
   panel ships in the second pull request of CX-07 or alone is left to open question 1; the note on the
   scratch prototype states its limits.
+- **2026-10-22, owner decisions after the first reading.** CX-02 (sort by recommended) is withdrawn,
+  with batch B2 and its API work, so the program no longer changes the API; the other numbers are kept.
+  CX-05 explains what "less motion" means. CX-08: the banner images are the owner's (PR #94 replaced the
+  first banner and added three, ten in all) and the slider is to look more professional and engaging.
+  CX-12 asks for a livelier look, and sign-in with Google or Facebook is deferred for discussion. The
+  display-preferences panel of CX-07 became an accessibility panel: a floating button at the left edge
+  that opens a side panel, in a third pull request after the theme; its options are proposed and wait
+  for the owner (open question 1). A later move of the API from Render to Vercel Serverless is recorded
+  as deferred. The budget ledger was measured again on `main` at `78b0fd5` (JavaScript 139.0 KiB, CSS
+  7.9 KiB).
