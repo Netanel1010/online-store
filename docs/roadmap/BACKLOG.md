@@ -173,17 +173,17 @@ then-current `main` again with `npm run check:bundle`, reports it before and aft
 the numbers, if it needs more than its ceiling; the owner decides. The unallocated room is a reserve for
 what nobody foresaw.
 
-| Item                                                                                                                               | JS ceiling   | CSS ceiling |
-| ---------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------- |
-| CX-01 brand links                                                                                                                  | 0.3 KiB      | 0.1 KiB     |
-| CX-03 search field                                                                                                                 | 0.1 KiB      | 0.1 KiB     |
-| CX-04 back to top                                                                                                                  | 1.0 KiB      | 0.3 KiB     |
-| CX-05 motion, feedback, busy state                                                                                                 | 3.0 KiB      | 1.0 KiB     |
-| CX-07 theme and panel, all three pull requests (toggle, store, early script, tokens, the panel's button; the panel itself is lazy) | 2.0 KiB      | 1.5 KiB     |
-| CX-08 hero                                                                                                                         | 1.5 KiB      | 1.0 KiB     |
-| CX-09 footer (it is on every page, so it is in the first page)                                                                     | 1.5 KiB      | 0.8 KiB     |
-| **Allocated**                                                                                                                      | **9.4 KiB**  | **4.8 KiB** |
-| **Reserve**                                                                                                                        | **11.6 KiB** | **3.3 KiB** |
+| Item                                                                                                                               | JS ceiling   | CSS ceiling | Actual (JS / CSS)                  |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------- | ---------------------------------- |
+| CX-01 brand links                                                                                                                  | 0.3 KiB      | 0.1 KiB     | +0.08 / +0.06 KiB, with CX-03 (B1) |
+| CX-03 search field                                                                                                                 | 0.1 KiB      | 0.1 KiB     | in the figure above                |
+| CX-04 back to top                                                                                                                  | 1.0 KiB      | 0.3 KiB     | not yet                            |
+| CX-05 motion, feedback, busy state                                                                                                 | 3.0 KiB      | 1.0 KiB     | not yet                            |
+| CX-07 theme and panel, all three pull requests (toggle, store, early script, tokens, the panel's button; the panel itself is lazy) | 2.0 KiB      | 1.5 KiB     | not yet                            |
+| CX-08 hero                                                                                                                         | 1.5 KiB      | 1.0 KiB     | not yet                            |
+| CX-09 footer (it is on every page, so it is in the first page)                                                                     | 1.5 KiB      | 0.8 KiB     | not yet                            |
+| **Allocated**                                                                                                                      | **9.4 KiB**  | **4.8 KiB** |                                    |
+| **Reserve**                                                                                                                        | **11.6 KiB** | **3.3 KiB** |                                    |
 
 Progress is recorded in this table as each batch lands (an "actual" column added by the pull request
 that spends the room).
@@ -1286,3 +1286,11 @@ closed (decisions 31 to 34 and the owner decisions on CX-07).
   for the owner (open question 1). A later move of the API from Render to Vercel Serverless is recorded
   as deferred. The budget ledger was measured again on `main` at `78b0fd5` (JavaScript 139.0 KiB, CSS
   7.9 KiB).
+- **2026-10-30, B1 delivered (CX-01 and CX-03).** The brand logos are links to the listing of each
+  brand, and the desktop search field is 520 px wide from 1280 px (Tailwind `xl`) and keeps 448 px
+  below it: measured from the layout, at 1024 px only about 505 px are free, so a 520 px field would
+  leave 16 px before the icons, under the 24 px the header keeps, and the pictures of the suggestions
+  are 48 px from 768 px (the phone menu keeps 40 px). CX-07 is measured against this header. The
+  first page after B1, built from `main` at `c7c0efe` with the branch on top, is 142,456 bytes of
+  JavaScript (139.1 KiB) and 8,112 bytes of CSS (7.9 KiB) gzipped, from 142,374 and 8,047 bytes: +82
+  and +65 bytes for the two items together, inside each item's own ceiling.
