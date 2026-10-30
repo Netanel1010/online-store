@@ -71,7 +71,12 @@ jobs:
     timeout-minutes: 15
     services:
       mongo:
-        image: mongo:8.0
+        # A temporary experiment: 8.0.32 is the build that `mongo:8.0` pointed to until 2026-10-27, when
+        # the tag moved to 8.0.34. Every run since then failed in "Initialize containers" ("Failed to
+        # initialize container mongo:8.0"), also on ubuntu-24.04, and the runs before it passed (two
+        # earlier failures, on 2026-10-19 and 2026-10-21, happened on 8.0.32, and a re-run passed). The
+        # cause is not confirmed. Go back to `mongo:8.0` once it is known.
+        image: mongo:8.0.32
         ports:
           - 27017:27017
         options: >-
