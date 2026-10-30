@@ -198,7 +198,7 @@ export function SearchForm({ className = 'flex' }: { className?: string }) {
                   {...IMAGE_SIZE.productPicture}
                   loading="lazy"
                   decoding="async"
-                  className="size-10 shrink-0 rounded-md border border-line bg-white object-contain p-0.5"
+                  className="size-10 shrink-0 rounded-md border border-line bg-white object-contain p-0.5 md:size-12"
                 />
                 <span className="min-w-0 flex-1">
                   <span className="line-clamp-2 text-sm font-semibold">{product.name}</span>

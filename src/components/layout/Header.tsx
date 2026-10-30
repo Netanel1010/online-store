@@ -54,7 +54,9 @@ export function Header() {
           </ul>
         </nav>
 
-        <SearchForm className="hidden max-w-md flex-1 md:flex" />
+        {/* 448px, and 520px from the `xl` breakpoint (1280px): at 1024px there is room for only about
+            505px, and a field that took all of it would leave under 24px before the icons. */}
+        <SearchForm className="hidden max-w-md flex-1 md:flex xl:max-w-[520px]" />
 
         <div className="ms-auto flex items-center gap-1">
           {/* On small screens the search box lives in the menu: this opens it with the box ready. */}
