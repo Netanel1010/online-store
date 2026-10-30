@@ -67,7 +67,13 @@ jobs:
   # dependency of the project). Nothing here can reach the production database: its address is not
   # a secret of this workflow, and the tests only use databases named online_store_test_<random>.
   integration:
-    runs-on: ubuntu-latest
+    # Ubuntu 22.04 for now. The newer runner images (ubuntu-24.04 from version 20261018.339.1, and
+    # 26.04) have Linux kernel 7.0, and MongoDB 8.0 (up to 8.0.34) refuses to start on a kernel from
+    # 6.19 on: its check reads `uname -r` (SERVER-121912, fixed by SERVER-131779), so "Initialize
+    # containers" fails with "Failed to initialize container mongo:8.0" (actions/runner-images#15005).
+    # The fix is in MongoDB 8.0.35, which was not published on 2026-10-30. Go back to `ubuntu-latest`
+    # once `mongo:8.0` is 8.0.35 or newer.
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     services:
       mongo:
