@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { catalog, SOCKET_LABEL, specValue } from './support/catalog'
+import { BRAND_NAMES, catalog, SOCKET_LABEL, specValue } from './support/catalog'
 import { cardNames } from './support/helpers'
 import { expect, test } from './support/test'
 
@@ -292,5 +292,42 @@ test.describe('URL-driven state', () => {
     const params = new URL(page.url()).searchParams
     expect([...params.keys()].sort()).toEqual(['brand', `s.${SOCKET_LABEL}`])
     expect(params.getAll(`s.${SOCKET_LABEL}`)).toEqual(['LGA 1851'])
+  })
+})
+
+test.describe('brand links on the home page', () => {
+  const brandLinks = (page: Page) => page.getByRole('region', { name: 'מותגים' }).getByRole('link')
+
+  test('each one opens the listing with that one brand checked', async ({ page }) => {
+    await page.goto('')
+    // The links are counted from the page, so a brand added to the strip is covered as well.
+    const total = await brandLinks(page).count()
+    expect(total).toBe(Object.keys(BRAND_NAMES).length)
+
+    for (let index = 0; index < total; index++) {
+      await page.goto('')
+      const link = brandLinks(page).nth(index)
+      const brand = (await link.getAttribute('aria-label'))!.replace('מוצרי ', '')
+      await link.click()
+
+      const checked = brandGroup(page).getByRole('checkbox', { checked: true })
+      await expect(checked, brand).toHaveCount(1)
+      await expect(checked, brand).toHaveAccessibleName(new RegExp(brand))
+    }
+  })
+
+  test('a link and the brand checkbox write the same URL', async ({ page }) => {
+    await page.goto('products')
+    await brandGroup(page).getByRole('checkbox', { name: /Intel/ }).click()
+    await expect(page).toHaveURL(/\?brand=intel$/)
+    const written = new URL(page.url())
+
+    await page.goto('')
+    const link = brandLinks(page).and(page.getByRole('link', { name: 'מוצרי Intel', exact: true }))
+    const linked = new URL((await link.getAttribute('href'))!, page.url())
+    const withoutSlash = (path: string) => path.replace(/\/$/, '')
+
+    expect(withoutSlash(linked.pathname)).toBe(withoutSlash(written.pathname))
+    expect(linked.search).toBe(written.search)
   })
 })
