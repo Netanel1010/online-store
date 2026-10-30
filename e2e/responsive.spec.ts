@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test'
 import { productById } from './support/catalog'
+import { measureHeader, type HeaderMeasure } from './support/headerMeasure'
 import { accountButton, expectSignedIn, header, newAccount, register } from './support/helpers'
 import { expect, test } from './support/test'
 
@@ -204,4 +205,69 @@ test.describe('the header of a signed-in visitor on a desktop', () => {
       }
     })
   }
+})
+
+// CX-03: the desktop search field is wider, and the header around it still has room. Everything
+// here is measured from the layout (see support/headerMeasure.ts), signed out and signed in.
+const SEARCH_WIDTHS = [768, 1024, 1279, 1280, 1366, 1440, 1920]
+/** The field before CX-03: capped at 448px; at 768px the room, not the cap, set its width. */
+const OLD_LIMIT = 448
+const OLD_WIDTH_AT_768 = { out: 262.8, in: 249.5 }
+const NEW_LIMIT = 520
+/** Tailwind's `xl` breakpoint (80rem): where the field becomes 520px. */
+const WIDE = 1280
+/** The clear space the field keeps from the icons after it; at 768px the header has always had 16px. */
+const MIN_GAP = 24
+const GAP_AT_768 = 16
+
+function expectSearchLayout(m: HeaderMeasure, state: 'out' | 'in') {
+  const where = `${state === 'out' ? 'signed out' : 'signed in'}, ${m.viewport}px`
+  const room = m.viewport === 768 ? GAP_AT_768 : MIN_GAP
+
+  // a. Space between the field and the icons after it.
+  expect(m.gapToIcons, `${where}: space before the icons`).toBeGreaterThanOrEqual(room - 0.5)
+  // b. Nothing overlaps, and the navigation keeps its distance from the field.
+  expect(m.overlaps, `${where}: overlapping controls`).toEqual([])
+  expect(m.gapToNav, `${where}: space after the navigation`).toBeGreaterThanOrEqual(
+    GAP_AT_768 - 0.5,
+  )
+  // c. Everything sits on the middle of the 64px row.
+  expect(m.offAxis, `${where}: off the middle line`).toBeLessThanOrEqual(1)
+  // d. Everything is inside the screen.
+  expect(m.outside, `${where}: outside the screen`).toEqual([])
+  expect(m.scrollsSideways, `${where}: the page scrolls sideways`).toBe(false)
+  // e. The width of the field.
+  if (m.viewport === 768) {
+    expect(m.form.width, `${where}: field width`).toBeCloseTo(OLD_WIDTH_AT_768[state], 0)
+  } else if (m.viewport >= WIDE) {
+    // From the `xl` breakpoint (1280px) the field is 520px.
+    expect(
+      Math.abs(m.form.width - NEW_LIMIT),
+      `${where}: field width ${m.form.width}`,
+    ).toBeLessThanOrEqual(2)
+  } else {
+    // Below it the field keeps its old 448px: at 1024px the room is only about 505px, and a field
+    // that took all of it would leave less than MIN_GAP before the icons.
+    expect(m.form.width, `${where}: field width`).toBeCloseTo(OLD_LIMIT, 0)
+  }
+}
+
+test.describe('the search field and the header around it', () => {
+  test('signed out, at every desktop width', async ({ page }) => {
+    await page.goto('')
+    for (const width of SEARCH_WIDTHS) {
+      await page.setViewportSize({ width, height: 900 })
+      expectSearchLayout(await measureHeader(page), 'out')
+    }
+  })
+
+  test('signed in, at every desktop width', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await register(page, newAccount())
+    await expectSignedIn(page)
+    for (const width of SEARCH_WIDTHS) {
+      await page.setViewportSize({ width, height: 900 })
+      expectSearchLayout(await measureHeader(page), 'in')
+    }
+  })
 })

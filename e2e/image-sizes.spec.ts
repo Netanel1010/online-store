@@ -140,8 +140,13 @@ test.describe('space is reserved before the pictures arrive', () => {
 
     try {
       await page.goto('', { waitUntil: 'commit' })
-      const brands = page.getByRole('list').filter({ has: page.getByRole('img', { name: 'AMD' }) })
-      await expect(brands.getByRole('img')).toHaveCount(7)
+      // The logos are links now, with a decorative image inside each (alt=""), so the strip is found by
+      // its AMD link. This counts every <img> of the list, decorative ones included, and the links too.
+      const brands = page
+        .getByRole('list')
+        .filter({ has: page.getByRole('link', { name: 'מוצרי AMD', exact: true }) })
+      await expect(brands.getByRole('link')).toHaveCount(7)
+      await expect(brands.locator('img')).toHaveCount(7)
 
       const shapes = await page.evaluate(() =>
         [...document.querySelectorAll('img')]

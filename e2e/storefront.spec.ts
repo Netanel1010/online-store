@@ -1,4 +1,5 @@
-import { catalog, PSU } from './support/catalog'
+import type { Page } from '@playwright/test'
+import { BRAND_NAMES, catalog, PSU } from './support/catalog'
 import { header } from './support/helpers'
 import { expect, test } from './support/test'
 
@@ -331,4 +332,122 @@ test.describe('direct and deep routes under /online-store/', () => {
     await page.goto('category/no-such-category')
     await expect(page.getByRole('heading', { level: 1, name: 'הדף לא נמצא' })).toBeVisible()
   })
+})
+
+const brandStrip = (page: Page) => page.getByRole('region', { name: 'מותגים' })
+const brandLinks = (page: Page) => brandStrip(page).getByRole('link')
+
+test.describe('home page brand links', () => {
+  test('each brand is one link with one name, and its logo is not announced as well', async ({
+    page,
+  }) => {
+    await page.goto('')
+
+    await expect(brandLinks(page)).toHaveCount(Object.keys(BRAND_NAMES).length)
+    for (const name of Object.values(BRAND_NAMES)) {
+      const link = brandStrip(page).getByRole('link', { name: `מוצרי ${name}`, exact: true })
+      await expect(link).toHaveCount(1)
+      // The logo inside is decorative: not an image in the accessibility tree, and not a name.
+      await expect(link.getByRole('img')).toHaveCount(0)
+      await expect(link.locator('img')).toHaveAttribute('alt', '')
+    }
+  })
+
+  // The strip wraps onto several rows on a phone and keeps one row on a desktop, and the page is
+  // right to left. The order Tab takes has to be the order the eye reads: row by row, each row from
+  // the right. That order is computed from where the links really are, not from the markup.
+  for (const { width, height, rows } of [
+    { width: 1440, height: 900, rows: 'one' },
+    { width: 375, height: 812, rows: 'several' },
+    { width: 320, height: 568, rows: 'several' },
+  ] as const) {
+    test(`Tab follows the visual order of the logos at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await page.goto('')
+      const links = brandLinks(page)
+      await expect(links).toHaveCount(Object.keys(BRAND_NAMES).length)
+      expect(await brandStrip(page).evaluate((el) => getComputedStyle(el).direction)).toBe('rtl')
+
+      const placed = await links.evaluateAll((elements) =>
+        elements.map((element) => {
+          const box = element.getBoundingClientRect()
+          return {
+            name: element.getAttribute('aria-label')!,
+            x: box.x,
+            centerY: box.y + box.height / 2,
+          }
+        }),
+      )
+      const lines: { centerY: number; items: typeof placed }[] = []
+      for (const item of [...placed].sort((a, b) => a.centerY - b.centerY)) {
+        const line = lines.find((candidate) => Math.abs(candidate.centerY - item.centerY) <= 8)
+        if (line) line.items.push(item)
+        else lines.push({ centerY: item.centerY, items: [item] })
+      }
+      // Top row first; inside a row, the right-most logo first.
+      const visualOrder = lines.flatMap((line) =>
+        [...line.items].sort((a, b) => b.x - a.x).map((item) => item.name),
+      )
+      // Not vacuous: the layout really has the rows this case is about.
+      if (rows === 'one') expect(lines).toHaveLength(1)
+      else expect(lines.length).toBeGreaterThanOrEqual(2)
+      expect(visualOrder).toHaveLength(Object.keys(BRAND_NAMES).length)
+
+      await links.first().focus()
+      const tabOrder: string[] = []
+      for (let step = 0; step < visualOrder.length; step++) {
+        const focused = page.locator(':focus')
+        tabOrder.push((await focused.getAttribute('aria-label'))!)
+        // A visible ring, drawn by the keyboard focus.
+        await expect(focused).toHaveCSS('outline-width', '2px')
+        if (step < visualOrder.length - 1) await page.keyboard.press('Tab')
+      }
+      expect(tabOrder).toEqual(visualOrder)
+
+      await page.keyboard.press('Shift+Tab')
+      await expect(page.locator(':focus')).toHaveAttribute(
+        'aria-label',
+        visualOrder[visualOrder.length - 2]!,
+      )
+    })
+  }
+
+  test('on the narrowest phone the strip does not scroll sideways and each link is big enough', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 568 })
+    await page.goto('')
+
+    await expect(brandLinks(page)).toHaveCount(Object.keys(BRAND_NAMES).length)
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
+      'the page scrolls sideways',
+    ).toBe(false)
+    for (const link of await brandLinks(page).all()) {
+      const box = (await link.boundingBox())!
+      const name = (await link.getAttribute('aria-label')) ?? ''
+      expect(box.width, name).toBeGreaterThanOrEqual(24)
+      expect(box.height, name).toBeGreaterThanOrEqual(24)
+    }
+  })
+
+  // ASUS and Samsung have one product each: a listing of one product is not an error or an empty state.
+  for (const id of ['asus', 'samsung']) {
+    test(`${BRAND_NAMES[id]} opens a listing of its single product`, async ({ page }) => {
+      const brand = BRAND_NAMES[id]!
+      const products = catalog.filter((product) => product.brand === id)
+      expect(products).toHaveLength(1)
+      await page.goto('')
+
+      await brandStrip(page)
+        .getByRole('link', { name: `מוצרי ${brand}`, exact: true })
+        .click()
+
+      await expect(page).toHaveURL(new RegExp(`/online-store/products/?[?]brand=${id}$`))
+      await expect(page.getByRole('button', { name: `הסרת מסנן מותג: ${brand}` })).toBeVisible()
+      await expect(page.getByRole('article')).toHaveCount(1)
+      await expect(page.getByRole('article')).toContainText(products[0]!.name)
+      await expect(page.getByText(/לא נמצאו מוצרים|אין מוצרים להצגה/)).toHaveCount(0)
+    })
+  }
 })
