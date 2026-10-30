@@ -67,7 +67,13 @@ jobs:
   # dependency of the project). Nothing here can reach the production database: its address is not
   # a secret of this workflow, and the tests only use databases named online_store_test_<random>.
   integration:
-    runs-on: ubuntu-latest
+    # Pinned to Ubuntu 24.04 while `ubuntu-latest` moves to 26.04 (GitHub rolls it out between
+    # 2026-10-19 and 2026-11-19). From 2026-10-19 this job sometimes failed to start its MongoDB
+    # service container ("Failed to initialize container mongo:8.0"), twice also on a re-run; it had
+    # not failed in the ~35 runs before. The cause is not confirmed, so this pins the one job that
+    # uses a container and leaves the others on `ubuntu-latest`. Go back to `ubuntu-latest` once the
+    # cause is known or the rollout is done.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
       mongo:
