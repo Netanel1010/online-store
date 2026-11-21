@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { expectNoAxeViolations } from './support/a11y'
 import { catalog, productById } from './support/catalog'
 import { header } from './support/helpers'
@@ -183,5 +183,79 @@ test.describe('the focus after choosing a suggestion', () => {
       page.getByRole('heading', { level: 1, name: 'תוצאות חיפוש עבור “intel”' }),
     ).toBeVisible()
     await expect(page.locator('main')).toBeFocused()
+  })
+})
+
+// The picture of each suggestion is 48px in the header from 768px and 40px in the menu of a phone.
+const pictureSizes = (list: Locator) =>
+  list
+    .getByRole('option')
+    .locator('img')
+    .evaluateAll((images) =>
+      images.map((image) => {
+        const box = image.getBoundingClientRect()
+        return `${Math.round(box.width)}x${Math.round(box.height)}`
+      }),
+    )
+
+test.describe('the size of the pictures in the suggestions', () => {
+  for (const width of [768, 1440]) {
+    test(`are 48px in the header search at ${width}px, in a list as wide as the field`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('')
+      await searchBox(page).pressSequentially('4070')
+      await expect(suggestions(page).getByRole('option').first()).toBeVisible()
+
+      const sizes = await pictureSizes(suggestions(page))
+      expect(sizes.length).toBeGreaterThan(0)
+      expect(new Set(sizes)).toEqual(new Set(['48x48']))
+      const list = (await suggestions(page).boundingBox())!
+      const form = (await header(page).getByRole('search').boundingBox())!
+      expect(Math.abs(list.width - form.width)).toBeLessThanOrEqual(1)
+    })
+  }
+
+  for (const width of [375, 767]) {
+    test(`stay 40px in the menu of a phone at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 812 })
+      await page.goto('')
+      // The search of the header is not shown here: the box is the one in the menu.
+      await expect(page.locator('header > div > form[role="search"]')).toBeHidden()
+      await page.getByRole('button', { name: 'פתיחת חיפוש' }).click()
+      const menu = page.getByRole('dialog')
+      await menu.getByRole('searchbox').pressSequentially('4070')
+      const list = menu.getByRole('listbox', { name: 'הצעות לחיפוש' })
+      await expect(list.getByRole('option').first()).toBeVisible()
+
+      const sizes = await pictureSizes(list)
+      expect(sizes.length).toBeGreaterThan(0)
+      expect(new Set(sizes)).toEqual(new Set(['40x40']))
+    })
+  }
+
+  // The one way a menu can be seen at 768px or more: it was opened on a phone and the window then
+  // widened. Its pictures follow the breakpoint, and the menu still holds them.
+  test('a menu left open while the window widens still contains its list', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('')
+    await page.getByRole('button', { name: 'פתיחת חיפוש' }).click()
+    const menu = page.getByRole('dialog')
+    await menu.getByRole('searchbox').pressSequentially('4070')
+    await expect(menu.getByRole('option').first()).toBeVisible()
+
+    await page.setViewportSize({ width: 1024, height: 812 })
+
+    const frame = (await menu.boundingBox())!
+    for (const option of await menu.getByRole('option').all()) {
+      const box = (await option.boundingBox())!
+      expect(box.x).toBeGreaterThanOrEqual(frame.x - 0.5)
+      expect(box.x + box.width).toBeLessThanOrEqual(frame.x + frame.width + 0.5)
+    }
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
+      'the page scrolls sideways',
+    ).toBe(false)
   })
 })
