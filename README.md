@@ -7,10 +7,13 @@
 **A Hebrew RTL store for PC components, built like a production system.**<br>
 A React frontend, an Express API, a real database, and a pipeline that only ships what has passed.
 
-[![CI](https://github.com/Netanel1010/online-store/actions/workflows/ci.yml/badge.svg)](https://github.com/Netanel1010/online-store/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-4%2C916-brightgreen)
-![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <a href="https://github.com/Netanel1010/online-store/actions/workflows/ci.yml"><img src="https://github.com/Netanel1010/online-store/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/tests-4%2C916-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white" alt="TypeScript strict">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://komarev.com/ghpvc/?username=Netanel1010&label=Profile%20views&color=0e75b6&style=flat" alt="Profile views">
+</p>
 
 [🚀 **Live demo**](https://netanel1010.github.io/online-store/) ·
 [🌐 Second site (Netlify)](https://online-store-netanel.netlify.app/) ·
